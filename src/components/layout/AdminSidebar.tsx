@@ -19,6 +19,7 @@ import {
   Megaphone,
   Settings,
   ClipboardList,
+  BarChart3,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -68,6 +69,17 @@ const adminNavItems: NavItem[] = [
   },
   { title: "Documents", href: "/admin/documents", icon: FileText },
   { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
+  {
+    title: "Reports",
+    icon: BarChart3,
+    children: [
+      { title: "Overview", href: "/admin/reports" },
+      { title: "Employee", href: "/admin/reports/employee" },
+      { title: "Attendance", href: "/admin/reports/attendance" },
+      { title: "Leave", href: "/admin/reports/leave" },
+      { title: "Payroll", href: "/admin/reports/payroll" },
+    ],
+  },
   {
     title: "Settings",
     icon: Settings,
