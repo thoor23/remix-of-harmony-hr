@@ -34,6 +34,7 @@ import ShiftList from "./pages/admin/shifts/ShiftList";
 import ShiftAssignments from "./pages/admin/shifts/ShiftAssignments";
 import ShiftRotations from "./pages/admin/shifts/ShiftRotations";
 import ShiftCalendar from "./pages/admin/shifts/ShiftCalendar";
+import ShiftExchange from "./pages/admin/shifts/ShiftExchange";
 
 // Employee Pages
 import EmployeeLogin from "./pages/employee/Login";
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="shifts" element={<ShiftList />} />
             <Route path="shifts/assignments" element={<ShiftAssignments />} />
             <Route path="shifts/rotations" element={<ShiftRotations />} />
+            <Route path="shifts/exchange" element={<ShiftExchange />} />
             <Route path="shifts/calendar" element={<ShiftCalendar />} />
             <Route path="settings/*" element={<SettingsPage />} />
           </Route>

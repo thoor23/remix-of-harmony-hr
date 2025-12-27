@@ -67,6 +67,7 @@ const adminNavItems: NavItem[] = [
       { title: "All Shifts", href: "/admin/shifts" },
       { title: "Assignments", href: "/admin/shifts/assignments" },
       { title: "Rotations", href: "/admin/shifts/rotations" },
+      { title: "Exchange Requests", href: "/admin/shifts/exchange" },
       { title: "Calendar", href: "/admin/shifts/calendar" },
     ],
   },
