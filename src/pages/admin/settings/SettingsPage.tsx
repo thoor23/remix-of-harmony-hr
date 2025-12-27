@@ -991,14 +991,14 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={desForm.departmentId}
-                onValueChange={(value) => setDesForm(prev => ({ ...prev, departmentId: value }))}
+                value={desForm.departmentId || "_all"}
+                onValueChange={(value) => setDesForm(prev => ({ ...prev, departmentId: value === "_all" ? "" : value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="_all">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
