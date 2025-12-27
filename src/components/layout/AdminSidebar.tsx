@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Collapsible,
   CollapsibleContent,
@@ -113,6 +119,13 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>(["Employees", "Leave Management"]);
 
+  // Close all open items when sidebar is collapsed
+  useEffect(() => {
+    if (collapsed) {
+      setOpenItems([]);
+    }
+  }, [collapsed]);
+
   const toggleItem = (title: string) => {
     setOpenItems((prev) =>
       prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
@@ -142,26 +155,33 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
-        <nav className="px-2 space-y-1">
-          {adminNavItems.map((item) => {
-            if (item.children) {
+        <TooltipProvider delayDuration={0}>
+          <nav className="px-2 space-y-1">
+            {adminNavItems.map((item) => {
+              if (item.children) {
               const isOpen = openItems.includes(item.title);
               const hasActiveChild = isChildActive(item.children);
 
               if (collapsed) {
                 return (
-                  <Link
-                    key={item.title}
-                    to={item.children[0].href}
-                    className={cn(
-                      "flex items-center justify-center h-10 w-full rounded-md transition-colors",
-                      hasActiveChild
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                  </Link>
+                  <Tooltip key={item.title}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={item.children[0].href}
+                        className={cn(
+                          "flex items-center justify-center h-10 w-full rounded-md transition-colors",
+                          hasActiveChild
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{item.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               }
 
@@ -214,18 +234,24 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
 
             if (collapsed) {
               return (
-                <Link
-                  key={item.title}
-                  to={item.href!}
-                  className={cn(
-                    "flex items-center justify-center h-10 w-full rounded-md transition-colors",
-                    isActive(item.href!)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                </Link>
+                <Tooltip key={item.title}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={item.href!}
+                      className={cn(
+                        "flex items-center justify-center h-10 w-full rounded-md transition-colors",
+                        isActive(item.href!)
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{item.title}</p>
+                  </TooltipContent>
+                </Tooltip>
               );
             }
 
@@ -244,8 +270,9 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
                 {item.title}
               </Link>
             );
-          })}
-        </nav>
+            })}
+          </nav>
+        </TooltipProvider>
       </ScrollArea>
 
       {/* Footer */}
