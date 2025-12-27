@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { StatCard } from "@/components/shared/StatCard";
-import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeftRight,
   Plus,
@@ -43,10 +43,16 @@ import {
   Ban,
   Calendar,
 } from "lucide-react";
-import { defaultShiftExchanges, defaultShiftAssignments, defaultShifts } from "@/data/settingsData";
-import type { ShiftExchangeRequest } from "@/types/settings";
+import {
+  useShiftExchangeRequests,
+  useCreateShiftExchangeRequest,
+  useUpdateShiftExchangeRequest,
+  type ShiftExchangeRequest,
+} from "@/hooks/useShiftExchange";
+import { useShiftAssignments, useShifts } from "@/hooks/useShifts";
+import { useEmployees } from "@/hooks/useEmployees";
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-amber-500/10 text-amber-600 border-amber-200" },
   approved: { label: "Approved", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 border-emerald-200" },
   rejected: { label: "Rejected", icon: XCircle, className: "bg-red-500/10 text-red-600 border-red-200" },
@@ -54,8 +60,13 @@ const statusConfig = {
 };
 
 export default function ShiftExchange() {
-  const { toast } = useToast();
-  const [exchanges, setExchanges] = useState<ShiftExchangeRequest[]>(defaultShiftExchanges);
+  const { data: exchanges = [], isLoading } = useShiftExchangeRequests();
+  const { data: shiftAssignments = [] } = useShiftAssignments();
+  const { data: shifts = [] } = useShifts();
+  const { data: employees = [] } = useEmployees();
+  const createExchange = useCreateShiftExchangeRequest();
+  const updateExchange = useUpdateShiftExchangeRequest();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -73,10 +84,21 @@ export default function ShiftExchange() {
     reason: "",
   });
 
+  // Helper to get employee name
+  const getEmployeeName = (exchange: ShiftExchangeRequest, type: "requester" | "target") => {
+    const emp = type === "requester" ? exchange.requester : exchange.target_employee;
+    if (emp?.profile?.first_name || emp?.profile?.last_name) {
+      return `${emp.profile.first_name || ""} ${emp.profile.last_name || ""}`.trim();
+    }
+    return emp?.employee_id || "Unknown";
+  };
+
   const filteredExchanges = exchanges.filter((exchange) => {
+    const requesterName = getEmployeeName(exchange, "requester");
+    const targetName = getEmployeeName(exchange, "target");
     const matchesSearch =
-      exchange.requesterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exchange.targetEmployeeName.toLowerCase().includes(searchQuery.toLowerCase());
+      requesterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      targetName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || exchange.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -88,73 +110,74 @@ export default function ShiftExchange() {
     rejected: exchanges.filter((e) => e.status === "rejected").length,
   };
 
-  const getAssignment = (employeeId: string) => {
-    return defaultShiftAssignments.find((a) => a.employeeId === employeeId);
+  // Get shift assignment for an employee
+  const getEmployeeAssignment = (employeeId: string) => {
+    return shiftAssignments.find((a) => a.employee_id === employeeId && a.is_active);
   };
 
+  // Get shift by id
   const getShift = (shiftId: string) => {
-    return defaultShifts.find((s) => s.id === shiftId);
+    return shifts.find((s) => s.id === shiftId);
   };
+
+  // Get available employees with their shifts
+  const employeesWithShifts = employees.map((emp) => {
+    const assignment = getEmployeeAssignment(emp.id);
+    const shift = assignment ? getShift(assignment.shift_id) : null;
+    const name = emp.profile?.first_name || emp.profile?.last_name
+      ? `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim()
+      : emp.employee_id;
+    return {
+      id: emp.id,
+      name,
+      shiftId: shift?.id,
+      shiftName: shift?.name || "No Shift",
+    };
+  }).filter((e) => e.shiftId);
 
   const handleCreateExchange = () => {
-    const requesterAssignment = getAssignment(formData.requesterId);
-    const targetAssignment = getAssignment(formData.targetEmployeeId);
-    const requesterShift = getShift(requesterAssignment?.shiftId || "");
-    const targetShift = getShift(targetAssignment?.shiftId || "");
+    const requesterAssignment = getEmployeeAssignment(formData.requesterId);
+    const targetAssignment = getEmployeeAssignment(formData.targetEmployeeId);
 
-    if (!requesterAssignment || !targetAssignment || !requesterShift || !targetShift) {
-      toast({ title: "Error", description: "Invalid employee selection", variant: "destructive" });
+    if (!requesterAssignment || !targetAssignment) {
       return;
     }
 
-    const newExchange: ShiftExchangeRequest = {
-      id: `exchange-${Date.now()}`,
-      requesterId: formData.requesterId,
-      requesterName: requesterAssignment.employeeName,
-      requesterShiftId: requesterShift.id,
-      requesterShiftName: requesterShift.name,
-      requesterShiftColor: requesterShift.color,
-      requestDate: formData.requestDate,
-      targetEmployeeId: formData.targetEmployeeId,
-      targetEmployeeName: targetAssignment.employeeName,
-      targetShiftId: targetShift.id,
-      targetShiftName: targetShift.name,
-      targetShiftColor: targetShift.color,
-      reason: formData.reason,
-      status: "pending",
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-
-    setExchanges([newExchange, ...exchanges]);
-    setIsCreateOpen(false);
-    setFormData({ requesterId: "", targetEmployeeId: "", requestDate: "", reason: "" });
-    toast({ title: "Request Created", description: "Shift exchange request submitted successfully" });
+    createExchange.mutate(
+      {
+        requester_id: formData.requesterId,
+        target_employee_id: formData.targetEmployeeId,
+        requester_shift_id: requesterAssignment.shift_id,
+        target_shift_id: targetAssignment.shift_id,
+        request_date: formData.requestDate,
+        reason: formData.reason,
+      },
+      {
+        onSuccess: () => {
+          setIsCreateOpen(false);
+          setFormData({ requesterId: "", targetEmployeeId: "", requestDate: "", reason: "" });
+        },
+      }
+    );
   };
 
   const handleResponse = () => {
     if (!selectedExchange) return;
 
-    setExchanges(
-      exchanges.map((e) =>
-        e.id === selectedExchange.id
-          ? {
-              ...e,
-              status: responseAction === "approve" ? "approved" : "rejected",
-              respondedBy: "Admin",
-              respondedAt: new Date().toISOString().split("T")[0],
-              responseNote: responseNote,
-              updatedAt: new Date().toISOString().split("T")[0],
-            }
-          : e
-      )
+    updateExchange.mutate(
+      {
+        id: selectedExchange.id,
+        status: responseAction === "approve" ? "approved" : "rejected",
+        response_note: responseNote,
+      },
+      {
+        onSuccess: () => {
+          setIsResponseOpen(false);
+          setResponseNote("");
+          setSelectedExchange(null);
+        },
+      }
     );
-    setIsResponseOpen(false);
-    setResponseNote("");
-    toast({
-      title: responseAction === "approve" ? "Request Approved" : "Request Rejected",
-      description: `Shift exchange request has been ${responseAction === "approve" ? "approved" : "rejected"}`,
-    });
   };
 
   const openResponseDialog = (exchange: ShiftExchangeRequest, action: "approve" | "reject") => {
@@ -162,6 +185,22 @@ export default function ShiftExchange() {
     setResponseAction(action);
     setIsResponseOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -239,16 +278,18 @@ export default function ShiftExchange() {
                 </TableRow>
               ) : (
                 filteredExchanges.map((exchange) => {
-                  const StatusIcon = statusConfig[exchange.status].icon;
+                  const StatusIcon = statusConfig[exchange.status]?.icon || Clock;
                   return (
                     <TableRow key={exchange.id}>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <span className="font-medium">{exchange.requesterName}</span>
-                          <ShiftBadge
-                            name={exchange.requesterShiftName}
-                            color={exchange.requesterShiftColor}
-                          />
+                          <span className="font-medium">{getEmployeeName(exchange, "requester")}</span>
+                          {exchange.requester_shift && (
+                            <ShiftBadge
+                              name={exchange.requester_shift.name}
+                              color={exchange.requester_shift.color || "#3B82F6"}
+                            />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
@@ -256,27 +297,29 @@ export default function ShiftExchange() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <span className="font-medium">{exchange.targetEmployeeName}</span>
-                          <ShiftBadge
-                            name={exchange.targetShiftName}
-                            color={exchange.targetShiftColor}
-                          />
+                          <span className="font-medium">{getEmployeeName(exchange, "target")}</span>
+                          {exchange.target_shift && (
+                            <ShiftBadge
+                              name={exchange.target_shift.name}
+                              color={exchange.target_shift.color || "#3B82F6"}
+                            />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(new Date(exchange.requestDate), "MMM d, yyyy")}
+                          {format(new Date(exchange.request_date), "MMM d, yyyy")}
                         </div>
                       </TableCell>
                       <TableCell>
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                            statusConfig[exchange.status].className
+                            statusConfig[exchange.status]?.className || ""
                           }`}
                         >
                           <StatusIcon className="h-3.5 w-3.5" />
-                          {statusConfig[exchange.status].label}
+                          {statusConfig[exchange.status]?.label || exchange.status}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -339,9 +382,9 @@ export default function ShiftExchange() {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {defaultShiftAssignments.map((a) => (
-                    <SelectItem key={a.employeeId} value={a.employeeId}>
-                      {a.employeeName} ({a.shiftName})
+                  {employeesWithShifts.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.name} ({e.shiftName})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -357,11 +400,11 @@ export default function ShiftExchange() {
                   <SelectValue placeholder="Select employee to swap with" />
                 </SelectTrigger>
                 <SelectContent>
-                  {defaultShiftAssignments
-                    .filter((a) => a.employeeId !== formData.requesterId)
-                    .map((a) => (
-                      <SelectItem key={a.employeeId} value={a.employeeId}>
-                        {a.employeeName} ({a.shiftName})
+                  {employeesWithShifts
+                    .filter((e) => e.id !== formData.requesterId)
+                    .map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name} ({e.shiftName})
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -391,9 +434,9 @@ export default function ShiftExchange() {
             </Button>
             <Button
               onClick={handleCreateExchange}
-              disabled={!formData.requesterId || !formData.targetEmployeeId || !formData.requestDate}
+              disabled={!formData.requesterId || !formData.targetEmployeeId || !formData.requestDate || createExchange.isPending}
             >
-              Submit Request
+              {createExchange.isPending ? "Submitting..." : "Submit Request"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -409,19 +452,23 @@ export default function ShiftExchange() {
             <div className="space-y-4 py-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="text-center">
-                  <p className="font-medium">{selectedExchange.requesterName}</p>
-                  <ShiftBadge
-                    name={selectedExchange.requesterShiftName}
-                    color={selectedExchange.requesterShiftColor}
-                  />
+                  <p className="font-medium">{getEmployeeName(selectedExchange, "requester")}</p>
+                  {selectedExchange.requester_shift && (
+                    <ShiftBadge
+                      name={selectedExchange.requester_shift.name}
+                      color={selectedExchange.requester_shift.color || "#3B82F6"}
+                    />
+                  )}
                 </div>
                 <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="font-medium">{selectedExchange.targetEmployeeName}</p>
-                  <ShiftBadge
-                    name={selectedExchange.targetShiftName}
-                    color={selectedExchange.targetShiftColor}
-                  />
+                  <p className="font-medium">{getEmployeeName(selectedExchange, "target")}</p>
+                  {selectedExchange.target_shift && (
+                    <ShiftBadge
+                      name={selectedExchange.target_shift.name}
+                      color={selectedExchange.target_shift.color || "#3B82F6"}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -429,49 +476,46 @@ export default function ShiftExchange() {
                 <div>
                   <p className="text-muted-foreground">Exchange Date</p>
                   <p className="font-medium">
-                    {format(new Date(selectedExchange.requestDate), "MMMM d, yyyy")}
+                    {format(new Date(selectedExchange.request_date), "MMMM d, yyyy")}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      statusConfig[selectedExchange.status].className
+                      statusConfig[selectedExchange.status]?.className || ""
                     }`}
                   >
-                    {statusConfig[selectedExchange.status].label}
+                    {statusConfig[selectedExchange.status]?.label || selectedExchange.status}
                   </span>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Created</p>
+                  <p className="text-muted-foreground">Requested On</p>
                   <p className="font-medium">
-                    {format(new Date(selectedExchange.createdAt), "MMM d, yyyy")}
+                    {format(new Date(selectedExchange.created_at), "MMM d, yyyy")}
                   </p>
                 </div>
-                {selectedExchange.respondedAt && (
+                {selectedExchange.responded_at && (
                   <div>
-                    <p className="text-muted-foreground">Responded</p>
+                    <p className="text-muted-foreground">Responded On</p>
                     <p className="font-medium">
-                      {format(new Date(selectedExchange.respondedAt), "MMM d, yyyy")}
+                      {format(new Date(selectedExchange.responded_at), "MMM d, yyyy")}
                     </p>
                   </div>
                 )}
               </div>
 
-              <div>
-                <p className="text-muted-foreground text-sm mb-1">Reason</p>
-                <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedExchange.reason}</p>
-              </div>
+              {selectedExchange.reason && (
+                <div>
+                  <p className="text-muted-foreground text-sm mb-1">Reason</p>
+                  <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedExchange.reason}</p>
+                </div>
+              )}
 
-              {selectedExchange.responseNote && (
+              {selectedExchange.response_note && (
                 <div>
                   <p className="text-muted-foreground text-sm mb-1">Response Note</p>
-                  <p className="text-sm bg-muted/50 p-3 rounded-lg">
-                    {selectedExchange.responseNote}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    — {selectedExchange.respondedBy}
-                  </p>
+                  <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedExchange.response_note}</p>
                 </div>
               )}
             </div>
@@ -487,23 +531,41 @@ export default function ShiftExchange() {
               {responseAction === "approve" ? "Approve Request" : "Reject Request"}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Response Note {responseAction === "reject" && "(recommended)"}
-              </label>
-              <Textarea
-                placeholder={
-                  responseAction === "approve"
-                    ? "Optional approval note..."
-                    : "Reason for rejection..."
-                }
-                value={responseNote}
-                onChange={(e) => setResponseNote(e.target.value)}
-                rows={3}
-              />
+          {selectedExchange && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="text-center">
+                  <p className="text-sm font-medium">{getEmployeeName(selectedExchange, "requester")}</p>
+                  {selectedExchange.requester_shift && (
+                    <ShiftBadge
+                      name={selectedExchange.requester_shift.name}
+                      color={selectedExchange.requester_shift.color || "#3B82F6"}
+                    />
+                  )}
+                </div>
+                <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm font-medium">{getEmployeeName(selectedExchange, "target")}</p>
+                  {selectedExchange.target_shift && (
+                    <ShiftBadge
+                      name={selectedExchange.target_shift.name}
+                      color={selectedExchange.target_shift.color || "#3B82F6"}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Response Note (optional)</label>
+                <Textarea
+                  placeholder="Add a note..."
+                  value={responseNote}
+                  onChange={(e) => setResponseNote(e.target.value)}
+                  rows={3}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsResponseOpen(false)}>
               Cancel
@@ -511,8 +573,13 @@ export default function ShiftExchange() {
             <Button
               variant={responseAction === "approve" ? "default" : "destructive"}
               onClick={handleResponse}
+              disabled={updateExchange.isPending}
             >
-              {responseAction === "approve" ? "Approve" : "Reject"}
+              {updateExchange.isPending
+                ? "Processing..."
+                : responseAction === "approve"
+                ? "Approve"
+                : "Reject"}
             </Button>
           </DialogFooter>
         </DialogContent>
