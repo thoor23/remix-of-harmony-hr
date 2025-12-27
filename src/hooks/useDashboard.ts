@@ -129,3 +129,18 @@ export function useRecentAnnouncements(limit = 3) {
     },
   });
 }
+
+export function useDepartments() {
+  return useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("departments")
+        .select("id, name, code")
+        .order("name");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}

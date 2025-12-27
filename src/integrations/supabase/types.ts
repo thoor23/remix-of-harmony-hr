@@ -746,6 +746,80 @@ export type Database = {
           },
         ]
       }
+      shift_exchange_requests: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          request_date: string
+          requester_id: string
+          requester_shift_id: string
+          responded_at: string | null
+          response_note: string | null
+          status: string
+          target_employee_id: string
+          target_shift_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          request_date: string
+          requester_id: string
+          requester_shift_id: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          target_employee_id: string
+          target_shift_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          request_date?: string
+          requester_id?: string
+          requester_shift_id?: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          target_employee_id?: string
+          target_shift_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_exchange_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_exchange_requests_requester_shift_id_fkey"
+            columns: ["requester_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_exchange_requests_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_exchange_requests_target_shift_id_fkey"
+            columns: ["target_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           break_duration: number | null

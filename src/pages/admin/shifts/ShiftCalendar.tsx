@@ -2,16 +2,14 @@ import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ChevronLeft, 
   ChevronRight, 
   Calendar as CalendarIcon,
   Users,
-  X,
   Clock
 } from "lucide-react";
-import { ShiftAssignment, Shift } from "@/types/settings";
-import { defaultShiftAssignments, defaultShifts } from "@/data/settingsData";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import {
   Select,
@@ -26,15 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-// Mock employees with department
-const mockEmployees = [
-  { id: "emp-1", name: "John Doe", department: "Engineering" },
-  { id: "emp-2", name: "Jane Smith", department: "Marketing" },
-  { id: "emp-3", name: "Mike Johnson", department: "Sales" },
-  { id: "emp-4", name: "Sarah Wilson", department: "Operations" },
-  { id: "emp-5", name: "David Brown", department: "Engineering" },
-];
+import { useShifts, useShiftAssignments } from "@/hooks/useShifts";
+import { useDepartments } from "@/hooks/useDashboard";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -43,16 +34,18 @@ const MONTHS = [
 ];
 
 export default function ShiftCalendar() {
-  const [assignments] = useState<ShiftAssignment[]>(defaultShiftAssignments);
-  const [shifts] = useState<Shift[]>(defaultShifts);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const departments = [...new Set(mockEmployees.map(e => e.department))];
+  const { data: shifts = [], isLoading: shiftsLoading } = useShifts();
+  const { data: assignments = [], isLoading: assignmentsLoading } = useShiftAssignments();
+  const { data: departments = [] } = useDepartments();
+
+  const isLoading = shiftsLoading || assignmentsLoading;
 
   const filteredAssignments = assignments.filter(a => 
-    !departmentFilter || a.department === departmentFilter
+    !departmentFilter || a.employee?.department?.id === departmentFilter
   );
 
   const getShiftById = (id: string) => shifts.find(s => s.id === id);
@@ -68,17 +61,12 @@ export default function ShiftCalendar() {
 
   const calendarDays = useMemo(() => {
     const days: (number | null)[] = [];
-    
-    // Add empty cells for days before the first day of month
     for (let i = 0; i < startingDay; i++) {
       days.push(null);
     }
-    
-    // Add all days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i);
     }
-    
     return days;
   }, [startingDay, daysInMonth]);
 
@@ -93,11 +81,10 @@ export default function ShiftCalendar() {
   const getAssignmentsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return filteredAssignments.filter(a => {
-      const effectiveFrom = new Date(a.effectiveFrom);
-      const effectiveTo = a.effectiveTo ? new Date(a.effectiveTo) : null;
+      const startDate = new Date(a.start_date);
+      const endDate = a.end_date ? new Date(a.end_date) : null;
       const currentDate = new Date(dateStr);
-      
-      return currentDate >= effectiveFrom && (!effectiveTo || currentDate <= effectiveTo);
+      return currentDate >= startDate && (!endDate || currentDate <= endDate) && a.is_active;
     });
   };
 
@@ -108,11 +95,12 @@ export default function ShiftCalendar() {
            year === today.getFullYear();
   };
 
-  // Group assignments by shift for the legend
   const shiftCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredAssignments.forEach(a => {
-      counts[a.shiftId] = (counts[a.shiftId] || 0) + 1;
+      if (a.shift_id) {
+        counts[a.shift_id] = (counts[a.shift_id] || 0) + 1;
+      }
     });
     return counts;
   }, [filteredAssignments]);
@@ -122,15 +110,42 @@ export default function ShiftCalendar() {
     ? `${MONTHS[month]} ${selectedDay}, ${year}` 
     : "";
 
-  // Group selected day assignments by shift
   const groupedByShift = useMemo(() => {
-    const groups: Record<string, ShiftAssignment[]> = {};
+    const groups: Record<string, typeof selectedDayAssignments> = {};
     selectedDayAssignments.forEach(a => {
-      if (!groups[a.shiftId]) groups[a.shiftId] = [];
-      groups[a.shiftId].push(a);
+      if (a.shift_id) {
+        if (!groups[a.shift_id]) groups[a.shift_id] = [];
+        groups[a.shift_id].push(a);
+      }
     });
     return groups;
   }, [selectedDayAssignments]);
+
+  const getEmployeeName = (assignment: typeof assignments[0]) => {
+    const profile = assignment.employee?.profile;
+    if (!profile) return assignment.employee?.employee_id || "Unknown";
+    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+  };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Shift Calendar" description="View employee shift assignments" />
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <Skeleton className="h-96 w-full" />
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -162,7 +177,7 @@ export default function ShiftCalendar() {
                   className="h-12 w-12 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: `${shift.color}20` }}
                 >
-                  <Users className="h-6 w-6" style={{ color: shift.color }} />
+                  <Users className="h-6 w-6" style={{ color: shift.color || "#888" }} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{shiftCounts[shift.id] || 0}</p>
@@ -200,7 +215,7 @@ export default function ShiftCalendar() {
                 <SelectContent>
                   <SelectItem value="_all">All Departments</SelectItem>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -257,19 +272,19 @@ export default function ShiftCalendar() {
                       </div>
                       <div className="space-y-1">
                         {dayAssignments.slice(0, 4).map((assignment) => {
-                          const shift = getShiftById(assignment.shiftId);
+                          const shift = getShiftById(assignment.shift_id);
                           return shift ? (
                             <div
                               key={assignment.id}
                               className="flex items-center gap-1.5 text-xs"
-                              title={`${assignment.employeeName} - ${shift.name}`}
+                              title={`${getEmployeeName(assignment)} - ${shift.name}`}
                             >
                               <span 
                                 className="w-1 h-4 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: shift.color }}
+                                style={{ backgroundColor: shift.color || "#888" }}
                               />
                               <span className="truncate">
-                                {assignment.employeeName.split(' ')[0]}
+                                {getEmployeeName(assignment).split(' ')[0]}
                               </span>
                             </div>
                           ) : null;
@@ -296,16 +311,14 @@ export default function ShiftCalendar() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            {shifts.filter(s => s.isActive).map((shift) => (
+            {shifts.filter(s => s.is_active).map((shift) => (
               <div key={shift.id} className="flex items-center gap-2">
                 <ShiftBadge 
                   name={shift.name} 
-                  color={shift.color}
-                  isNightShift={shift.isNightShift}
-                  isFlexible={shift.isFlexible}
+                  color={shift.color || "#888"}
                 />
                 <span className="text-sm text-muted-foreground">
-                  {shift.isFlexible ? "Flexible" : `${shift.startTime} - ${shift.endTime}`}
+                  {shift.start_time} - {shift.end_time}
                 </span>
                 <span className="text-xs bg-muted px-2 py-0.5 rounded">
                   {shiftCounts[shift.id] || 0} employees
@@ -344,27 +357,27 @@ export default function ShiftCalendar() {
                         <div className="flex items-center justify-between">
                           <ShiftBadge 
                             name={shift.name} 
-                            color={shift.color}
-                            isNightShift={shift.isNightShift}
-                            isFlexible={shift.isFlexible}
+                            color={shift.color || "#888"}
                           />
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Clock className="h-3.5 w-3.5" />
-                            {shift.isFlexible ? "Flexible" : `${shift.startTime} - ${shift.endTime}`}
+                            {shift.start_time} - {shift.end_time}
                           </div>
                         </div>
-                        <div className="pl-2 border-l-2 space-y-1" style={{ borderColor: shift.color }}>
+                        <div className="pl-2 border-l-2 space-y-1" style={{ borderColor: shift.color || "#888" }}>
                           {shiftAssignments.map((assignment) => (
                             <div 
                               key={assignment.id}
                               className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50"
                             >
                               <div>
-                                <p className="font-medium text-sm">{assignment.employeeName}</p>
-                                <p className="text-xs text-muted-foreground">{assignment.department}</p>
+                                <p className="font-medium text-sm">{getEmployeeName(assignment)}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {assignment.employee?.department?.name || "—"}
+                                </p>
                               </div>
                               <span className="text-xs border rounded px-2 py-0.5">
-                                {assignment.employeeCode}
+                                {assignment.employee?.employee_id}
                               </span>
                             </div>
                           ))}
