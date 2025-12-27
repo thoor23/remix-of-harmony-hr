@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,13 +6,37 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { defaultAttendanceSettings, weekDays } from "@/data/settingsData";
-import { AttendanceSettings } from "@/types/settings";
-import { toast } from "sonner";
-import { Clock, AlertTriangle, Timer, MapPin, Shield, CalendarClock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { Clock, AlertTriangle, Timer, MapPin, CalendarClock, Loader2 } from "lucide-react";
 
-interface PenaltyRule {
+const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+interface AttendancePolicy {
+  workStartTime: string;
+  workEndTime: string;
+  halfDayCutoff: string;
+  autoCheckoutTime: string;
+  minHoursForFullDay: number;
+  minHoursForHalfDay: number;
+  weekends: string[];
+  graceMinutes: number;
+  earlyDepartureGrace: number;
+  lunchBreakMinutes: number;
+  flexibleTiming: boolean;
+  compensateLate: boolean;
+  allowOvertimeTracking: boolean;
+  maxOvertimeHoursPerDay: number;
+  maxOvertimeHoursPerWeek: number;
+  overtimeMultiplier: number;
+  weekendMultiplier: number;
+  holidayMultiplier: number;
+  requireOvertimeApproval: boolean;
+  requireGeoFencing: boolean;
+  allowedRadius: number;
+  requireIPRestriction: boolean;
+  allowedIPs: string;
+  requireSelfie: boolean;
   lateArrivalDeduction: number;
   earlyDepartureDeduction: number;
   absentDeduction: number;
@@ -20,54 +44,114 @@ interface PenaltyRule {
   consecutiveLateAction: string;
 }
 
-interface AttendanceMarkingRule {
-  requireGeoFencing: boolean;
-  requireIPRestriction: boolean;
-  requireSelfie: boolean;
-  allowedRadius: number;
-  allowedIPs: string;
-}
-
-interface OvertimeRule {
-  maxOvertimeHoursPerDay: number;
-  maxOvertimeHoursPerWeek: number;
-  requireApproval: boolean;
-  overtimeMultiplier: number;
-  weekendMultiplier: number;
-  holidayMultiplier: number;
-}
+const defaultPolicy: AttendancePolicy = {
+  workStartTime: "09:00",
+  workEndTime: "18:00",
+  halfDayCutoff: "13:00",
+  autoCheckoutTime: "23:59",
+  minHoursForFullDay: 8,
+  minHoursForHalfDay: 4,
+  weekends: ["Saturday", "Sunday"],
+  graceMinutes: 15,
+  earlyDepartureGrace: 10,
+  lunchBreakMinutes: 60,
+  flexibleTiming: false,
+  compensateLate: true,
+  allowOvertimeTracking: true,
+  maxOvertimeHoursPerDay: 4,
+  maxOvertimeHoursPerWeek: 20,
+  overtimeMultiplier: 1.5,
+  weekendMultiplier: 2,
+  holidayMultiplier: 2.5,
+  requireOvertimeApproval: true,
+  requireGeoFencing: false,
+  allowedRadius: 100,
+  requireIPRestriction: false,
+  allowedIPs: "",
+  requireSelfie: false,
+  lateArrivalDeduction: 0.5,
+  earlyDepartureDeduction: 0.5,
+  absentDeduction: 1,
+  consecutiveLateThreshold: 3,
+  consecutiveLateAction: "warning",
+};
 
 export default function AttendancePolicyPage() {
-  const [attendanceSettings, setAttendanceSettings] = useState<AttendanceSettings>(defaultAttendanceSettings);
+  const { data: savedSetting, isLoading } = useSystemSetting("attendance_policy");
+  const updateSetting = useUpdateSystemSetting();
   
-  const [penaltyRules, setPenaltyRules] = useState<PenaltyRule>({
-    lateArrivalDeduction: 0.5,
-    earlyDepartureDeduction: 0.5,
-    absentDeduction: 1,
-    consecutiveLateThreshold: 3,
-    consecutiveLateAction: "warning",
-  });
+  const [policy, setPolicy] = useState<AttendancePolicy>(defaultPolicy);
 
-  const [markingRules, setMarkingRules] = useState<AttendanceMarkingRule>({
-    requireGeoFencing: false,
-    requireIPRestriction: false,
-    requireSelfie: false,
-    allowedRadius: 100,
-    allowedIPs: "",
-  });
-
-  const [overtimeRules, setOvertimeRules] = useState<OvertimeRule>({
-    maxOvertimeHoursPerDay: 4,
-    maxOvertimeHoursPerWeek: 20,
-    requireApproval: true,
-    overtimeMultiplier: 1.5,
-    weekendMultiplier: 2,
-    holidayMultiplier: 2.5,
-  });
+  // Load saved settings when data is available
+  useEffect(() => {
+    if (savedSetting?.value) {
+      const saved = savedSetting.value as Record<string, unknown>;
+      setPolicy(prev => ({
+        ...prev,
+        workStartTime: (saved.workStartTime as string) || prev.workStartTime,
+        workEndTime: (saved.workEndTime as string) || prev.workEndTime,
+        halfDayCutoff: (saved.halfDayCutoff as string) || prev.halfDayCutoff,
+        autoCheckoutTime: (saved.autoCheckoutTime as string) || prev.autoCheckoutTime,
+        minHoursForFullDay: (saved.workingHoursPerDay as number) || prev.minHoursForFullDay,
+        minHoursForHalfDay: (saved.halfDayHours as number) || prev.minHoursForHalfDay,
+        weekends: (saved.weekendDays as string[]) || prev.weekends,
+        graceMinutes: (saved.lateThresholdMinutes as number) || prev.graceMinutes,
+        allowOvertimeTracking: saved.allowOvertimeTracking !== undefined ? (saved.allowOvertimeTracking as boolean) : prev.allowOvertimeTracking,
+        requireGeoFencing: (saved.requireLocationVerification as boolean) || prev.requireGeoFencing,
+        ...saved,
+      }));
+    }
+  }, [savedSetting]);
 
   const saveSettings = () => {
-    toast.success("Attendance policy saved successfully");
+    updateSetting.mutate({
+      key: "attendance_policy",
+      value: {
+        workStartTime: policy.workStartTime,
+        workEndTime: policy.workEndTime,
+        halfDayCutoff: policy.halfDayCutoff,
+        autoCheckoutTime: policy.autoCheckoutTime,
+        workingHoursPerDay: policy.minHoursForFullDay,
+        halfDayHours: policy.minHoursForHalfDay,
+        weekendDays: policy.weekends,
+        lateThresholdMinutes: policy.graceMinutes,
+        earlyDepartureGrace: policy.earlyDepartureGrace,
+        lunchBreakMinutes: policy.lunchBreakMinutes,
+        flexibleTiming: policy.flexibleTiming,
+        compensateLate: policy.compensateLate,
+        allowOvertimeTracking: policy.allowOvertimeTracking,
+        maxOvertimeHoursPerDay: policy.maxOvertimeHoursPerDay,
+        maxOvertimeHoursPerWeek: policy.maxOvertimeHoursPerWeek,
+        overtimeMultiplier: policy.overtimeMultiplier,
+        weekendMultiplier: policy.weekendMultiplier,
+        holidayMultiplier: policy.holidayMultiplier,
+        requireOvertimeApproval: policy.requireOvertimeApproval,
+        requireLocationVerification: policy.requireGeoFencing,
+        allowedRadius: policy.allowedRadius,
+        requireIPRestriction: policy.requireIPRestriction,
+        allowedIPs: policy.allowedIPs,
+        requireSelfie: policy.requireSelfie,
+        lateArrivalDeduction: policy.lateArrivalDeduction,
+        earlyDepartureDeduction: policy.earlyDepartureDeduction,
+        absentDeduction: policy.absentDeduction,
+        consecutiveLateThreshold: policy.consecutiveLateThreshold,
+        consecutiveLateAction: policy.consecutiveLateAction,
+        allowRemoteCheckIn: true,
+      },
+    });
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -75,7 +159,10 @@ export default function AttendancePolicyPage() {
         title="Attendance Policy & Rules"
         description="Configure working hours, grace periods, overtime, and attendance marking rules"
       >
-        <Button onClick={saveSettings}>Save All Changes</Button>
+        <Button onClick={saveSettings} disabled={updateSetting.isPending}>
+          {updateSetting.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save All Changes
+        </Button>
       </PageHeader>
 
       <Tabs defaultValue="working-hours" className="space-y-6">
@@ -118,32 +205,32 @@ export default function AttendancePolicyPage() {
                   <Label>Work Start Time</Label>
                   <Input
                     type="time"
-                    value={attendanceSettings.workStartTime}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, workStartTime: e.target.value }))}
+                    value={policy.workStartTime}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, workStartTime: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Work End Time</Label>
                   <Input
                     type="time"
-                    value={attendanceSettings.workEndTime}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, workEndTime: e.target.value }))}
+                    value={policy.workEndTime}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, workEndTime: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Half-Day Cutoff</Label>
                   <Input
                     type="time"
-                    value={attendanceSettings.halfDayCutoff}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, halfDayCutoff: e.target.value }))}
+                    value={policy.halfDayCutoff}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, halfDayCutoff: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Auto Checkout Time</Label>
                   <Input
                     type="time"
-                    value={attendanceSettings.autoCheckoutTime}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, autoCheckoutTime: e.target.value }))}
+                    value={policy.autoCheckoutTime}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, autoCheckoutTime: e.target.value }))}
                   />
                 </div>
               </div>
@@ -155,8 +242,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={1}
                     max={12}
-                    value={attendanceSettings.minHoursForFullDay}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, minHoursForFullDay: parseInt(e.target.value) || 8 }))}
+                    value={policy.minHoursForFullDay}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, minHoursForFullDay: parseInt(e.target.value) || 8 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -165,7 +252,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={1}
                     max={6}
-                    defaultValue={4}
+                    value={policy.minHoursForHalfDay}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, minHoursForHalfDay: parseInt(e.target.value) || 4 }))}
                   />
                 </div>
               </div>
@@ -176,10 +264,10 @@ export default function AttendancePolicyPage() {
                   {weekDays.map((day) => (
                     <Button
                       key={day}
-                      variant={attendanceSettings.weekends.includes(day) ? "default" : "outline"}
+                      variant={policy.weekends.includes(day) ? "default" : "outline"}
                       size="sm"
                       onClick={() => {
-                        setAttendanceSettings(prev => ({
+                        setPolicy(prev => ({
                           ...prev,
                           weekends: prev.weekends.includes(day)
                             ? prev.weekends.filter(d => d !== day)
@@ -214,8 +302,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={0}
                     max={60}
-                    value={attendanceSettings.graceMinutes}
-                    onChange={(e) => setAttendanceSettings(prev => ({ ...prev, graceMinutes: parseInt(e.target.value) || 0 }))}
+                    value={policy.graceMinutes}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, graceMinutes: parseInt(e.target.value) || 0 }))}
                   />
                   <p className="text-xs text-muted-foreground">Employees won't be marked late within this period</p>
                 </div>
@@ -225,7 +313,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={0}
                     max={60}
-                    defaultValue={10}
+                    value={policy.earlyDepartureGrace}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, earlyDepartureGrace: parseInt(e.target.value) || 0 }))}
                   />
                   <p className="text-xs text-muted-foreground">Allow leaving early by this many minutes</p>
                 </div>
@@ -235,7 +324,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={0}
                     max={120}
-                    defaultValue={60}
+                    value={policy.lunchBreakMinutes}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, lunchBreakMinutes: parseInt(e.target.value) || 60 }))}
                   />
                   <p className="text-xs text-muted-foreground">Standard lunch break time</p>
                 </div>
@@ -248,7 +338,10 @@ export default function AttendancePolicyPage() {
                     Allow employees to check in within a flexible time window
                   </p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={policy.flexibleTiming}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, flexibleTiming: checked }))}
+                />
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
@@ -258,7 +351,10 @@ export default function AttendancePolicyPage() {
                     Allow employees to compensate late arrival by working extra hours
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch
+                  checked={policy.compensateLate}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, compensateLate: checked }))}
+                />
               </div>
             </CardContent>
           </Card>
@@ -283,8 +379,8 @@ export default function AttendancePolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={attendanceSettings.allowOvertimeTracking}
-                  onCheckedChange={(checked) => setAttendanceSettings(prev => ({ ...prev, allowOvertimeTracking: checked }))}
+                  checked={policy.allowOvertimeTracking}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, allowOvertimeTracking: checked }))}
                 />
               </div>
 
@@ -295,8 +391,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={0}
                     max={8}
-                    value={overtimeRules.maxOvertimeHoursPerDay}
-                    onChange={(e) => setOvertimeRules(prev => ({ ...prev, maxOvertimeHoursPerDay: parseInt(e.target.value) || 0 }))}
+                    value={policy.maxOvertimeHoursPerDay}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, maxOvertimeHoursPerDay: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -305,8 +401,8 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={0}
                     max={40}
-                    value={overtimeRules.maxOvertimeHoursPerWeek}
-                    onChange={(e) => setOvertimeRules(prev => ({ ...prev, maxOvertimeHoursPerWeek: parseInt(e.target.value) || 0 }))}
+                    value={policy.maxOvertimeHoursPerWeek}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, maxOvertimeHoursPerWeek: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -316,8 +412,8 @@ export default function AttendancePolicyPage() {
                     step={0.25}
                     min={1}
                     max={3}
-                    value={overtimeRules.overtimeMultiplier}
-                    onChange={(e) => setOvertimeRules(prev => ({ ...prev, overtimeMultiplier: parseFloat(e.target.value) || 1.5 }))}
+                    value={policy.overtimeMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, overtimeMultiplier: parseFloat(e.target.value) || 1.5 }))}
                   />
                 </div>
               </div>
@@ -330,8 +426,8 @@ export default function AttendancePolicyPage() {
                     step={0.25}
                     min={1}
                     max={4}
-                    value={overtimeRules.weekendMultiplier}
-                    onChange={(e) => setOvertimeRules(prev => ({ ...prev, weekendMultiplier: parseFloat(e.target.value) || 2 }))}
+                    value={policy.weekendMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, weekendMultiplier: parseFloat(e.target.value) || 2 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -341,8 +437,8 @@ export default function AttendancePolicyPage() {
                     step={0.25}
                     min={1}
                     max={4}
-                    value={overtimeRules.holidayMultiplier}
-                    onChange={(e) => setOvertimeRules(prev => ({ ...prev, holidayMultiplier: parseFloat(e.target.value) || 2.5 }))}
+                    value={policy.holidayMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, holidayMultiplier: parseFloat(e.target.value) || 2.5 }))}
                   />
                 </div>
               </div>
@@ -355,8 +451,8 @@ export default function AttendancePolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={overtimeRules.requireApproval}
-                  onCheckedChange={(checked) => setOvertimeRules(prev => ({ ...prev, requireApproval: checked }))}
+                  checked={policy.requireOvertimeApproval}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireOvertimeApproval: checked }))}
                 />
               </div>
             </CardContent>
@@ -382,20 +478,20 @@ export default function AttendancePolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={markingRules.requireGeoFencing}
-                  onCheckedChange={(checked) => setMarkingRules(prev => ({ ...prev, requireGeoFencing: checked }))}
+                  checked={policy.requireGeoFencing}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireGeoFencing: checked }))}
                 />
               </div>
 
-              {markingRules.requireGeoFencing && (
+              {policy.requireGeoFencing && (
                 <div className="space-y-2">
                   <Label>Allowed Radius (meters)</Label>
                   <Input
                     type="number"
                     min={50}
                     max={5000}
-                    value={markingRules.allowedRadius}
-                    onChange={(e) => setMarkingRules(prev => ({ ...prev, allowedRadius: parseInt(e.target.value) || 100 }))}
+                    value={policy.allowedRadius}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, allowedRadius: parseInt(e.target.value) || 100 }))}
                   />
                 </div>
               )}
@@ -408,18 +504,18 @@ export default function AttendancePolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={markingRules.requireIPRestriction}
-                  onCheckedChange={(checked) => setMarkingRules(prev => ({ ...prev, requireIPRestriction: checked }))}
+                  checked={policy.requireIPRestriction}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireIPRestriction: checked }))}
                 />
               </div>
 
-              {markingRules.requireIPRestriction && (
+              {policy.requireIPRestriction && (
                 <div className="space-y-2">
                   <Label>Allowed IP Addresses (comma-separated)</Label>
                   <Input
                     placeholder="192.168.1.1, 10.0.0.1"
-                    value={markingRules.allowedIPs}
-                    onChange={(e) => setMarkingRules(prev => ({ ...prev, allowedIPs: e.target.value }))}
+                    value={policy.allowedIPs}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, allowedIPs: e.target.value }))}
                   />
                 </div>
               )}
@@ -428,23 +524,13 @@ export default function AttendancePolicyPage() {
                 <div className="space-y-0.5">
                   <Label>Require Selfie Verification</Label>
                   <p className="text-sm text-muted-foreground">
-                    Employees must take a selfie while marking attendance
+                    Employees must take a selfie when marking attendance
                   </p>
                 </div>
                 <Switch
-                  checked={markingRules.requireSelfie}
-                  onCheckedChange={(checked) => setMarkingRules(prev => ({ ...prev, requireSelfie: checked }))}
+                  checked={policy.requireSelfie}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireSelfie: checked }))}
                 />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Allow Multiple Check-ins</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow employees to check in and out multiple times per day
-                  </p>
-                </div>
-                <Switch defaultChecked />
               </div>
             </CardContent>
           </Card>
@@ -458,7 +544,7 @@ export default function AttendancePolicyPage() {
                 <AlertTriangle className="h-5 w-5" />
                 Penalty Rules
               </CardTitle>
-              <CardDescription>Configure deductions and actions for attendance violations</CardDescription>
+              <CardDescription>Configure deductions and penalties for attendance issues</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-3">
@@ -469,10 +555,10 @@ export default function AttendancePolicyPage() {
                     step={0.25}
                     min={0}
                     max={1}
-                    value={penaltyRules.lateArrivalDeduction}
-                    onChange={(e) => setPenaltyRules(prev => ({ ...prev, lateArrivalDeduction: parseFloat(e.target.value) || 0 }))}
+                    value={policy.lateArrivalDeduction}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, lateArrivalDeduction: parseFloat(e.target.value) || 0 }))}
                   />
-                  <p className="text-xs text-muted-foreground">Leave deducted per late arrival</p>
+                  <p className="text-xs text-muted-foreground">Deduction per late arrival</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Early Departure Deduction (days)</Label>
@@ -481,10 +567,10 @@ export default function AttendancePolicyPage() {
                     step={0.25}
                     min={0}
                     max={1}
-                    value={penaltyRules.earlyDepartureDeduction}
-                    onChange={(e) => setPenaltyRules(prev => ({ ...prev, earlyDepartureDeduction: parseFloat(e.target.value) || 0 }))}
+                    value={policy.earlyDepartureDeduction}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, earlyDepartureDeduction: parseFloat(e.target.value) || 0 }))}
                   />
-                  <p className="text-xs text-muted-foreground">Leave deducted per early departure</p>
+                  <p className="text-xs text-muted-foreground">Deduction per early departure</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Absent Deduction (days)</Label>
@@ -493,10 +579,10 @@ export default function AttendancePolicyPage() {
                     step={0.5}
                     min={0}
                     max={2}
-                    value={penaltyRules.absentDeduction}
-                    onChange={(e) => setPenaltyRules(prev => ({ ...prev, absentDeduction: parseFloat(e.target.value) || 0 }))}
+                    value={policy.absentDeduction}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, absentDeduction: parseFloat(e.target.value) || 1 }))}
                   />
-                  <p className="text-xs text-muted-foreground">Leave deducted per unexcused absence</p>
+                  <p className="text-xs text-muted-foreground">Deduction per absent day</p>
                 </div>
               </div>
 
@@ -507,48 +593,20 @@ export default function AttendancePolicyPage() {
                     type="number"
                     min={1}
                     max={10}
-                    value={penaltyRules.consecutiveLateThreshold}
-                    onChange={(e) => setPenaltyRules(prev => ({ ...prev, consecutiveLateThreshold: parseInt(e.target.value) || 3 }))}
+                    value={policy.consecutiveLateThreshold}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, consecutiveLateThreshold: parseInt(e.target.value) || 3 }))}
                   />
-                  <p className="text-xs text-muted-foreground">Number of consecutive late arrivals before action</p>
+                  <p className="text-xs text-muted-foreground">Trigger action after this many consecutive late arrivals</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Action for Consecutive Late</Label>
-                  <Select 
-                    value={penaltyRules.consecutiveLateAction} 
-                    onValueChange={(value) => setPenaltyRules(prev => ({ ...prev, consecutiveLateAction: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select action" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="warning">Issue Warning</SelectItem>
-                      <SelectItem value="half-day-deduction">Deduct Half Day</SelectItem>
-                      <SelectItem value="full-day-deduction">Deduct Full Day</SelectItem>
-                      <SelectItem value="notify-manager">Notify Manager</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Action on Consecutive Late</Label>
+                  <Input
+                    value={policy.consecutiveLateAction}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, consecutiveLateAction: e.target.value }))}
+                    placeholder="warning, deduction, suspension"
+                  />
+                  <p className="text-xs text-muted-foreground">Action to take when threshold is reached</p>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Auto-Apply Penalties</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically deduct leaves for violations
-                  </p>
-                </div>
-                <Switch />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Send Penalty Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notify employees when penalties are applied
-                  </p>
-                </div>
-                <Switch defaultChecked />
               </div>
             </CardContent>
           </Card>

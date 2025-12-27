@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,47 +7,39 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Clock, RefreshCw, ArrowLeftRight, Moon, Coffee, DollarSign } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { Clock, RefreshCw, ArrowLeftRight, Moon, Coffee, DollarSign, Loader2 } from "lucide-react";
 
-interface ShiftChangeRule {
+interface ShiftPolicy {
+  // Shift Change Rules
   minNoticePeriodDays: number;
   requireApproval: boolean;
   maxChangesPerMonth: number;
   allowSameDayChange: boolean;
-}
-
-interface OvertimePolicy {
+  // Overtime Policy
   minHoursBeforeOT: number;
   otStartsAfter: string;
   weekdayMultiplier: number;
   weekendMultiplier: number;
   holidayMultiplier: number;
-}
-
-interface BreakPolicy {
+  // Break Policy
   mandatoryBreakAfterHours: number;
   minBreakDuration: number;
   maxBreakDuration: number;
   paidBreak: boolean;
-}
-
-interface RotationRule {
+  // Rotation Rules
   enableAutoRotation: boolean;
   rotationFrequency: string;
   noticeBeforeRotation: number;
   fairnessCheck: boolean;
-}
-
-interface ExchangeRule {
+  // Exchange Rules
   allowExchange: boolean;
   requireBothApproval: boolean;
   requireManagerApproval: boolean;
   minExchangeNotice: number;
   sameDepartmentOnly: boolean;
-}
-
-interface NightShiftPolicy {
+  // Night Shift Policy
   nightShiftStartTime: string;
   nightShiftEndTime: string;
   nightShiftAllowance: number;
@@ -55,55 +47,107 @@ interface NightShiftPolicy {
   maxConsecutiveNights: number;
 }
 
+const defaultPolicy: ShiftPolicy = {
+  minNoticePeriodDays: 7,
+  requireApproval: true,
+  maxChangesPerMonth: 2,
+  allowSameDayChange: false,
+  minHoursBeforeOT: 8,
+  otStartsAfter: "18:00",
+  weekdayMultiplier: 1.5,
+  weekendMultiplier: 2,
+  holidayMultiplier: 2.5,
+  mandatoryBreakAfterHours: 4,
+  minBreakDuration: 30,
+  maxBreakDuration: 60,
+  paidBreak: true,
+  enableAutoRotation: true,
+  rotationFrequency: "weekly",
+  noticeBeforeRotation: 3,
+  fairnessCheck: true,
+  allowExchange: true,
+  requireBothApproval: true,
+  requireManagerApproval: true,
+  minExchangeNotice: 24,
+  sameDepartmentOnly: false,
+  nightShiftStartTime: "22:00",
+  nightShiftEndTime: "06:00",
+  nightShiftAllowance: 500,
+  allowanceType: "fixed",
+  maxConsecutiveNights: 5,
+};
+
 export default function ShiftPolicyPage() {
-  const [shiftChangeRules, setShiftChangeRules] = useState<ShiftChangeRule>({
-    minNoticePeriodDays: 7,
-    requireApproval: true,
-    maxChangesPerMonth: 2,
-    allowSameDayChange: false,
-  });
+  const { data: savedSetting, isLoading } = useSystemSetting("shift_policy");
+  const updateSetting = useUpdateSystemSetting();
+  
+  const [policy, setPolicy] = useState<ShiftPolicy>(defaultPolicy);
 
-  const [overtimePolicy, setOvertimePolicy] = useState<OvertimePolicy>({
-    minHoursBeforeOT: 8,
-    otStartsAfter: "18:00",
-    weekdayMultiplier: 1.5,
-    weekendMultiplier: 2,
-    holidayMultiplier: 2.5,
-  });
-
-  const [breakPolicy, setBreakPolicy] = useState<BreakPolicy>({
-    mandatoryBreakAfterHours: 4,
-    minBreakDuration: 30,
-    maxBreakDuration: 60,
-    paidBreak: true,
-  });
-
-  const [rotationRules, setRotationRules] = useState<RotationRule>({
-    enableAutoRotation: true,
-    rotationFrequency: "weekly",
-    noticeBeforeRotation: 3,
-    fairnessCheck: true,
-  });
-
-  const [exchangeRules, setExchangeRules] = useState<ExchangeRule>({
-    allowExchange: true,
-    requireBothApproval: true,
-    requireManagerApproval: true,
-    minExchangeNotice: 24,
-    sameDepartmentOnly: false,
-  });
-
-  const [nightShiftPolicy, setNightShiftPolicy] = useState<NightShiftPolicy>({
-    nightShiftStartTime: "22:00",
-    nightShiftEndTime: "06:00",
-    nightShiftAllowance: 500,
-    allowanceType: "fixed",
-    maxConsecutiveNights: 5,
-  });
+  // Load saved settings when data is available
+  useEffect(() => {
+    if (savedSetting?.value) {
+      const saved = savedSetting.value as Record<string, unknown>;
+      setPolicy(prev => ({
+        ...prev,
+        allowExchange: saved.allowShiftExchange !== undefined ? (saved.allowShiftExchange as boolean) : prev.allowExchange,
+        requireManagerApproval: saved.requireManagerApproval !== undefined ? (saved.requireManagerApproval as boolean) : prev.requireManagerApproval,
+        minExchangeNotice: (saved.exchangeRequestDeadlineHours as number) || prev.minExchangeNotice,
+        weekdayMultiplier: (saved.overtimeMultiplier as number) || prev.weekdayMultiplier,
+        weekendMultiplier: (saved.weekendMultiplier as number) || prev.weekendMultiplier,
+        maxConsecutiveNights: (saved.maxConsecutiveWorkDays as number) || prev.maxConsecutiveNights,
+        ...saved,
+      }));
+    }
+  }, [savedSetting]);
 
   const saveSettings = () => {
-    toast.success("Shift policy saved successfully");
+    updateSetting.mutate({
+      key: "shift_policy",
+      value: {
+        minRestBetweenShifts: 8,
+        maxConsecutiveWorkDays: policy.maxConsecutiveNights,
+        allowShiftExchange: policy.allowExchange,
+        requireManagerApproval: policy.requireManagerApproval,
+        exchangeRequestDeadlineHours: policy.minExchangeNotice,
+        overtimeMultiplier: policy.weekdayMultiplier,
+        weekendMultiplier: policy.weekendMultiplier,
+        // Extended settings
+        minNoticePeriodDays: policy.minNoticePeriodDays,
+        requireApproval: policy.requireApproval,
+        maxChangesPerMonth: policy.maxChangesPerMonth,
+        allowSameDayChange: policy.allowSameDayChange,
+        minHoursBeforeOT: policy.minHoursBeforeOT,
+        otStartsAfter: policy.otStartsAfter,
+        holidayMultiplier: policy.holidayMultiplier,
+        mandatoryBreakAfterHours: policy.mandatoryBreakAfterHours,
+        minBreakDuration: policy.minBreakDuration,
+        maxBreakDuration: policy.maxBreakDuration,
+        paidBreak: policy.paidBreak,
+        enableAutoRotation: policy.enableAutoRotation,
+        rotationFrequency: policy.rotationFrequency,
+        noticeBeforeRotation: policy.noticeBeforeRotation,
+        fairnessCheck: policy.fairnessCheck,
+        requireBothApproval: policy.requireBothApproval,
+        sameDepartmentOnly: policy.sameDepartmentOnly,
+        nightShiftStartTime: policy.nightShiftStartTime,
+        nightShiftEndTime: policy.nightShiftEndTime,
+        nightShiftAllowance: policy.nightShiftAllowance,
+        allowanceType: policy.allowanceType,
+      },
+    });
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -111,7 +155,10 @@ export default function ShiftPolicyPage() {
         title="Shift Policy & Rules"
         description="Configure shift changes, overtime, breaks, rotations, and exchange policies"
       >
-        <Button onClick={saveSettings}>Save All Changes</Button>
+        <Button onClick={saveSettings} disabled={updateSetting.isPending}>
+          {updateSetting.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save All Changes
+        </Button>
       </PageHeader>
 
       <Tabs defaultValue="shift-change" className="space-y-6">
@@ -160,8 +207,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={0}
                     max={30}
-                    value={shiftChangeRules.minNoticePeriodDays}
-                    onChange={(e) => setShiftChangeRules(prev => ({ ...prev, minNoticePeriodDays: parseInt(e.target.value) || 0 }))}
+                    value={policy.minNoticePeriodDays}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, minNoticePeriodDays: parseInt(e.target.value) || 0 }))}
                   />
                   <p className="text-xs text-muted-foreground">Days notice required before shift change</p>
                 </div>
@@ -171,8 +218,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={0}
                     max={10}
-                    value={shiftChangeRules.maxChangesPerMonth}
-                    onChange={(e) => setShiftChangeRules(prev => ({ ...prev, maxChangesPerMonth: parseInt(e.target.value) || 0 }))}
+                    value={policy.maxChangesPerMonth}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, maxChangesPerMonth: parseInt(e.target.value) || 0 }))}
                   />
                   <p className="text-xs text-muted-foreground">Maximum shift changes allowed per month</p>
                 </div>
@@ -186,8 +233,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={shiftChangeRules.requireApproval}
-                  onCheckedChange={(checked) => setShiftChangeRules(prev => ({ ...prev, requireApproval: checked }))}
+                  checked={policy.requireApproval}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireApproval: checked }))}
                 />
               </div>
 
@@ -199,8 +246,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={shiftChangeRules.allowSameDayChange}
-                  onCheckedChange={(checked) => setShiftChangeRules(prev => ({ ...prev, allowSameDayChange: checked }))}
+                  checked={policy.allowSameDayChange}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, allowSameDayChange: checked }))}
                 />
               </div>
             </CardContent>
@@ -225,8 +272,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={0}
                     max={12}
-                    value={overtimePolicy.minHoursBeforeOT}
-                    onChange={(e) => setOvertimePolicy(prev => ({ ...prev, minHoursBeforeOT: parseInt(e.target.value) || 8 }))}
+                    value={policy.minHoursBeforeOT}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, minHoursBeforeOT: parseInt(e.target.value) || 8 }))}
                   />
                   <p className="text-xs text-muted-foreground">Work hours before overtime kicks in</p>
                 </div>
@@ -234,8 +281,8 @@ export default function ShiftPolicyPage() {
                   <Label>OT Starts After</Label>
                   <Input
                     type="time"
-                    value={overtimePolicy.otStartsAfter}
-                    onChange={(e) => setOvertimePolicy(prev => ({ ...prev, otStartsAfter: e.target.value }))}
+                    value={policy.otStartsAfter}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, otStartsAfter: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">Time after which overtime begins</p>
                 </div>
@@ -249,8 +296,8 @@ export default function ShiftPolicyPage() {
                     step={0.25}
                     min={1}
                     max={3}
-                    value={overtimePolicy.weekdayMultiplier}
-                    onChange={(e) => setOvertimePolicy(prev => ({ ...prev, weekdayMultiplier: parseFloat(e.target.value) || 1.5 }))}
+                    value={policy.weekdayMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, weekdayMultiplier: parseFloat(e.target.value) || 1.5 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -260,8 +307,8 @@ export default function ShiftPolicyPage() {
                     step={0.25}
                     min={1}
                     max={4}
-                    value={overtimePolicy.weekendMultiplier}
-                    onChange={(e) => setOvertimePolicy(prev => ({ ...prev, weekendMultiplier: parseFloat(e.target.value) || 2 }))}
+                    value={policy.weekendMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, weekendMultiplier: parseFloat(e.target.value) || 2 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -271,8 +318,8 @@ export default function ShiftPolicyPage() {
                     step={0.25}
                     min={1}
                     max={4}
-                    value={overtimePolicy.holidayMultiplier}
-                    onChange={(e) => setOvertimePolicy(prev => ({ ...prev, holidayMultiplier: parseFloat(e.target.value) || 2.5 }))}
+                    value={policy.holidayMultiplier}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, holidayMultiplier: parseFloat(e.target.value) || 2.5 }))}
                   />
                 </div>
               </div>
@@ -298,8 +345,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={1}
                     max={8}
-                    value={breakPolicy.mandatoryBreakAfterHours}
-                    onChange={(e) => setBreakPolicy(prev => ({ ...prev, mandatoryBreakAfterHours: parseInt(e.target.value) || 4 }))}
+                    value={policy.mandatoryBreakAfterHours}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, mandatoryBreakAfterHours: parseInt(e.target.value) || 4 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -308,8 +355,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={15}
                     max={60}
-                    value={breakPolicy.minBreakDuration}
-                    onChange={(e) => setBreakPolicy(prev => ({ ...prev, minBreakDuration: parseInt(e.target.value) || 30 }))}
+                    value={policy.minBreakDuration}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, minBreakDuration: parseInt(e.target.value) || 30 }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -318,8 +365,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={30}
                     max={120}
-                    value={breakPolicy.maxBreakDuration}
-                    onChange={(e) => setBreakPolicy(prev => ({ ...prev, maxBreakDuration: parseInt(e.target.value) || 60 }))}
+                    value={policy.maxBreakDuration}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, maxBreakDuration: parseInt(e.target.value) || 60 }))}
                   />
                 </div>
               </div>
@@ -332,8 +379,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={breakPolicy.paidBreak}
-                  onCheckedChange={(checked) => setBreakPolicy(prev => ({ ...prev, paidBreak: checked }))}
+                  checked={policy.paidBreak}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, paidBreak: checked }))}
                 />
               </div>
             </CardContent>
@@ -359,17 +406,17 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={rotationRules.enableAutoRotation}
-                  onCheckedChange={(checked) => setRotationRules(prev => ({ ...prev, enableAutoRotation: checked }))}
+                  checked={policy.enableAutoRotation}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, enableAutoRotation: checked }))}
                 />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Rotation Frequency</Label>
-                  <Select 
-                    value={rotationRules.rotationFrequency} 
-                    onValueChange={(value) => setRotationRules(prev => ({ ...prev, rotationFrequency: value }))}
+                  <Select
+                    value={policy.rotationFrequency}
+                    onValueChange={(value) => setPolicy(prev => ({ ...prev, rotationFrequency: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select frequency" />
@@ -388,8 +435,8 @@ export default function ShiftPolicyPage() {
                     type="number"
                     min={1}
                     max={14}
-                    value={rotationRules.noticeBeforeRotation}
-                    onChange={(e) => setRotationRules(prev => ({ ...prev, noticeBeforeRotation: parseInt(e.target.value) || 3 }))}
+                    value={policy.noticeBeforeRotation}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, noticeBeforeRotation: parseInt(e.target.value) || 3 }))}
                   />
                 </div>
               </div>
@@ -402,8 +449,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={rotationRules.fairnessCheck}
-                  onCheckedChange={(checked) => setRotationRules(prev => ({ ...prev, fairnessCheck: checked }))}
+                  checked={policy.fairnessCheck}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, fairnessCheck: checked }))}
                 />
               </div>
             </CardContent>
@@ -429,8 +476,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={exchangeRules.allowExchange}
-                  onCheckedChange={(checked) => setExchangeRules(prev => ({ ...prev, allowExchange: checked }))}
+                  checked={policy.allowExchange}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, allowExchange: checked }))}
                 />
               </div>
 
@@ -440,22 +487,22 @@ export default function ShiftPolicyPage() {
                   type="number"
                   min={0}
                   max={72}
-                  value={exchangeRules.minExchangeNotice}
-                  onChange={(e) => setExchangeRules(prev => ({ ...prev, minExchangeNotice: parseInt(e.target.value) || 24 }))}
+                  value={policy.minExchangeNotice}
+                  onChange={(e) => setPolicy(prev => ({ ...prev, minExchangeNotice: parseInt(e.target.value) || 24 }))}
                 />
-                <p className="text-xs text-muted-foreground">Hours notice required before shift exchange</p>
+                <p className="text-xs text-muted-foreground">How far in advance must the exchange be requested</p>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label>Require Both Employee Approval</Label>
+                  <Label>Require Both Employees' Approval</Label>
                   <p className="text-sm text-muted-foreground">
-                    Both employees must approve the exchange
+                    Both employees must agree to the exchange
                   </p>
                 </div>
                 <Switch
-                  checked={exchangeRules.requireBothApproval}
-                  onCheckedChange={(checked) => setExchangeRules(prev => ({ ...prev, requireBothApproval: checked }))}
+                  checked={policy.requireBothApproval}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireBothApproval: checked }))}
                 />
               </div>
 
@@ -467,8 +514,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={exchangeRules.requireManagerApproval}
-                  onCheckedChange={(checked) => setExchangeRules(prev => ({ ...prev, requireManagerApproval: checked }))}
+                  checked={policy.requireManagerApproval}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, requireManagerApproval: checked }))}
                 />
               </div>
 
@@ -480,8 +527,8 @@ export default function ShiftPolicyPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={exchangeRules.sameDepartmentOnly}
-                  onCheckedChange={(checked) => setExchangeRules(prev => ({ ...prev, sameDepartmentOnly: checked }))}
+                  checked={policy.sameDepartmentOnly}
+                  onCheckedChange={(checked) => setPolicy(prev => ({ ...prev, sameDepartmentOnly: checked }))}
                 />
               </div>
             </CardContent>
@@ -494,9 +541,9 @@ export default function ShiftPolicyPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Moon className="h-5 w-5" />
-                Night Shift Allowances
+                Night Shift Policies
               </CardTitle>
-              <CardDescription>Configure night shift timing and compensation</CardDescription>
+              <CardDescription>Configure night shift allowances and rules</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -504,48 +551,45 @@ export default function ShiftPolicyPage() {
                   <Label>Night Shift Start Time</Label>
                   <Input
                     type="time"
-                    value={nightShiftPolicy.nightShiftStartTime}
-                    onChange={(e) => setNightShiftPolicy(prev => ({ ...prev, nightShiftStartTime: e.target.value }))}
+                    value={policy.nightShiftStartTime}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, nightShiftStartTime: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Night Shift End Time</Label>
                   <Input
                     type="time"
-                    value={nightShiftPolicy.nightShiftEndTime}
-                    onChange={(e) => setNightShiftPolicy(prev => ({ ...prev, nightShiftEndTime: e.target.value }))}
+                    value={policy.nightShiftEndTime}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, nightShiftEndTime: e.target.value }))}
                   />
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
+                  <Label>Night Shift Allowance</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={policy.nightShiftAllowance}
+                    onChange={(e) => setPolicy(prev => ({ ...prev, nightShiftAllowance: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Allowance Type</Label>
-                  <Select 
-                    value={nightShiftPolicy.allowanceType} 
-                    onValueChange={(value) => setNightShiftPolicy(prev => ({ ...prev, allowanceType: value }))}
+                  <Select
+                    value={policy.allowanceType}
+                    onValueChange={(value) => setPolicy(prev => ({ ...prev, allowanceType: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="fixed">Fixed Amount</SelectItem>
-                      <SelectItem value="percentage">Percentage of Base</SelectItem>
-                      <SelectItem value="hourly">Per Hour</SelectItem>
+                      <SelectItem value="percentage">Percentage of Salary</SelectItem>
+                      <SelectItem value="per-hour">Per Hour</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Night Shift Allowance</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={nightShiftPolicy.nightShiftAllowance}
-                    onChange={(e) => setNightShiftPolicy(prev => ({ ...prev, nightShiftAllowance: parseInt(e.target.value) || 0 }))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {nightShiftPolicy.allowanceType === "percentage" ? "%" : "₹"} per shift
-                  </p>
                 </div>
               </div>
 
@@ -555,10 +599,10 @@ export default function ShiftPolicyPage() {
                   type="number"
                   min={1}
                   max={14}
-                  value={nightShiftPolicy.maxConsecutiveNights}
-                  onChange={(e) => setNightShiftPolicy(prev => ({ ...prev, maxConsecutiveNights: parseInt(e.target.value) || 5 }))}
+                  value={policy.maxConsecutiveNights}
+                  onChange={(e) => setPolicy(prev => ({ ...prev, maxConsecutiveNights: parseInt(e.target.value) || 5 }))}
                 />
-                <p className="text-xs text-muted-foreground">Maximum consecutive night shifts allowed</p>
+                <p className="text-xs text-muted-foreground">Maximum nights an employee can work consecutively</p>
               </div>
             </CardContent>
           </Card>
