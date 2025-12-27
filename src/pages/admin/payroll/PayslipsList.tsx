@@ -58,6 +58,7 @@ export default function PayslipsList() {
       employeeCode: emp.employee_id,
       avatar: emp.profile?.avatar_url,
       pay_period: format(currentDate, "MMMM yyyy"),
+      pay_date: new Date().toISOString(),
       basic_salary: 0,
       gross_earnings: 0,
       total_deductions: 0,
