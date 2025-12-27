@@ -140,28 +140,32 @@ export const AttendanceWidget = () => {
     const currentTime = format(new Date(), "HH:mm:ss");
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const { error } = await supabase.from("attendance_records").insert({
-      employee_id: employeeId,
-      date: today,
-      check_in: currentTime,
-      status: "present",
-    });
+    const { data, error } = await supabase
+      .from("attendance_records")
+      .insert({
+        employee_id: employeeId,
+        date: today,
+        check_in: currentTime,
+        status: "present",
+      })
+      .select("id, check_in, check_out, status, date")
+      .single();
 
     setLoading(false);
 
     if (error) {
       if (error.code === "23505") {
-        const { data } = await supabase
+        const { data: existingData } = await supabase
           .from("attendance_records")
           .select("id, check_in, check_out, status, date")
           .eq("employee_id", employeeId)
           .eq("date", today)
           .maybeSingle();
 
-        if (data) {
-          setTodayRecord(data);
+        if (existingData) {
+          setTodayRecord(existingData);
           toast.info(
-            data.check_out
+            existingData.check_out
               ? "Already clocked out for today"
               : "Already clocked in for today"
           );
@@ -170,9 +174,11 @@ export const AttendanceWidget = () => {
         toast.error("Failed to clock in");
         console.error(error);
       }
-    } else {
-      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+    } else if (data) {
+      // Instantly update the UI
+      setTodayRecord(data);
       setTotalBreakMinutes(0);
+      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
     }
   };
 
@@ -196,20 +202,24 @@ export const AttendanceWidget = () => {
         (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60) - breakHours;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("attendance_records")
       .update({
         check_out: currentTime,
         work_hours: workHours,
       })
-      .eq("id", todayRecord.id);
+      .eq("id", todayRecord.id)
+      .select("id, check_in, check_out, status, date")
+      .single();
 
     setLoading(false);
 
     if (error) {
       toast.error("Failed to clock out");
       console.error(error);
-    } else {
+    } else if (data) {
+      // Instantly update the UI
+      setTodayRecord(data);
       toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
     }
   };
