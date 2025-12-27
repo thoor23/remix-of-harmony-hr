@@ -1,11 +1,12 @@
 import { useParams, Link } from "react-router-dom";
-import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,18 +20,32 @@ import {
   Mail,
   Phone,
   MapPin,
-  Building2,
   Briefcase,
   Calendar,
   CreditCard,
   User,
   AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
-import { employees, attendanceRecords, leaveRequests, payslips } from "@/data/mockData";
+import { useEmployee, useEmployeeAttendance, useEmployeeLeaves } from "@/hooks/useEmployees";
+import { format } from "date-fns";
 
 export default function EmployeeDetails() {
-  const { id } = useParams();
-  const employee = employees.find((e) => e.id === id);
+  const { id } = useParams<{ id: string }>();
+  const { data: employee, isLoading: employeeLoading } = useEmployee(id || "");
+  const { data: attendanceRecords = [] } = useEmployeeAttendance(id || "");
+  const { data: leaveRequests = [] } = useEmployeeLeaves(id || "");
+
+  if (employeeLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (!employee) {
     return (
@@ -49,43 +64,43 @@ export default function EmployeeDetails() {
     );
   }
 
-  const employeeAttendance = attendanceRecords
-    .filter((r) => r.employeeId === employee.id)
-    .slice(0, 10);
-  const employeeLeaves = leaveRequests.filter(
-    (r) => r.employeeId === employee.id
-  );
-  const employeePayslips = payslips.filter(
-    (p) => p.employeeId === employee.id
-  );
+  const firstName = employee.profile?.first_name || "Unknown";
+  const lastName = employee.profile?.last_name || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+  const initials = `${firstName[0] || ""}${lastName[0] || ""}`;
 
   return (
     <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" asChild>
+          <Link to="/admin/employees">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Employees
+          </Link>
+        </Button>
+      </div>
 
       {/* Header Card */}
       <Card className="mb-6">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={employee.avatar} />
+              <AvatarImage src={employee.profile?.avatar_url || ""} />
               <AvatarFallback className="text-2xl">
-                {employee.firstName[0]}
-                {employee.lastName[0]}
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-semibold mb-1">
-                    {employee.firstName} {employee.lastName}
-                  </h1>
+                  <h1 className="text-2xl font-semibold mb-1">{fullName}</h1>
                   <p className="text-muted-foreground mb-2">
-                    {employee.designation.name} • {employee.department.name}
+                    {employee.designation?.name || "No Designation"} • {employee.department?.name || "No Department"}
                   </p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{employee.employeeId}</Badge>
-                    <StatusBadge status={employee.status} />
-                    <Badge variant="secondary">{employee.employmentType}</Badge>
+                    <Badge variant="outline">{employee.employee_id}</Badge>
+                    <StatusBadge status={employee.status as StatusType} />
+                    <Badge variant="secondary">{employee.employment_type}</Badge>
                   </div>
                 </div>
                 <Button asChild>
@@ -98,20 +113,22 @@ export default function EmployeeDetails() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{employee.email}</span>
+                  <span>{employee.profile?.email || "No email"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{employee.phone}</span>
+                  <span>{employee.profile?.phone || "No phone"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Joined {employee.dateOfJoining}</span>
+                  <span>Joined {employee.date_of_joining}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span>
-                    {employee.address.city}, {employee.address.state}
+                    {employee.address_city && employee.address_state 
+                      ? `${employee.address_city}, ${employee.address_state}`
+                      : "No address"}
                   </span>
                 </div>
               </div>
@@ -126,7 +143,6 @@ export default function EmployeeDetails() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="leaves">Leaves</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -144,26 +160,30 @@ export default function EmployeeDetails() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">First Name</p>
-                    <p className="font-medium">{employee.firstName}</p>
+                    <p className="font-medium">{firstName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Last Name</p>
-                    <p className="font-medium">{employee.lastName}</p>
+                    <p className="font-medium">{lastName || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Date of Birth</p>
-                    <p className="font-medium">{employee.dateOfBirth}</p>
+                    <p className="font-medium">{employee.date_of_birth || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{employee.phone}</p>
+                    <p className="font-medium">{employee.profile?.phone || "-"}</p>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Address</p>
                   <p className="font-medium">
-                    {employee.address.street}, {employee.address.city},{" "}
-                    {employee.address.state} {employee.address.zipCode}
+                    {employee.address_street ? (
+                      <>
+                        {employee.address_street}, {employee.address_city},{" "}
+                        {employee.address_state} {employee.address_zip_code}
+                      </>
+                    ) : "-"}
                   </p>
                 </div>
               </CardContent>
@@ -181,27 +201,27 @@ export default function EmployeeDetails() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Employee ID</p>
-                    <p className="font-medium font-mono">{employee.employeeId}</p>
+                    <p className="font-medium font-mono">{employee.employee_id}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Department</p>
-                    <p className="font-medium">{employee.department.name}</p>
+                    <p className="font-medium">{employee.department?.name || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Designation</p>
-                    <p className="font-medium">{employee.designation.name}</p>
+                    <p className="font-medium">{employee.designation?.name || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Employment Type</p>
-                    <p className="font-medium capitalize">{employee.employmentType}</p>
+                    <p className="font-medium capitalize">{employee.employment_type}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Join Date</p>
-                    <p className="font-medium">{employee.dateOfJoining}</p>
+                    <p className="font-medium">{employee.date_of_joining}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <StatusBadge status={employee.status} />
+                    <StatusBadge status={employee.status as StatusType} />
                   </div>
                 </div>
               </CardContent>
@@ -219,15 +239,15 @@ export default function EmployeeDetails() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Name</p>
-                    <p className="font-medium">{employee.emergencyContact.name}</p>
+                    <p className="font-medium">{employee.emergency_contact_name || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Relationship</p>
-                    <p className="font-medium">{employee.emergencyContact.relationship}</p>
+                    <p className="font-medium">{employee.emergency_contact_relationship || "-"}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{employee.emergencyContact.phone}</p>
+                    <p className="font-medium">{employee.emergency_contact_phone || "-"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -245,24 +265,24 @@ export default function EmployeeDetails() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Bank Name</p>
-                    <p className="font-medium">{employee.bankDetails.bankName}</p>
+                    <p className="font-medium">{employee.bank_name || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Account Number</p>
                     <p className="font-medium font-mono">
-                      {employee.bankDetails.accountNumber}
+                      {employee.bank_account_number || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">IFSC Code</p>
                     <p className="font-medium font-mono">
-                      {employee.bankDetails.ifscCode}
+                      {employee.bank_ifsc_code || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Account Holder</p>
                     <p className="font-medium">
-                      {employee.bankDetails.accountHolderName}
+                      {employee.bank_account_holder_name || "-"}
                     </p>
                   </div>
                 </div>
@@ -288,17 +308,24 @@ export default function EmployeeDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employeeAttendance.map((record) => (
+                  {attendanceRecords.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell>{record.date}</TableCell>
-                      <TableCell>{record.checkIn || "-"}</TableCell>
-                      <TableCell>{record.checkOut || "-"}</TableCell>
-                      <TableCell>{record.workHours || "-"}</TableCell>
+                      <TableCell>{format(new Date(record.date), "MMM dd, yyyy")}</TableCell>
+                      <TableCell>{record.check_in || "-"}</TableCell>
+                      <TableCell>{record.check_out || "-"}</TableCell>
+                      <TableCell>{record.work_hours || "-"}</TableCell>
                       <TableCell>
-                        <StatusBadge status={record.status} />
+                        <StatusBadge status={record.status as StatusType} />
                       </TableCell>
                     </TableRow>
                   ))}
+                  {attendanceRecords.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        No attendance records found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -323,73 +350,24 @@ export default function EmployeeDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employeeLeaves.map((leave) => (
+                  {leaveRequests.map((leave) => (
                     <TableRow key={leave.id}>
-                      <TableCell>{leave.leaveTypeName}</TableCell>
-                      <TableCell>{leave.startDate}</TableCell>
-                      <TableCell>{leave.endDate}</TableCell>
+                      <TableCell>{leave.leave_type?.name || "Unknown"}</TableCell>
+                      <TableCell>{format(new Date(leave.start_date), "MMM dd, yyyy")}</TableCell>
+                      <TableCell>{format(new Date(leave.end_date), "MMM dd, yyyy")}</TableCell>
                       <TableCell>{leave.days}</TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {leave.reason}
+                        {leave.reason || "-"}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={leave.status} />
+                        <StatusBadge status={leave.status as StatusType} />
                       </TableCell>
                     </TableRow>
                   ))}
-                  {employeeLeaves.length === 0 && (
+                  {leaveRequests.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground">
                         No leave records found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payroll">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payslips</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Gross</TableHead>
-                    <TableHead>Deductions</TableHead>
-                    <TableHead>Net Pay</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employeePayslips.map((payslip) => (
-                    <TableRow key={payslip.id}>
-                      <TableCell>{payslip.payPeriod}</TableCell>
-                      <TableCell>${payslip.grossEarnings.toLocaleString()}</TableCell>
-                      <TableCell>${payslip.totalDeductions.toLocaleString()}</TableCell>
-                      <TableCell className="font-medium">
-                        ${payslip.netPay.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={payslip.status} />
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">
-                          Download
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {employeePayslips.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No payslips found
                       </TableCell>
                     </TableRow>
                   )}

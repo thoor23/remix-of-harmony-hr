@@ -158,3 +158,149 @@ export function useDesignations() {
     },
   });
 }
+
+export interface CreateEmployeeData {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  date_of_birth: string | null;
+  date_of_joining: string;
+  department_id: string | null;
+  designation_id: string | null;
+  employment_type: string;
+  reporting_to: string | null;
+  address_street: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip_code: string | null;
+  address_country: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_phone: string | null;
+  bank_name: string | null;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
+}
+
+export function useCreateEmployee() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateEmployeeData) => {
+      // Insert employee record (without creating auth user for now)
+      const { error } = await supabase
+        .from("employees")
+        .insert({
+          employee_id: data.employee_id,
+          date_of_birth: data.date_of_birth || null,
+          date_of_joining: data.date_of_joining,
+          department_id: data.department_id || null,
+          designation_id: data.designation_id || null,
+          employment_type: data.employment_type,
+          reporting_to: data.reporting_to || null,
+          address_street: data.address_street || null,
+          address_city: data.address_city || null,
+          address_state: data.address_state || null,
+          address_zip_code: data.address_zip_code || null,
+          address_country: data.address_country || null,
+          emergency_contact_name: data.emergency_contact_name || null,
+          emergency_contact_relationship: data.emergency_contact_relationship || null,
+          emergency_contact_phone: data.emergency_contact_phone || null,
+          bank_name: data.bank_name || null,
+          bank_account_holder_name: data.bank_account_holder_name || null,
+          bank_account_number: data.bank_account_number || null,
+          bank_ifsc_code: data.bank_ifsc_code || null,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Employee created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create employee: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateEmployee() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateEmployeeData> }) => {
+      const { error } = await supabase
+        .from("employees")
+        .update({
+          employee_id: data.employee_id,
+          date_of_birth: data.date_of_birth || null,
+          date_of_joining: data.date_of_joining,
+          department_id: data.department_id || null,
+          designation_id: data.designation_id || null,
+          employment_type: data.employment_type,
+          reporting_to: data.reporting_to || null,
+          address_street: data.address_street || null,
+          address_city: data.address_city || null,
+          address_state: data.address_state || null,
+          address_zip_code: data.address_zip_code || null,
+          address_country: data.address_country || null,
+          emergency_contact_name: data.emergency_contact_name || null,
+          emergency_contact_relationship: data.emergency_contact_relationship || null,
+          emergency_contact_phone: data.emergency_contact_phone || null,
+          bank_name: data.bank_name || null,
+          bank_account_holder_name: data.bank_account_holder_name || null,
+          bank_account_number: data.bank_account_number || null,
+          bank_ifsc_code: data.bank_ifsc_code || null,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employee"] });
+      toast.success("Employee updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update employee: ${error.message}`);
+    },
+  });
+}
+
+export function useEmployeeAttendance(employeeId: string) {
+  return useQuery({
+    queryKey: ["employee-attendance", employeeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .order("date", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!employeeId,
+  });
+}
+
+export function useEmployeeLeaves(employeeId: string) {
+  return useQuery({
+    queryKey: ["employee-leaves", employeeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .select("*, leave_type:leave_types(id, name, code)")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!employeeId,
+  });
+}

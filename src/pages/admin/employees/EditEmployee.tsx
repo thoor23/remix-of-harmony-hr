@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, CreditCard, ArrowLeft } from "lucide-react";
-import { departments, designations, employees } from "@/data/mockData";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
+import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee } from "@/hooks/useEmployees";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
@@ -79,45 +80,46 @@ export default function EditEmployee() {
     routingNumber: "",
   });
 
-  // Load employee data
+  const { data: employee, isLoading: employeeLoading } = useEmployee(id || "");
+  const { data: departments = [] } = useDepartments();
+  const { data: designations = [] } = useDesignations();
+  const { data: employees = [] } = useEmployees();
+  const updateEmployee = useUpdateEmployee();
+
+  // Load employee data into form
   useEffect(() => {
-    const employee = employees.find((emp) => emp.id === id);
     if (employee) {
       setFormData({
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        phone: employee.phone,
-        dateOfBirth: employee.dateOfBirth,
+        firstName: employee.profile?.first_name || "",
+        lastName: employee.profile?.last_name || "",
+        email: employee.profile?.email || "",
+        phone: employee.profile?.phone || "",
+        dateOfBirth: employee.date_of_birth || "",
         gender: "",
-        employeeId: employee.employeeId,
-        joiningDate: employee.dateOfJoining,
-        department: employee.department.id,
-        designation: employee.designation.id,
-        employmentType: employee.employmentType,
-        reportingTo: "",
-        street: employee.address.street,
-        city: employee.address.city,
-        state: employee.address.state,
-        zipCode: employee.address.zipCode,
-        country: employee.address.country,
-        emergencyName: employee.emergencyContact.name,
-        emergencyRelation: employee.emergencyContact.relationship,
-        emergencyPhone: employee.emergencyContact.phone,
-        bankName: employee.bankDetails.bankName,
-        accountHolder: employee.bankDetails.accountHolderName,
-        accountNumber: employee.bankDetails.accountNumber,
-        routingNumber: employee.bankDetails.ifscCode,
+        employeeId: employee.employee_id,
+        joiningDate: employee.date_of_joining,
+        department: employee.department?.id || "",
+        designation: employee.designation?.id || "",
+        employmentType: employee.employment_type,
+        reportingTo: employee.reporting_to || "",
+        street: employee.address_street || "",
+        city: employee.address_city || "",
+        state: employee.address_state || "",
+        zipCode: employee.address_zip_code || "",
+        country: employee.address_country || "",
+        emergencyName: employee.emergency_contact_name || "",
+        emergencyRelation: employee.emergency_contact_relationship || "",
+        emergencyPhone: employee.emergency_contact_phone || "",
+        bankName: employee.bank_name || "",
+        accountHolder: employee.bank_account_holder_name || "",
+        accountNumber: employee.bank_account_number || "",
+        routingNumber: employee.bank_ifsc_code || "",
       });
-    } else {
-      toast.error("Employee not found");
-      navigate("/admin/employees");
     }
-  }, [id, navigate]);
+  }, [employee]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user types
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
@@ -138,11 +140,43 @@ export default function EditEmployee() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!id) return;
+    
     if (validateForm()) {
-      toast.success("Employee updated successfully!");
-      navigate("/admin/employees");
+      updateEmployee.mutate({
+        id,
+        data: {
+          employee_id: formData.employeeId,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          date_of_birth: formData.dateOfBirth || null,
+          date_of_joining: formData.joiningDate,
+          department_id: formData.department || null,
+          designation_id: formData.designation || null,
+          employment_type: formData.employmentType,
+          reporting_to: formData.reportingTo || null,
+          address_street: formData.street || null,
+          address_city: formData.city || null,
+          address_state: formData.state || null,
+          address_zip_code: formData.zipCode || null,
+          address_country: formData.country || null,
+          emergency_contact_name: formData.emergencyName || null,
+          emergency_contact_relationship: formData.emergencyRelation || null,
+          emergency_contact_phone: formData.emergencyPhone || null,
+          bank_name: formData.bankName || null,
+          bank_account_holder_name: formData.accountHolder || null,
+          bank_account_number: formData.accountNumber || null,
+          bank_ifsc_code: formData.routingNumber || null,
+        }
+      }, {
+        onSuccess: () => {
+          navigate("/admin/employees");
+        }
+      });
     } else {
       toast.error("Please fix the validation errors");
     }
@@ -170,6 +204,39 @@ export default function EditEmployee() {
     }
     return null;
   };
+
+  // Get managers for reporting to dropdown
+  const managers = employees.filter(emp => 
+    emp.id !== id && (
+      emp.designation?.name?.toLowerCase().includes('manager') || 
+      emp.designation?.name?.toLowerCase().includes('director') ||
+      emp.designation?.name?.toLowerCase().includes('head')
+    )
+  );
+
+  if (employeeLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <PageContainer>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">Employee not found</p>
+          <Button onClick={() => navigate("/admin/employees")}>
+            Back to Employees
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -389,9 +456,11 @@ export default function EditEmployee() {
                         <SelectValue placeholder="Select manager" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="emp-1">John Smith (Engineering Manager)</SelectItem>
-                        <SelectItem value="emp-2">Sarah Johnson (HR Manager)</SelectItem>
-                        <SelectItem value="emp-5">David Wilson (Finance Manager)</SelectItem>
+                        {managers.map((emp) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.profile?.first_name} {emp.profile?.last_name} ({emp.designation?.name})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -574,7 +643,8 @@ export default function EditEmployee() {
                   <Button type="button" variant="outline" onClick={handlePrevious}>
                     Previous
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={updateEmployee.isPending}>
+                    {updateEmployee.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Update Employee
                   </Button>
                 </div>
