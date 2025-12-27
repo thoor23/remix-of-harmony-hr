@@ -53,6 +53,15 @@ import {
   Settings2,
   Bell,
   Palette,
+  FolderOpen,
+  Folders,
+  FileStack,
+  Mail,
+  FilePlus,
+  Award,
+  FileOutput,
+  TrendingUp,
+  LayoutTemplate,
 } from "lucide-react";
 
 interface NavItem {
@@ -108,7 +117,25 @@ const adminNavItems: NavItem[] = [
       { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
     ],
   },
-  { title: "Documents", href: "/admin/documents", icon: FileText },
+  {
+    title: "File Manager",
+    icon: FolderOpen,
+    children: [
+      { title: "Employee Documents", href: "/admin/file-manager", icon: Folders },
+      { title: "Document Policies", href: "/admin/file-manager/policies", icon: FileStack },
+    ],
+  },
+  {
+    title: "Generate Letters",
+    icon: Mail,
+    children: [
+      { title: "Offer Letter", href: "/admin/letters/offer", icon: FilePlus },
+      { title: "Experience Letter", href: "/admin/letters/experience", icon: Award },
+      { title: "Relieving Letter", href: "/admin/letters/relieving", icon: FileOutput },
+      { title: "Increment Letter", href: "/admin/letters/increment", icon: TrendingUp },
+      { title: "Letter Templates", href: "/admin/letters/templates", icon: LayoutTemplate },
+    ],
+  },
   { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
   {
     title: "Reports",

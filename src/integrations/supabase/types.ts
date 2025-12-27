@@ -207,9 +207,11 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          document_category: string | null
           employee_id: string | null
           file_size: number | null
           file_url: string | null
+          folder_path: string | null
           id: string
           is_company_document: boolean | null
           name: string
@@ -218,9 +220,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          document_category?: string | null
           employee_id?: string | null
           file_size?: number | null
           file_url?: string | null
+          folder_path?: string | null
           id?: string
           is_company_document?: boolean | null
           name: string
@@ -229,9 +233,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          document_category?: string | null
           employee_id?: string | null
           file_size?: number | null
           file_url?: string | null
+          folder_path?: string | null
           id?: string
           is_company_document?: boolean | null
           name?: string
@@ -347,6 +353,63 @@ export type Database = {
             columns: ["reporting_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_letters: {
+        Row: {
+          content: string
+          created_at: string | null
+          employee_id: string
+          file_url: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          metadata: Json | null
+          status: string | null
+          template_id: string | null
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          employee_id: string
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          template_id?: string | null
+          type: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          employee_id?: string
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          template_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_letters_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_letters_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "letter_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -589,6 +652,48 @@ export type Database = {
           id?: string
           max_days?: number
           name?: string
+        }
+        Relationships: []
+      }
+      letter_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          placeholders: Json | null
+          type: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          placeholders?: Json | null
+          type: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          placeholders?: Json | null
+          type?: string
+          updated_at?: string | null
+          version?: number | null
         }
         Relationships: []
       }
