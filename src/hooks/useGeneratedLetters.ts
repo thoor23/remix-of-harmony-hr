@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 import type { LetterType } from "./useLetterTemplates";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface GeneratedLetter {
   id: string;
@@ -74,7 +75,7 @@ export function useGenerateLetter() {
           template_id,
           type,
           content,
-          metadata: metadata as unknown as Record<string, unknown>,
+          metadata: metadata as Json,
           generated_by: userData.user?.id,
           status: "generated",
         }])
