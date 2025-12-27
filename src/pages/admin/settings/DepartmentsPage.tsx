@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -23,18 +24,31 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Search, Users } from "lucide-react";
-import { departments as initialDepartments } from "@/data/mockData";
-import { Department } from "@/types/hrms";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
-import { toast } from "sonner";
+import {
+  useDepartmentsData,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+} from "@/hooks/useDepartments";
+
+interface DepartmentForm {
+  name: string;
+  code: string;
+  description: string;
+}
 
 export default function DepartmentsPage() {
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const { data: departments = [], isLoading } = useDepartmentsData();
+  const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
+
   const [deptSearch, setDeptSearch] = useState("");
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
-  const [editingDept, setEditingDept] = useState<Department | null>(null);
-  const [deptForm, setDeptForm] = useState({ name: "", code: "", description: "" });
-  const [deleteDeptDialog, setDeleteDeptDialog] = useState<Department | null>(null);
+  const [editingDept, setEditingDept] = useState<typeof departments[0] | null>(null);
+  const [deptForm, setDeptForm] = useState<DepartmentForm>({ name: "", code: "", description: "" });
+  const [deleteDeptDialog, setDeleteDeptDialog] = useState<typeof departments[0] | null>(null);
 
   const filteredDepartments = useMemo(() => 
     departments.filter(d => 
@@ -42,7 +56,7 @@ export default function DepartmentsPage() {
       d.code.toLowerCase().includes(deptSearch.toLowerCase())
     ), [departments, deptSearch]);
 
-  const openDeptDialog = (dept?: Department) => {
+  const openDeptDialog = (dept?: typeof departments[0]) => {
     if (dept) {
       setEditingDept(dept);
       setDeptForm({ name: dept.name, code: dept.code, description: dept.description || "" });
@@ -53,40 +67,51 @@ export default function DepartmentsPage() {
     setDeptDialogOpen(true);
   };
 
-  const saveDept = () => {
+  const saveDept = async () => {
     if (!deptForm.name.trim() || !deptForm.code.trim()) {
-      toast.error("Name and Code are required");
       return;
     }
 
     if (editingDept) {
-      setDepartments(prev => prev.map(d => 
-        d.id === editingDept.id 
-          ? { ...d, name: deptForm.name, code: deptForm.code, description: deptForm.description }
-          : d
-      ));
-      toast.success("Department updated successfully");
-    } else {
-      const newDept: Department = {
-        id: `dept-${Date.now()}`,
+      await updateDepartment.mutateAsync({
+        id: editingDept.id,
         name: deptForm.name,
         code: deptForm.code.toUpperCase(),
         description: deptForm.description,
-        employeeCount: 0,
-      };
-      setDepartments(prev => [...prev, newDept]);
-      toast.success("Department added successfully");
+      });
+    } else {
+      await createDepartment.mutateAsync({
+        name: deptForm.name,
+        code: deptForm.code.toUpperCase(),
+        description: deptForm.description,
+      });
     }
     setDeptDialogOpen(false);
   };
 
-  const deleteDept = () => {
+  const handleDeleteDept = async () => {
     if (deleteDeptDialog) {
-      setDepartments(prev => prev.filter(d => d.id !== deleteDeptDialog.id));
-      toast.success("Department deleted successfully");
+      await deleteDepartment.mutateAsync({ id: deleteDeptDialog.id, name: deleteDeptDialog.name });
       setDeleteDeptDialog(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Departments" description="Manage organization departments" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -143,7 +168,7 @@ export default function DepartmentsPage() {
                       <TableCell className="hidden md:table-cell">
                         <div className="flex items-center gap-1">
                           <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                          {dept.employeeCount}
+                          {dept.employee_count || 0}
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground max-w-[200px] truncate">
@@ -158,7 +183,7 @@ export default function DepartmentsPage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setDeleteDeptDialog(dept)}
-                            disabled={dept.employeeCount > 0}
+                            disabled={(dept.employee_count || 0) > 0}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -213,7 +238,10 @@ export default function DepartmentsPage() {
             <Button variant="outline" onClick={() => setDeptDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveDept}>
+            <Button 
+              onClick={saveDept} 
+              disabled={createDepartment.isPending || updateDepartment.isPending}
+            >
               {editingDept ? "Update" : "Create"}
             </Button>
           </DialogFooter>
@@ -226,8 +254,8 @@ export default function DepartmentsPage() {
         title="Delete Department"
         description="Are you sure you want to delete this department? This action cannot be undone."
         itemName={deleteDeptDialog?.name}
-        warningText={deleteDeptDialog?.employeeCount ? `${deleteDeptDialog.employeeCount} employees are assigned to this department.` : undefined}
-        onConfirm={deleteDept}
+        warningText={deleteDeptDialog?.employee_count ? `${deleteDeptDialog.employee_count} employees are assigned to this department.` : undefined}
+        onConfirm={handleDeleteDept}
       />
     </PageContainer>
   );
