@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Plus, 
   Search, 
@@ -13,9 +14,9 @@ import {
   Trash2,
   UserPlus
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { ShiftAssignment, Shift } from "@/types/settings";
-import { defaultShiftAssignments, defaultShifts } from "@/data/settingsData";
+import { useShifts, useShiftAssignments, useCreateShiftAssignment, useUpdateShiftAssignment, useDeleteShiftAssignment } from "@/hooks/useShifts";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useDepartments } from "@/hooks/useDashboard";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import {
@@ -42,133 +43,149 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-// Mock employees data
-const mockEmployees = [
-  { id: "emp-1", name: "John Doe", code: "EMP001", department: "Engineering" },
-  { id: "emp-2", name: "Jane Smith", code: "EMP002", department: "Marketing" },
-  { id: "emp-3", name: "Mike Johnson", code: "EMP003", department: "Sales" },
-  { id: "emp-4", name: "Sarah Wilson", code: "EMP004", department: "Operations" },
-  { id: "emp-5", name: "David Brown", code: "EMP005", department: "Engineering" },
-  { id: "emp-6", name: "Emily Davis", code: "EMP006", department: "HR" },
-  { id: "emp-7", name: "Chris Lee", code: "EMP007", department: "Finance" },
-  { id: "emp-8", name: "Anna Taylor", code: "EMP008", department: "Marketing" },
-];
+import { format } from "date-fns";
 
 interface AssignmentFormData {
   employeeId: string;
   shiftId: string;
-  effectiveFrom: string;
-  effectiveTo: string;
+  startDate: string;
+  endDate: string;
 }
 
 export default function ShiftAssignments() {
-  const { toast } = useToast();
-  const [assignments, setAssignments] = useState<ShiftAssignment[]>(defaultShiftAssignments);
-  const [shifts] = useState<Shift[]>(defaultShifts);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [shiftFilter, setShiftFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingAssignment, setEditingAssignment] = useState<ShiftAssignment | null>(null);
-  const [deleteAssignment, setDeleteAssignment] = useState<ShiftAssignment | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
+  const [deleteAssignmentId, setDeleteAssignmentId] = useState<string | null>(null);
   const [form, setForm] = useState<AssignmentFormData>({
     employeeId: "",
     shiftId: "",
-    effectiveFrom: new Date().toISOString().split("T")[0],
-    effectiveTo: "",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "",
   });
 
-  const departments = [...new Set(mockEmployees.map(e => e.department))];
+  const { data: shifts = [], isLoading: shiftsLoading } = useShifts();
+  const { data: assignments = [], isLoading: assignmentsLoading } = useShiftAssignments();
+  const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: departments = [] } = useDepartments();
   
+  const createAssignment = useCreateShiftAssignment();
+  const updateAssignment = useUpdateShiftAssignment();
+  const deleteAssignment = useDeleteShiftAssignment();
+
+  const isLoading = shiftsLoading || assignmentsLoading || employeesLoading;
+
+  const getEmployeeName = (assignment: typeof assignments[0]) => {
+    const profile = assignment.employee?.profile;
+    if (!profile) return assignment.employee?.employee_id || "Unknown";
+    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+  };
+
   const filteredAssignments = assignments.filter((a) => {
-    const matchesSearch = 
-      a.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      a.employeeCode.toLowerCase().includes(search.toLowerCase());
-    const matchesDepartment = !departmentFilter || a.department === departmentFilter;
-    const matchesShift = !shiftFilter || a.shiftId === shiftFilter;
+    const name = getEmployeeName(a).toLowerCase();
+    const empId = a.employee?.employee_id?.toLowerCase() || "";
+    const matchesSearch = name.includes(search.toLowerCase()) || empId.includes(search.toLowerCase());
+    const matchesDepartment = !departmentFilter || a.employee?.department?.id === departmentFilter;
+    const matchesShift = !shiftFilter || a.shift_id === shiftFilter;
     return matchesSearch && matchesDepartment && matchesShift;
   });
 
-  const unassignedEmployees = mockEmployees.filter(
-    e => !assignments.some(a => a.employeeId === e.id && a.isActive)
-  );
+  const assignedEmployeeIds = assignments.filter(a => a.is_active).map(a => a.employee_id);
+  const unassignedEmployees = employees.filter(e => !assignedEmployeeIds.includes(e.id));
 
-  const handleOpenForm = (assignment?: ShiftAssignment) => {
-    if (assignment) {
-      setEditingAssignment(assignment);
-      setForm({
-        employeeId: assignment.employeeId,
-        shiftId: assignment.shiftId,
-        effectiveFrom: assignment.effectiveFrom,
-        effectiveTo: assignment.effectiveTo || "",
-      });
+  const handleOpenForm = (assignmentId?: string) => {
+    if (assignmentId) {
+      const assignment = assignments.find(a => a.id === assignmentId);
+      if (assignment) {
+        setEditingAssignment(assignmentId);
+        setForm({
+          employeeId: assignment.employee_id,
+          shiftId: assignment.shift_id,
+          startDate: assignment.start_date,
+          endDate: assignment.end_date || "",
+        });
+      }
     } else {
       setEditingAssignment(null);
       setForm({
         employeeId: "",
         shiftId: "",
-        effectiveFrom: new Date().toISOString().split("T")[0],
-        effectiveTo: "",
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: "",
       });
     }
     setFormOpen(true);
   };
 
   const handleSave = () => {
-    if (!form.employeeId || !form.shiftId || !form.effectiveFrom) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
-      return;
-    }
-
-    const employee = mockEmployees.find(e => e.id === form.employeeId);
-    const shift = shifts.find(s => s.id === form.shiftId);
-    
-    if (!employee || !shift) return;
+    if (!form.employeeId || !form.shiftId || !form.startDate) return;
 
     if (editingAssignment) {
-      setAssignments(prev =>
-        prev.map(a =>
-          a.id === editingAssignment.id
-            ? {
-                ...a,
-                shiftId: form.shiftId,
-                shiftName: shift.name,
-                shiftColor: shift.color,
-                effectiveFrom: form.effectiveFrom,
-                effectiveTo: form.effectiveTo || undefined,
-              }
-            : a
-        )
+      updateAssignment.mutate(
+        {
+          id: editingAssignment,
+          data: {
+            shift_id: form.shiftId,
+            start_date: form.startDate,
+            end_date: form.endDate || undefined,
+          },
+        },
+        { onSuccess: () => setFormOpen(false) }
       );
-      toast({ title: "Assignment updated successfully" });
     } else {
-      const newAssignment: ShiftAssignment = {
-        id: `assign-${Date.now()}`,
-        employeeId: form.employeeId,
-        employeeName: employee.name,
-        employeeCode: employee.code,
-        department: employee.department,
-        shiftId: form.shiftId,
-        shiftName: shift.name,
-        shiftColor: shift.color,
-        effectiveFrom: form.effectiveFrom,
-        effectiveTo: form.effectiveTo || undefined,
-        isActive: true,
-      };
-      setAssignments(prev => [...prev, newAssignment]);
-      toast({ title: "Employee assigned to shift successfully" });
+      createAssignment.mutate(
+        {
+          employee_id: form.employeeId,
+          shift_id: form.shiftId,
+          start_date: form.startDate,
+          end_date: form.endDate || undefined,
+        },
+        { onSuccess: () => setFormOpen(false) }
+      );
     }
-    setFormOpen(false);
   };
 
   const confirmDelete = () => {
-    if (deleteAssignment) {
-      setAssignments(prev => prev.filter(a => a.id !== deleteAssignment.id));
-      toast({ title: "Assignment removed successfully" });
-      setDeleteAssignment(null);
+    if (deleteAssignmentId) {
+      deleteAssignment.mutate(deleteAssignmentId, {
+        onSuccess: () => setDeleteAssignmentId(null),
+      });
     }
   };
+
+  const getEmployeeNameById = (empId: string) => {
+    const emp = employees.find(e => e.id === empId);
+    if (!emp) return empId;
+    const profile = emp.profile;
+    if (!profile) return emp.employee_id;
+    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || emp.employee_id;
+  };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Shift Assignments" description="Assign employees to shifts" />
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <div className="p-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -199,7 +216,7 @@ export default function ShiftAssignments() {
                 <Calendar className="h-6 w-6 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{assignments.filter(a => a.isActive).length}</p>
+                <p className="text-2xl font-bold">{assignments.filter(a => a.is_active).length}</p>
                 <p className="text-sm text-muted-foreground">Active Assignments</p>
               </div>
             </div>
@@ -242,7 +259,7 @@ export default function ShiftAssignments() {
                 <SelectContent>
                   <SelectItem value="_all">All Departments</SelectItem>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -278,49 +295,54 @@ export default function ShiftAssignments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAssignments.map((assignment) => (
-                <TableRow key={assignment.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{assignment.employeeName}</p>
-                      <p className="text-sm text-muted-foreground">{assignment.employeeCode}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{assignment.department}</TableCell>
-                  <TableCell>
-                    <ShiftBadge 
-                      name={assignment.shiftName} 
-                      color={assignment.shiftColor}
-                      size="sm"
-                    />
-                  </TableCell>
-                  <TableCell>{assignment.effectiveFrom}</TableCell>
-                  <TableCell>{assignment.effectiveTo || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={assignment.isActive ? "default" : "secondary"}>
-                      {assignment.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleOpenForm(assignment)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setDeleteAssignment(assignment)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredAssignments.map((assignment) => {
+                const shift = shifts.find(s => s.id === assignment.shift_id);
+                return (
+                  <TableRow key={assignment.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{getEmployeeName(assignment)}</p>
+                        <p className="text-sm text-muted-foreground">{assignment.employee?.employee_id}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{assignment.employee?.department?.name || "—"}</TableCell>
+                    <TableCell>
+                      {shift && (
+                        <ShiftBadge 
+                          name={shift.name} 
+                          color={shift.color || "#888"}
+                          size="sm"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>{format(new Date(assignment.start_date), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>{assignment.end_date ? format(new Date(assignment.end_date), "MMM dd, yyyy") : "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={assignment.is_active ? "default" : "secondary"}>
+                        {assignment.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleOpenForm(assignment.id)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setDeleteAssignmentId(assignment.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
 
@@ -359,11 +381,11 @@ export default function ShiftAssignments() {
                 </SelectTrigger>
                 <SelectContent>
                   {(editingAssignment 
-                    ? mockEmployees 
+                    ? employees 
                     : unassignedEmployees
                   ).map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} ({emp.code})
+                      {getEmployeeNameById(emp.id)} ({emp.employee_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -380,14 +402,14 @@ export default function ShiftAssignments() {
                   <SelectValue placeholder="Select shift" />
                 </SelectTrigger>
                 <SelectContent>
-                  {shifts.filter(s => s.isActive).map((shift) => (
+                  {shifts.filter(s => s.is_active).map((shift) => (
                     <SelectItem key={shift.id} value={shift.id}>
                       <div className="flex items-center gap-2">
                         <span 
                           className="h-3 w-3 rounded-full" 
-                          style={{ backgroundColor: shift.color }}
+                          style={{ backgroundColor: shift.color || "#888" }}
                         />
-                        {shift.name} ({shift.startTime} - {shift.endTime})
+                        {shift.name} ({shift.start_time} - {shift.end_time})
                       </div>
                     </SelectItem>
                   ))}
@@ -400,16 +422,16 @@ export default function ShiftAssignments() {
                 <Label>Effective From *</Label>
                 <Input
                   type="date"
-                  value={form.effectiveFrom}
-                  onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })}
+                  value={form.startDate}
+                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Effective To</Label>
                 <Input
                   type="date"
-                  value={form.effectiveTo}
-                  onChange={(e) => setForm({ ...form, effectiveTo: e.target.value })}
+                  value={form.endDate}
+                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                 />
               </div>
             </div>
@@ -419,7 +441,10 @@ export default function ShiftAssignments() {
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button 
+              onClick={handleSave}
+              disabled={!form.employeeId || !form.shiftId || createAssignment.isPending || updateAssignment.isPending}
+            >
               {editingAssignment ? "Update" : "Assign"}
             </Button>
           </DialogFooter>
@@ -428,11 +453,11 @@ export default function ShiftAssignments() {
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog
-        open={!!deleteAssignment}
-        onOpenChange={(open) => !open && setDeleteAssignment(null)}
+        open={!!deleteAssignmentId}
+        onOpenChange={(open) => !open && setDeleteAssignmentId(null)}
         onConfirm={confirmDelete}
         title="Remove Assignment"
-        description={`Are you sure you want to remove ${deleteAssignment?.employeeName} from ${deleteAssignment?.shiftName} shift?`}
+        description="Are you sure you want to remove this shift assignment?"
       />
     </PageContainer>
   );
