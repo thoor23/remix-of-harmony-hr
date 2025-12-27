@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,9 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, CalendarCheck, Clock, CalendarX } from "lucide-react";
-import { leaveRequests, leaveTypes, leaveBalances } from "@/data/mockData";
-import { toast } from "sonner";
+import { useCurrentEmployee, useLeaveBalances } from "@/hooks/useCurrentEmployee";
+import { useLeaveTypes, useMyLeaveRequests, useCreateLeaveRequest, useCancelLeaveRequest } from "@/hooks/useLeaves";
 
 export default function EmployeeLeaves() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
@@ -40,23 +41,67 @@ export default function EmployeeLeaves() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
 
-  // Filter leaves for current employee
-  const myLeaves = leaveRequests.filter((r) => r.employeeId === "emp-3");
+  const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: leaveTypes = [], isLoading: typesLoading } = useLeaveTypes();
+  const { data: leaveBalances = [], isLoading: balancesLoading } = useLeaveBalances(employee?.id);
+  const { data: myLeaves = [], isLoading: leavesLoading } = useMyLeaveRequests(employee?.id);
+  
+  const createLeave = useCreateLeaveRequest();
+  const cancelLeave = useCancelLeaveRequest();
+
   const pendingLeaves = myLeaves.filter((r) => r.status === "pending");
   const approvedLeaves = myLeaves.filter((r) => r.status === "approved");
 
+  const calculateDays = () => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
   const handleApplyLeave = () => {
-    toast.success("Leave request submitted successfully!");
-    setIsApplyDialogOpen(false);
-    setLeaveType("");
-    setStartDate("");
-    setEndDate("");
-    setReason("");
+    if (!employee?.id || !leaveType || !startDate || !endDate) return;
+
+    createLeave.mutate(
+      {
+        employee_id: employee.id,
+        leave_type_id: leaveType,
+        start_date: startDate,
+        end_date: endDate,
+        days: calculateDays(),
+        reason,
+      },
+      {
+        onSuccess: () => {
+          setIsApplyDialogOpen(false);
+          setLeaveType("");
+          setStartDate("");
+          setEndDate("");
+          setReason("");
+        },
+      }
+    );
   };
 
   const handleCancelLeave = (id: string) => {
-    toast.success("Leave request cancelled");
+    cancelLeave.mutate(id);
   };
+
+  const isLoading = employeeLoading || typesLoading || balancesLoading || leavesLoading;
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="My Leaves" description="Apply for leaves and view your leave history" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -70,30 +115,31 @@ export default function EmployeeLeaves() {
       {/* Leave Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         {leaveBalances.map((balance) => {
-          const type = leaveTypes.find((t) => t.id === balance.leaveTypeId);
+          const type = leaveTypes.find((t) => t.id === balance.leave_type_id);
+          const available = Number(balance.total_days) - Number(balance.used_days) - Number(balance.pending_days);
           return (
-            <Card key={balance.leaveTypeId}>
+            <Card key={balance.id}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div
                     className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: type?.color }}
+                    style={{ backgroundColor: type?.color || "#3B82F6" }}
                   />
-                  <span className="font-medium">{type?.name}</span>
+                  <span className="font-medium">{type?.name || "Leave"}</span>
                 </div>
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-3xl font-bold text-primary">{balance.available}</p>
+                    <p className="text-3xl font-bold text-primary">{available}</p>
                     <p className="text-xs text-muted-foreground">Available</p>
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
-                    <p>Used: {balance.used}</p>
-                    <p>Total: {balance.total}</p>
+                    <p>Used: {balance.used_days}</p>
+                    <p>Total: {balance.total_days}</p>
                   </div>
                 </div>
-                {balance.pending > 0 && (
+                {Number(balance.pending_days) > 0 && (
                   <p className="text-xs text-warning mt-2">
-                    {balance.pending} pending approval
+                    {balance.pending_days} pending approval
                   </p>
                 )}
               </CardContent>
@@ -133,7 +179,7 @@ export default function EmployeeLeaves() {
             </div>
             <div>
               <p className="text-2xl font-semibold">
-                {leaveBalances.reduce((sum, b) => sum + b.used, 0)}
+                {leaveBalances.reduce((sum, b) => sum + Number(b.used_days), 0)}
               </p>
               <p className="text-sm text-muted-foreground">Days Used (YTD)</p>
             </div>
@@ -171,23 +217,20 @@ export default function EmployeeLeaves() {
                       <div className="flex items-center gap-2">
                         <span
                           className="h-2 w-2 rounded-full"
-                          style={{
-                            backgroundColor:
-                              leaveTypes.find((t) => t.id === leave.leaveTypeId)?.color,
-                          }}
+                          style={{ backgroundColor: leave.leave_type?.color || "#3B82F6" }}
                         />
-                        {leave.leaveTypeName}
+                        {leave.leave_type?.name || "Leave"}
                       </div>
                     </TableCell>
-                    <TableCell>{leave.startDate}</TableCell>
-                    <TableCell>{leave.endDate}</TableCell>
+                    <TableCell>{leave.start_date}</TableCell>
+                    <TableCell>{leave.end_date}</TableCell>
                     <TableCell>{leave.days}</TableCell>
-                    <TableCell className="max-w-xs truncate">{leave.reason}</TableCell>
+                    <TableCell className="max-w-xs truncate">{leave.reason || "-"}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(leave.appliedOn).toLocaleDateString()}
+                      {new Date(leave.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={leave.status} />
+                      <StatusBadge status={leave.status as any} />
                     </TableCell>
                     <TableCell>
                       {leave.status === "pending" && (
@@ -195,6 +238,7 @@ export default function EmployeeLeaves() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleCancelLeave(leave.id)}
+                          disabled={cancelLeave.isPending}
                         >
                           Cancel
                         </Button>
@@ -227,11 +271,11 @@ export default function EmployeeLeaves() {
               <TableBody>
                 {pendingLeaves.length > 0 ? pendingLeaves.map((leave) => (
                   <TableRow key={leave.id}>
-                    <TableCell>{leave.leaveTypeName}</TableCell>
-                    <TableCell>{leave.startDate}</TableCell>
-                    <TableCell>{leave.endDate}</TableCell>
+                    <TableCell>{leave.leave_type?.name || "Leave"}</TableCell>
+                    <TableCell>{leave.start_date}</TableCell>
+                    <TableCell>{leave.end_date}</TableCell>
                     <TableCell>{leave.days}</TableCell>
-                    <TableCell>{leave.reason}</TableCell>
+                    <TableCell>{leave.reason || "-"}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" onClick={() => handleCancelLeave(leave.id)}>
                         Cancel
@@ -257,17 +301,19 @@ export default function EmployeeLeaves() {
                   <TableHead>From</TableHead>
                   <TableHead>To</TableHead>
                   <TableHead>Days</TableHead>
-                  <TableHead>Approved By</TableHead>
+                  <TableHead>Approved On</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {approvedLeaves.length > 0 ? approvedLeaves.map((leave) => (
                   <TableRow key={leave.id}>
-                    <TableCell>{leave.leaveTypeName}</TableCell>
-                    <TableCell>{leave.startDate}</TableCell>
-                    <TableCell>{leave.endDate}</TableCell>
+                    <TableCell>{leave.leave_type?.name || "Leave"}</TableCell>
+                    <TableCell>{leave.start_date}</TableCell>
+                    <TableCell>{leave.end_date}</TableCell>
                     <TableCell>{leave.days}</TableCell>
-                    <TableCell>John Smith</TableCell>
+                    <TableCell>
+                      {leave.approved_on ? new Date(leave.approved_on).toLocaleDateString() : "-"}
+                    </TableCell>
                   </TableRow>
                 )) : (
                   <TableRow>
@@ -298,15 +344,18 @@ export default function EmployeeLeaves() {
                 </SelectTrigger>
                 <SelectContent>
                   {leaveTypes.map((type) => {
-                    const balance = leaveBalances.find((b) => b.leaveTypeId === type.id);
+                    const balance = leaveBalances.find((b) => b.leave_type_id === type.id);
+                    const available = balance
+                      ? Number(balance.total_days) - Number(balance.used_days) - Number(balance.pending_days)
+                      : 0;
                     return (
                       <SelectItem key={type.id} value={type.id}>
                         <div className="flex items-center gap-2">
                           <span
                             className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: type.color }}
+                            style={{ backgroundColor: type.color || "#3B82F6" }}
                           />
-                          {type.name} ({balance?.available || 0} available)
+                          {type.name} ({available} available)
                         </div>
                       </SelectItem>
                     );
@@ -334,6 +383,12 @@ export default function EmployeeLeaves() {
               </div>
             </div>
 
+            {startDate && endDate && (
+              <p className="text-sm text-muted-foreground">
+                Total Days: <span className="font-medium">{calculateDays()}</span>
+              </p>
+            )}
+
             <div className="space-y-2">
               <Label>Reason *</Label>
               <Textarea
@@ -348,7 +403,12 @@ export default function EmployeeLeaves() {
             <Button variant="outline" onClick={() => setIsApplyDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleApplyLeave}>Submit Request</Button>
+            <Button 
+              onClick={handleApplyLeave}
+              disabled={!leaveType || !startDate || !endDate || createLeave.isPending}
+            >
+              {createLeave.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

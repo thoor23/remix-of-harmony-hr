@@ -9,14 +9,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Flag, Sun, Building2 } from "lucide-react";
-import { holidays } from "@/data/mockData";
+import { useHolidays } from "@/hooks/useHolidays";
 
 export default function HolidayCalendar() {
-  const [selectedYear, setSelectedYear] = useState("2025");
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+
+  const { data: holidays = [], isLoading } = useHolidays();
+
+  // Filter holidays by year
+  const filteredHolidays = holidays.filter((h) => h.date.startsWith(selectedYear));
 
   const typeIcons: Record<string, React.ReactNode> = {
     national: <Flag className="h-4 w-4" />,
+    public: <Flag className="h-4 w-4" />,
     regional: <Sun className="h-4 w-4" />,
     company: <Building2 className="h-4 w-4" />,
     optional: <Calendar className="h-4 w-4" />,
@@ -24,51 +32,67 @@ export default function HolidayCalendar() {
 
   const typeColors: Record<string, string> = {
     national: "bg-primary text-primary-foreground",
+    public: "bg-primary text-primary-foreground",
     regional: "bg-info text-info-foreground",
     company: "bg-success text-success-foreground",
     optional: "bg-warning text-warning-foreground",
   };
 
   // Group holidays by month
-  const holidaysByMonth = holidays.reduce((acc, holiday) => {
+  const holidaysByMonth = filteredHolidays.reduce((acc, holiday) => {
     const month = new Date(holiday.date).toLocaleDateString("en-US", { month: "long" });
     if (!acc[month]) acc[month] = [];
     acc[month].push(holiday);
     return acc;
-  }, {} as Record<string, typeof holidays>);
+  }, {} as Record<string, typeof filteredHolidays>);
 
-  const upcomingHolidays = holidays
+  const upcomingHolidays = filteredHolidays
     .filter((h) => new Date(h.date) >= new Date())
     .slice(0, 3);
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Holiday Calendar" description="View upcoming holidays and plan your time off" />
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
       <PageHeader title="Holiday Calendar" description="View upcoming holidays and plan your time off" />
 
       {/* Upcoming Holidays */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        {upcomingHolidays.map((holiday) => (
-          <Card key={holiday.id} className="border-l-4 border-l-primary">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold">{holiday.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(holiday.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
+      {upcomingHolidays.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {upcomingHolidays.map((holiday) => (
+            <Card key={holiday.id} className="border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold">{holiday.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(holiday.date).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <Badge className={typeColors[holiday.type] || typeColors.company}>
+                    {holiday.type}
+                  </Badge>
                 </div>
-                <Badge className={typeColors[holiday.type]}>
-                  {holiday.type}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Legend & Year Selector */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -91,82 +115,93 @@ export default function HolidayCalendar() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2025">2025</SelectItem>
-            <SelectItem value="2024">2024</SelectItem>
+            <SelectItem value={String(currentYear + 1)}>{currentYear + 1}</SelectItem>
+            <SelectItem value={String(currentYear)}>{currentYear}</SelectItem>
+            <SelectItem value={String(currentYear - 1)}>{currentYear - 1}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Holiday List by Month */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {Object.entries(holidaysByMonth).map(([month, monthHolidays]) => (
-          <Card key={month}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                {month}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {monthHolidays.map((holiday) => (
-                  <div
-                    key={holiday.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center ${typeColors[holiday.type]}`}
-                      >
-                        {typeIcons[holiday.type]}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{holiday.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(holiday.date).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            day: "numeric",
-                          })}
-                        </p>
+      {Object.keys(holidaysByMonth).length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(holidaysByMonth).map(([month, monthHolidays]) => (
+            <Card key={month}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  {month}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {monthHolidays.map((holiday) => (
+                    <div
+                      key={holiday.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-8 w-8 rounded-full flex items-center justify-center ${typeColors[holiday.type] || typeColors.company}`}
+                        >
+                          {typeIcons[holiday.type] || typeIcons.company}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{holiday.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(holiday.date).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              day: "numeric",
+                            })}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            No holidays found for {selectedYear}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary */}
-      <Card className="mt-6">
-        <CardContent className="p-6">
-          <div className="grid gap-4 md:grid-cols-4 text-center">
-            <div>
-              <p className="text-3xl font-bold text-primary">{holidays.length}</p>
-              <p className="text-sm text-muted-foreground">Total Holidays</p>
+      {filteredHolidays.length > 0 && (
+        <Card className="mt-6">
+          <CardContent className="p-6">
+            <div className="grid gap-4 md:grid-cols-4 text-center">
+              <div>
+                <p className="text-3xl font-bold text-primary">{filteredHolidays.length}</p>
+                <p className="text-sm text-muted-foreground">Total Holidays</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">
+                  {filteredHolidays.filter((h) => h.type === "national" || h.type === "public").length}
+                </p>
+                <p className="text-sm text-muted-foreground">National Holidays</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">
+                  {filteredHolidays.filter((h) => h.type === "company").length}
+                </p>
+                <p className="text-sm text-muted-foreground">Company Holidays</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">
+                  {filteredHolidays.filter((h) => h.is_optional).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Optional Holidays</p>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-bold">
-                {holidays.filter((h) => h.type === "national").length}
-              </p>
-              <p className="text-sm text-muted-foreground">National Holidays</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">
-                {holidays.filter((h) => h.type === "company").length}
-              </p>
-              <p className="text-sm text-muted-foreground">Company Holidays</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold">
-                {holidays.filter((h) => h.type === "optional").length}
-              </p>
-              <p className="text-sm text-muted-foreground">Optional Holidays</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </PageContainer>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -19,32 +18,39 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle, Timer } from "lucide-react";
-import { attendanceRecords } from "@/data/mockData";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+import { useMyAttendance } from "@/hooks/useAttendance";
 
 export default function EmployeeAttendance() {
-  const [selectedMonth, setSelectedMonth] = useState("2024-12");
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
+  );
 
-  // Filter records for current employee
-  const myRecords = attendanceRecords.filter((r) => r.employeeId === "emp-3");
-  
+  const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: myRecords = [], isLoading: recordsLoading } = useMyAttendance(employee?.id);
+
+  // Filter records for selected month
+  const filteredRecords = myRecords.filter((r) => r.date.startsWith(selectedMonth));
+
   // Calculate stats
-  const workingDays = myRecords.filter((r) => r.status !== "weekend" && r.status !== "holiday");
-  const present = workingDays.filter((r) => r.status === "present").length;
-  const late = workingDays.filter((r) => r.status === "late").length;
-  const absent = workingDays.filter((r) => r.status === "absent").length;
-  const leaves = workingDays.filter((r) => r.status === "on-leave").length;
-  const totalHours = myRecords.reduce((sum, r) => sum + (r.workHours || 0), 0);
+  const present = filteredRecords.filter((r) => r.status === "present").length;
+  const late = filteredRecords.filter((r) => r.status === "late").length;
+  const absent = filteredRecords.filter((r) => r.status === "absent").length;
+  const leaves = filteredRecords.filter((r) => r.status === "on-leave").length;
+  const totalHours = filteredRecords.reduce((sum, r) => sum + Number(r.work_hours || 0), 0);
 
   // Generate calendar days
   const getDaysInMonth = () => {
     const [year, month] = selectedMonth.split("-").map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
     const days = [];
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = `${selectedMonth}-${day.toString().padStart(2, "0")}`;
-      const record = myRecords.find((r) => r.date === date);
+      const record = filteredRecords.find((r) => r.date === date);
       days.push({ day, date, record });
     }
     return days;
@@ -54,15 +60,49 @@ export default function EmployeeAttendance() {
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case "present": return "bg-success text-success-foreground";
-      case "late": return "bg-warning text-warning-foreground";
-      case "absent": return "bg-destructive text-destructive-foreground";
-      case "on-leave": return "bg-info text-info-foreground";
-      case "weekend": return "bg-muted text-muted-foreground";
-      case "holiday": return "bg-primary text-primary-foreground";
-      default: return "bg-muted/50 text-muted-foreground";
+      case "present":
+        return "bg-success text-success-foreground";
+      case "late":
+        return "bg-warning text-warning-foreground";
+      case "absent":
+        return "bg-destructive text-destructive-foreground";
+      case "on-leave":
+        return "bg-info text-info-foreground";
+      case "weekend":
+        return "bg-muted text-muted-foreground";
+      case "holiday":
+        return "bg-primary text-primary-foreground";
+      default:
+        return "bg-muted/50 text-muted-foreground";
     }
   };
+
+  // Generate month options
+  const getMonthOptions = () => {
+    const options = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      options.push({ value, label });
+    }
+    return options;
+  };
+
+  const isLoading = employeeLoading || recordsLoading;
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="My Attendance" description="View your attendance records and summary" />
+        <div className="grid gap-4 md:grid-cols-5 mb-6">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -120,7 +160,7 @@ export default function EmployeeAttendance() {
               <Timer className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{totalHours}h</p>
+              <p className="text-2xl font-semibold">{totalHours.toFixed(1)}h</p>
               <p className="text-xs text-muted-foreground">Total Hours</p>
             </div>
           </CardContent>
@@ -134,9 +174,11 @@ export default function EmployeeAttendance() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2024-12">December 2024</SelectItem>
-            <SelectItem value="2024-11">November 2024</SelectItem>
-            <SelectItem value="2024-10">October 2024</SelectItem>
+            {getMonthOptions().map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -176,7 +218,7 @@ export default function EmployeeAttendance() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-muted" />
-                  <span className="text-sm">Weekend</span>
+                  <span className="text-sm">No Record</span>
                 </div>
               </div>
 
@@ -197,8 +239,8 @@ export default function EmployeeAttendance() {
                     className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm ${getStatusColor(record?.status)}`}
                   >
                     <span className="font-medium">{day}</span>
-                    {record?.workHours && (
-                      <span className="text-xs opacity-75">{record.workHours}h</span>
+                    {record?.work_hours && (
+                      <span className="text-xs opacity-75">{Number(record.work_hours).toFixed(1)}h</span>
                     )}
                   </div>
                 ))}
@@ -224,17 +266,27 @@ export default function EmployeeAttendance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {myRecords.slice(0, 15).map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">{record.date}</TableCell>
-                      <TableCell>{record.checkIn || "-"}</TableCell>
-                      <TableCell>{record.checkOut || "-"}</TableCell>
-                      <TableCell>{record.workHours ? `${record.workHours}h` : "-"}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={record.status} />
+                  {filteredRecords.length > 0 ? (
+                    filteredRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.date}</TableCell>
+                        <TableCell>{record.check_in || "-"}</TableCell>
+                        <TableCell>{record.check_out || "-"}</TableCell>
+                        <TableCell>
+                          {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={record.status as any} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No attendance records for this month
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

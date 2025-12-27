@@ -3,32 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, File, FolderOpen, Upload } from "lucide-react";
-import { policyDocuments } from "@/data/mockData";
+import { useMyDocuments, useCompanyDocuments } from "@/hooks/useDocuments";
 import { toast } from "sonner";
 
 export default function EmployeeDocuments() {
+  const { data: myDocuments = [], isLoading: myDocsLoading } = useMyDocuments();
+  const { data: companyDocuments = [], isLoading: companyDocsLoading } = useCompanyDocuments();
+
   const handleDownload = (docName: string) => {
     toast.success(`Downloading ${docName}`);
   };
 
-  // Personal documents (mock)
-  const myDocuments = [
-    { id: "1", name: "Offer Letter", type: "offer-letter", uploadedAt: "2022-01-10" },
-    { id: "2", name: "NDA Agreement", type: "agreement", uploadedAt: "2022-01-10" },
-    { id: "3", name: "ID Proof (Aadhar)", type: "id-proof", uploadedAt: "2022-01-15" },
-    { id: "4", name: "Address Proof", type: "address-proof", uploadedAt: "2022-01-15" },
-    { id: "5", name: "Educational Certificates", type: "education", uploadedAt: "2022-01-15" },
-    { id: "6", name: "Previous Experience Letter", type: "experience", uploadedAt: "2022-01-15" },
-  ];
-
-  const categoryLabels: Record<string, string> = {
-    "hr-policy": "HR Policy",
-    "leave-policy": "Leave Policy",
-    "code-of-conduct": "Code of Conduct",
-    benefits: "Benefits",
-    other: "Other",
+  const handleRequestDocument = (type: string) => {
+    toast.success(`Request for ${type} submitted. HR will review your request.`);
   };
+
+  const isLoading = myDocsLoading || companyDocsLoading;
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="My Documents" description="Access your personal and company documents" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -52,33 +57,39 @@ export default function EmployeeDocuments() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {myDocuments.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FileText className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{doc.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Uploaded on {doc.uploadedAt}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(doc.name)}
+                  {myDocuments.length > 0 ? (
+                    <div className="space-y-3">
+                      {myDocuments.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                         >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{doc.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {doc.type} • Uploaded on {new Date(doc.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownload(doc.name)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No personal documents found
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -90,19 +101,35 @@ export default function EmployeeDocuments() {
                   <CardTitle>Request Document</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => handleRequestDocument("Experience Letter")}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Experience Letter
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => handleRequestDocument("Salary Certificate")}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Salary Certificate
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => handleRequestDocument("Employment Certificate")}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Employment Certificate
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => handleRequestDocument("Bonafide Letter")}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Bonafide Letter
                   </Button>
@@ -140,38 +167,39 @@ export default function EmployeeDocuments() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {policyDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{doc.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline">
-                            {categoryLabels[doc.category] || doc.category}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            v{doc.version}
-                          </span>
+              {companyDocuments.length > 0 ? (
+                <div className="space-y-3">
+                  {companyDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{doc.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline">{doc.type}</Badge>
+                          </div>
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownload(doc.name)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownload(doc.title)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No company documents available
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
