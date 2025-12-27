@@ -29,6 +29,13 @@ import SettingsPage from "./pages/admin/settings/SettingsPage";
 // Employee Pages
 import EmployeeLogin from "./pages/employee/Login";
 import EmployeeDashboard from "./pages/employee/Dashboard";
+import EmployeeProfile from "./pages/employee/Profile";
+import EmployeeAttendance from "./pages/employee/Attendance";
+import EmployeeLeaves from "./pages/employee/Leaves";
+import EmployeePayslips from "./pages/employee/Payslips";
+import EmployeeDocuments from "./pages/employee/Documents";
+import HolidayCalendar from "./pages/employee/Holidays";
+import EmployeeHelpdesk from "./pages/employee/Helpdesk";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +70,13 @@ const App = () => (
           <Route path="/employee/login" element={<EmployeeLogin />} />
           <Route path="/employee" element={<EmployeeLayout />}>
             <Route index element={<EmployeeDashboard />} />
+            <Route path="profile" element={<EmployeeProfile />} />
+            <Route path="attendance" element={<EmployeeAttendance />} />
+            <Route path="leaves" element={<EmployeeLeaves />} />
+            <Route path="payslips" element={<EmployeePayslips />} />
+            <Route path="documents" element={<EmployeeDocuments />} />
+            <Route path="holidays" element={<HolidayCalendar />} />
+            <Route path="helpdesk" element={<EmployeeHelpdesk />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
