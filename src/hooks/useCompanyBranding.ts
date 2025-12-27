@@ -3,22 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
+export type SizeOption = "small" | "medium" | "large";
+
 export interface CompanyBranding {
   companyName: string;
   companyLogo: string | null;
+  companyFavicon: string | null;
   companyEmail: string;
   companyPhone: string;
   companyAddress: string;
   companyWebsite: string;
+  logoSize: SizeOption;
+  nameSize: SizeOption;
 }
 
 const defaultBranding: CompanyBranding = {
   companyName: "HRMS Portal",
   companyLogo: null,
+  companyFavicon: null,
   companyEmail: "",
   companyPhone: "",
   companyAddress: "",
   companyWebsite: "",
+  logoSize: "medium",
+  nameSize: "medium",
 };
 
 export function useCompanyBranding() {
@@ -128,6 +136,61 @@ export function useDeleteCompanyLogo() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete logo: ${error.message}`);
+    },
+  });
+}
+
+export function useUploadFavicon() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `favicon.${fileExt}`;
+      const filePath = `branding/${fileName}`;
+
+      // Delete existing favicon if any
+      const extensions = ["png", "ico", "svg"];
+      const filesToDelete = extensions.map((ext) => `branding/favicon.${ext}`);
+      await supabase.storage.from("company-assets").remove(filesToDelete);
+
+      // Upload new favicon
+      const { error: uploadError } = await supabase.storage
+        .from("company-assets")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("company-assets")
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to upload favicon: ${error.message}`);
+    },
+  });
+}
+
+export function useDeleteFavicon() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const extensions = ["png", "ico", "svg"];
+      const filesToDelete = extensions.map((ext) => `branding/favicon.${ext}`);
+      await supabase.storage.from("company-assets").remove(filesToDelete);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete favicon: ${error.message}`);
     },
   });
 }
