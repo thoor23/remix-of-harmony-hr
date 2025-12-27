@@ -22,32 +22,42 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, Send } from "lucide-react";
-import { tickets } from "@/data/mockData";
-import { Ticket } from "@/types/hrms";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { useMyTickets, useCreateTicket } from "@/hooks/useHelpdesk";
+import { Tables } from "@/integrations/supabase/types";
+
+type Ticket = Tables<"helpdesk_tickets">;
 
 export default function EmployeeHelpdesk() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [newMessage, setNewMessage] = useState("");
+  const [category, setCategory] = useState("");
+  const [priority, setPriority] = useState("");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
 
-  // Filter tickets for current employee
-  const myTickets = tickets.filter((t) => t.employeeId === "emp-3");
+  const { data: myTickets = [], isLoading } = useMyTickets();
+  const createTicket = useCreateTicket();
+
   const openTickets = myTickets.filter((t) => t.status === "open" || t.status === "in-progress");
   const resolvedTickets = myTickets.filter((t) => t.status === "resolved" || t.status === "closed");
 
   const handleCreateTicket = () => {
-    toast.success("Ticket created successfully!");
-    setIsNewTicketOpen(false);
-  };
+    if (!subject || !category || !priority) return;
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      toast.success("Message sent!");
-      setNewMessage("");
-    }
+    createTicket.mutate(
+      { subject, description, category, priority },
+      {
+        onSuccess: () => {
+          setIsNewTicketOpen(false);
+          setCategory("");
+          setPriority("");
+          setSubject("");
+          setDescription("");
+        },
+      }
+    );
   };
 
   const priorityColors: Record<string, string> = {
@@ -63,8 +73,22 @@ export default function EmployeeHelpdesk() {
     attendance: "Attendance",
     documents: "Documents",
     benefits: "Benefits",
+    general: "General",
     other: "Other",
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Helpdesk" description="Submit and track your support requests" />
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -134,24 +158,21 @@ export default function EmployeeHelpdesk() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-sm text-muted-foreground">
-                              {ticket.ticketNumber}
-                            </span>
                             <Badge className={priorityColors[ticket.priority]}>
                               {ticket.priority}
                             </Badge>
                           </div>
                           <h3 className="font-medium truncate">{ticket.subject}</h3>
                           <p className="text-sm text-muted-foreground truncate">
-                            {ticket.description}
+                            {ticket.description || "No description"}
                           </p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span>{categoryLabels[ticket.category]}</span>
+                            <span>{categoryLabels[ticket.category] || ticket.category}</span>
                             <span>•</span>
-                            <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
-                        <StatusBadge status={ticket.status} />
+                        <StatusBadge status={ticket.status as any} />
                       </div>
                     </CardContent>
                   </Card>
@@ -176,15 +197,12 @@ export default function EmployeeHelpdesk() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <span className="font-mono text-sm text-muted-foreground">
-                            {ticket.ticketNumber}
-                          </span>
                           <h3 className="font-medium truncate">{ticket.subject}</h3>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Resolved on {ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleDateString() : "N/A"}
+                            Resolved on {ticket.resolved_at ? new Date(ticket.resolved_at).toLocaleDateString() : "N/A"}
                           </p>
                         </div>
-                        <StatusBadge status={ticket.status} />
+                        <StatusBadge status={ticket.status as any} />
                       </div>
                     </CardContent>
                   </Card>
@@ -200,7 +218,7 @@ export default function EmployeeHelpdesk() {
 
             <TabsContent value="all">
               <div className="space-y-3">
-                {myTickets.map((ticket) => (
+                {myTickets.length > 0 ? myTickets.map((ticket) => (
                   <Card
                     key={ticket.id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
@@ -209,16 +227,22 @@ export default function EmployeeHelpdesk() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <span className="font-mono text-sm text-muted-foreground">
-                            {ticket.ticketNumber}
-                          </span>
                           <h3 className="font-medium truncate">{ticket.subject}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {categoryLabels[ticket.category] || ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                        <StatusBadge status={ticket.status} />
+                        <StatusBadge status={ticket.status as any} />
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )) : (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      No tickets found
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -230,60 +254,40 @@ export default function EmployeeHelpdesk() {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{selectedTicket.ticketNumber}</CardTitle>
-                  <StatusBadge status={selectedTicket.status} />
+                  <CardTitle className="text-lg">Ticket Details</CardTitle>
+                  <StatusBadge status={selectedTicket.status as any} />
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-medium">{selectedTicket.subject}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {selectedTicket.description}
+                    {selectedTicket.description || "No description provided"}
                   </p>
                 </div>
 
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-medium mb-3">Conversation</h4>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {selectedTicket.messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-2 ${msg.senderRole === "employee" ? "justify-end" : ""}`}
-                      >
-                        {msg.senderRole === "hr" && (
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">HR</AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div
-                          className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                            msg.senderRole === "employee"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <p>{msg.message}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {new Date(msg.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Category:</span>
+                    <span>{categoryLabels[selectedTicket.category] || selectedTicket.category}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Priority:</span>
+                    <Badge className={priorityColors[selectedTicket.priority]}>
+                      {selectedTicket.priority}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                  </div>
+                  {selectedTicket.resolved_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Resolved:</span>
+                      <span>{new Date(selectedTicket.resolved_at).toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
-
-                {(selectedTicket.status === "open" || selectedTicket.status === "in-progress") && (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type a message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                    />
-                    <Button size="icon" onClick={handleSendMessage}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
 
                 <Button
                   variant="outline"
@@ -308,16 +312,48 @@ export default function EmployeeHelpdesk() {
                 </p>
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Common Topics:</p>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setCategory("payroll");
+                      setIsNewTicketOpen(true);
+                    }}
+                  >
                     Payroll inquiries
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setCategory("leave");
+                      setIsNewTicketOpen(true);
+                    }}
+                  >
                     Leave balance issues
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setCategory("documents");
+                      setIsNewTicketOpen(true);
+                    }}
+                  >
                     Document requests
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setCategory("benefits");
+                      setIsNewTicketOpen(true);
+                    }}
+                  >
                     Benefits information
                   </Button>
                 </div>
@@ -337,7 +373,7 @@ export default function EmployeeHelpdesk() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Category *</Label>
-              <Select>
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -347,6 +383,7 @@ export default function EmployeeHelpdesk() {
                   <SelectItem value="attendance">Attendance</SelectItem>
                   <SelectItem value="documents">Documents</SelectItem>
                   <SelectItem value="benefits">Benefits</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -354,7 +391,7 @@ export default function EmployeeHelpdesk() {
 
             <div className="space-y-2">
               <Label>Priority *</Label>
-              <Select>
+              <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -369,14 +406,20 @@ export default function EmployeeHelpdesk() {
 
             <div className="space-y-2">
               <Label>Subject *</Label>
-              <Input placeholder="Brief description of your issue" />
+              <Input 
+                placeholder="Brief description of your issue"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
-              <Label>Description *</Label>
+              <Label>Description</Label>
               <Textarea
                 placeholder="Please provide details about your issue..."
                 className="min-h-24"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
           </div>
@@ -385,7 +428,12 @@ export default function EmployeeHelpdesk() {
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateTicket}>Create Ticket</Button>
+            <Button 
+              onClick={handleCreateTicket}
+              disabled={!subject || !category || !priority || createTicket.isPending}
+            >
+              {createTicket.isPending ? "Creating..." : "Create Ticket"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

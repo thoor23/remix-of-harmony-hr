@@ -93,6 +93,93 @@ export function useLeaveTypes() {
   });
 }
 
+export function useMyLeaveRequests(employeeId?: string) {
+  return useQuery({
+    queryKey: ["my-leave-requests", employeeId],
+    queryFn: async () => {
+      if (!employeeId) return [];
+
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .select(`
+          *,
+          leave_type:leave_types(id, name, code, color)
+        `)
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!employeeId,
+  });
+}
+
+export function useCreateLeaveRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      employee_id,
+      leave_type_id,
+      start_date,
+      end_date,
+      days,
+      reason,
+    }: {
+      employee_id: string;
+      leave_type_id: string;
+      start_date: string;
+      end_date: string;
+      days: number;
+      reason?: string;
+    }) => {
+      const { error } = await supabase.from("leave_requests").insert({
+        employee_id,
+        leave_type_id,
+        start_date,
+        end_date,
+        days,
+        reason,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+      toast.success("Leave request submitted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to submit leave request: ${error.message}`);
+    },
+  });
+}
+
+export function useCancelLeaveRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("leave_requests")
+        .update({ status: "cancelled" })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      toast.success("Leave request cancelled");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to cancel leave request: ${error.message}`);
+    },
+  });
+}
+
 export function useUpdateLeaveRequest() {
   const queryClient = useQueryClient();
 
@@ -122,6 +209,7 @@ export function useUpdateLeaveRequest() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       toast.success(`Leave request ${variables.status} successfully`);
     },
     onError: (error: Error) => {
