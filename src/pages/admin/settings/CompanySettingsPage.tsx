@@ -26,7 +26,7 @@ import {
   useDeleteFavicon,
   CompanyBranding,
 } from "@/hooks/useCompanyBranding";
-import { Loader2, Upload, X, Building2, Image, Bold, Italic } from "lucide-react";
+import { Loader2, Upload, X, Building2, Image, Italic } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
@@ -181,201 +181,194 @@ export default function CompanySettingsPage() {
       />
 
       <div className="grid gap-6">
-        {/* Logo Upload Section */}
+        {/* Logo & Favicon Upload Section - Combined */}
         <SettingsCard
-          title="Company Logo"
-          description="Upload your company logo to display across the application"
+          title="Company Logo & Favicon"
+          description="Upload your company logo and favicon for branding"
         >
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <Avatar className="h-24 w-24 rounded-lg">
-                <AvatarImage src={formData.companyLogo || undefined} alt="Company logo" />
-                <AvatarFallback className="rounded-lg bg-primary/10">
-                  <Building2 className="h-10 w-10 text-primary" />
-                </AvatarFallback>
-              </Avatar>
-              {formData.companyLogo && (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                  onClick={handleRemoveLogo}
-                  disabled={deleteLogo.isPending}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            <div className="space-y-2">
-              <input
-                type="file"
-                ref={logoInputRef}
-                onChange={handleLogoUpload}
-                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => logoInputRef.current?.click()}
-                disabled={uploadLogo.isPending}
-              >
-                {uploadLogo.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Logo
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                PNG, JPG, SVG or WebP. Max 2MB.
-              </p>
-            </div>
-          </div>
-        </SettingsCard>
-
-        {/* Favicon Upload Section */}
-        <SettingsCard
-          title="Favicon"
-          description="Upload a favicon for browser tabs (recommended: 32x32 or 64x64 pixels)"
-        >
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <div className="h-16 w-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
-                {formData.companyFavicon ? (
-                  <img 
-                    src={formData.companyFavicon} 
-                    alt="Favicon" 
-                    className="h-8 w-8 object-contain"
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Logo Upload */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Company Logo</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-16 w-16 rounded-lg">
+                    <AvatarImage src={formData.companyLogo || undefined} alt="Company logo" />
+                    <AvatarFallback className="rounded-lg bg-primary/10">
+                      <Building2 className="h-8 w-8 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {formData.companyLogo && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                      onClick={handleRemoveLogo}
+                      disabled={deleteLogo.isPending}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="file"
+                    ref={logoInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    className="hidden"
                   />
-                ) : (
-                  <Image className="h-6 w-6 text-muted-foreground" />
-                )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadLogo.isPending}
+                  >
+                    {uploadLogo.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="mr-1 h-3 w-3" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, SVG. Max 2MB</p>
+                </div>
               </div>
-              {formData.companyFavicon && (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                  onClick={handleRemoveFavicon}
-                  disabled={deleteFavicon.isPending}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
             </div>
-            <div className="space-y-2">
-              <input
-                type="file"
-                ref={faviconInputRef}
-                onChange={handleFaviconUpload}
-                accept="image/png,image/x-icon,image/svg+xml,.ico"
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => faviconInputRef.current?.click()}
-                disabled={uploadFavicon.isPending}
-              >
-                {uploadFavicon.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Favicon
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                PNG, ICO or SVG. Max 1MB.
-              </p>
+
+            {/* Favicon Upload */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Favicon</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="h-16 w-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+                    {formData.companyFavicon ? (
+                      <img 
+                        src={formData.companyFavicon} 
+                        alt="Favicon" 
+                        className="h-8 w-8 object-contain"
+                      />
+                    ) : (
+                      <Image className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  {formData.companyFavicon && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                      onClick={handleRemoveFavicon}
+                      disabled={deleteFavicon.isPending}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="file"
+                    ref={faviconInputRef}
+                    onChange={handleFaviconUpload}
+                    accept="image/png,image/x-icon,image/svg+xml,.ico"
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => faviconInputRef.current?.click()}
+                    disabled={uploadFavicon.isPending}
+                  >
+                    {uploadFavicon.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="mr-1 h-3 w-3" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">PNG, ICO, SVG. Max 1MB</p>
+                </div>
+              </div>
             </div>
           </div>
         </SettingsCard>
 
-        {/* Logo Size Settings */}
+        {/* Size Settings - Combined */}
         <SettingsCard
-          title="Logo Size"
-          description="Customize the logo size in the sidebar"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar 
-                className="rounded-lg flex-shrink-0"
-                style={{ width: formData.logoSize, height: formData.logoSize }}
-              >
-                <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
-                <AvatarFallback className="rounded-lg bg-primary">
-                  <Building2 style={{ width: formData.logoSize / 2, height: formData.logoSize / 2 }} className="text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm text-muted-foreground">{formData.logoSize}px</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Slider
-                value={[formData.logoSize]}
-                onValueChange={handleLogoSizeChange}
-                min={20}
-                max={64}
-                step={2}
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                value={formData.logoSize}
-                onChange={(e) => handleLogoSizeChange([Number(e.target.value)])}
-                min={20}
-                max={64}
-                className="w-20"
-              />
-            </div>
-          </div>
-        </SettingsCard>
-
-        {/* Name Display Settings */}
-        <SettingsCard
-          title="Company Name Display"
-          description="Customize how the company name appears in the sidebar"
+          title="Sidebar Display Settings"
+          description="Customize logo and company name appearance in the sidebar"
         >
           <div className="space-y-6">
             {/* Preview */}
             <div className="p-4 rounded-lg border bg-sidebar">
-              <span 
-                className={`truncate ${fontWeightClass[formData.nameFontWeight]} ${formData.nameItalic ? 'italic' : ''}`}
-                style={{ fontSize: formData.nameSize }}
-              >
-                {formData.companyName || "Company Name"}
-              </span>
+              <div className="flex items-center gap-2">
+                <Avatar 
+                  className="rounded-lg flex-shrink-0"
+                  style={{ width: formData.logoSize, height: formData.logoSize }}
+                >
+                  <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
+                  <AvatarFallback className="rounded-lg bg-primary">
+                    <Building2 style={{ width: formData.logoSize / 2, height: formData.logoSize / 2 }} className="text-primary-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <span 
+                  className={`truncate ${fontWeightClass[formData.nameFontWeight]} ${formData.nameItalic ? 'italic' : ''}`}
+                  style={{ fontSize: formData.nameSize }}
+                >
+                  {formData.companyName || "Company Name"}
+                </span>
+              </div>
             </div>
 
-            {/* Size Control */}
-            <div className="space-y-2">
-              <Label>Text Size</Label>
-              <div className="flex items-center gap-4">
-                <Slider
-                  value={[formData.nameSize]}
-                  onValueChange={handleNameSizeChange}
-                  min={12}
-                  max={28}
-                  step={1}
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  value={formData.nameSize}
-                  onChange={(e) => handleNameSizeChange([Number(e.target.value)])}
-                  min={12}
-                  max={28}
-                  className="w-20"
-                />
-                <span className="text-sm text-muted-foreground w-8">px</span>
+            {/* Size Controls - Both in one row */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* Logo Size */}
+              <div className="space-y-2">
+                <Label>Logo Size ({formData.logoSize}px)</Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    value={[formData.logoSize]}
+                    onValueChange={handleLogoSizeChange}
+                    min={20}
+                    max={64}
+                    step={2}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={formData.logoSize}
+                    onChange={(e) => handleLogoSizeChange([Number(e.target.value)])}
+                    min={20}
+                    max={64}
+                    className="w-16"
+                  />
+                </div>
+              </div>
+
+              {/* Name Size */}
+              <div className="space-y-2">
+                <Label>Name Size ({formData.nameSize}px)</Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    value={[formData.nameSize]}
+                    onValueChange={handleNameSizeChange}
+                    min={12}
+                    max={28}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={formData.nameSize}
+                    onChange={(e) => handleNameSizeChange([Number(e.target.value)])}
+                    min={12}
+                    max={28}
+                    className="w-16"
+                  />
+                </div>
               </div>
             </div>
 
