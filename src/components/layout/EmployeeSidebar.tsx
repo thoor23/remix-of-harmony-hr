@@ -17,6 +17,7 @@ import {
   ChevronRight,
   LogOut,
   ArrowLeftRight,
+  Settings,
 } from "lucide-react";
 
 interface NavItem {
@@ -35,6 +36,7 @@ const employeeNavItems: NavItem[] = [
   { title: "My Documents", href: "/employee/documents", icon: FileText },
   { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
   { title: "Helpdesk", href: "/employee/helpdesk", icon: HelpCircle },
+  { title: "Settings", href: "/employee/settings", icon: Settings },
 ];
 
 interface EmployeeSidebarProps {

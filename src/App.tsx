@@ -57,6 +57,7 @@ import EmployeeDocuments from "./pages/employee/Documents";
 import HolidayCalendar from "./pages/employee/Holidays";
 import EmployeeHelpdesk from "./pages/employee/Helpdesk";
 import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
+import EmployeeSettings from "./pages/employee/Settings";
 
 const queryClient = new QueryClient();
 
@@ -109,7 +110,7 @@ const App = () => (
             {/* Employee Routes */}
             <Route path="/employee/login" element={<EmployeeLogin />} />
             <Route path="/employee" element={<EmployeeLayout />}>
-              <Route index element={<EmployeeDashboard />} />
+            <Route index element={<EmployeeDashboard />} />
               <Route path="profile" element={<EmployeeProfile />} />
               <Route path="attendance" element={<EmployeeAttendance />} />
               <Route path="leaves" element={<EmployeeLeaves />} />
@@ -118,6 +119,7 @@ const App = () => (
               <Route path="documents" element={<EmployeeDocuments />} />
               <Route path="holidays" element={<HolidayCalendar />} />
               <Route path="helpdesk" element={<EmployeeHelpdesk />} />
+              <Route path="settings" element={<EmployeeSettings />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
