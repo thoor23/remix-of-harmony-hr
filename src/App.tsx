@@ -15,8 +15,12 @@ import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import EmployeeList from "./pages/admin/employees/EmployeeList";
 import EmployeeDetails from "./pages/admin/employees/EmployeeDetails";
+import AddEmployee from "./pages/admin/employees/AddEmployee";
 import AttendanceManagement from "./pages/admin/attendance/AttendanceManagement";
 import LeaveManagement from "./pages/admin/leaves/LeaveManagement";
+import LeavePolicy from "./pages/admin/leaves/LeavePolicy";
+import SalaryStructure from "./pages/admin/payroll/SalaryStructure";
+import PayslipsList from "./pages/admin/payroll/PayslipsList";
 import DocumentsManagement from "./pages/admin/documents/DocumentsManagement";
 import AnnouncementsManagement from "./pages/admin/announcements/AnnouncementsManagement";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
@@ -42,9 +46,13 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="employees" element={<EmployeeList />} />
+            <Route path="employees/new" element={<AddEmployee />} />
             <Route path="employees/:id" element={<EmployeeDetails />} />
             <Route path="attendance" element={<AttendanceManagement />} />
             <Route path="leaves" element={<LeaveManagement />} />
+            <Route path="leaves/policy" element={<LeavePolicy />} />
+            <Route path="payroll/structure" element={<SalaryStructure />} />
+            <Route path="payroll/payslips" element={<PayslipsList />} />
             <Route path="documents" element={<DocumentsManagement />} />
             <Route path="announcements" element={<AnnouncementsManagement />} />
             <Route path="audit-logs" element={<AuditLogs />} />
