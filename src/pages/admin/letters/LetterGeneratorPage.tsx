@@ -16,6 +16,7 @@ import { FileText, Download, Printer, Eye } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLetterTemplates, DEFAULT_TEMPLATES, type LetterType } from "@/hooks/useLetterTemplates";
 import { useGenerateLetter, replacePlaceholders } from "@/hooks/useGeneratedLetters";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { generateLetterPDF, printLetter } from "@/lib/letterPdfGenerator";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ interface Props {
 export default function LetterGeneratorPage({ letterType, title }: Props) {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
   const { data: templates = [], isLoading: loadingTemplates } = useLetterTemplates(letterType);
+  const { data: branding } = useCompanyBranding();
   const generateLetter = useGenerateLetter();
 
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -64,6 +66,11 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
   };
 
   const getPlaceholderData = (): Record<string, string> => {
+    const logoPx = branding?.logoSize ?? 32;
+    const companyLogoHtml = branding?.companyLogo
+      ? `<img src="${branding.companyLogo}" alt="${branding.companyName || "Company"} company logo" style="max-width:${logoPx}px;height:auto;display:block;margin:0 auto 12px;" />`
+      : "";
+
     const data: Record<string, string> = {
       // Employee data
       employee_name: employee ? `${employee.profile?.first_name || ""} ${employee.profile?.last_name || ""}`.trim() : "",
@@ -72,9 +79,10 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
       department: employee?.department?.name || "",
       date_of_joining: employee?.date_of_joining ? format(new Date(employee.date_of_joining), "MMMM d, yyyy") : "",
       email: employee?.profile?.email || "",
-      // Company data (defaults - can be customized)
-      company_name: "Your Company Name",
-      company_address: "123 Business Street, City, State 12345",
+      // Company data
+      company_logo: companyLogoHtml,
+      company_name: branding?.companyName || "Your Company Name",
+      company_address: branding?.companyAddress || "123 Business Street, City, State 12345",
       hr_name: "HR Manager",
       hr_designation: "Human Resources",
       // Dates
