@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,13 +76,6 @@ export default function PayslipsList() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "Payroll", href: "/admin/payroll/structure" },
-          { label: "Payslips" },
-        ]}
-      />
-
       <PageHeader
         title="Payslips"
         description="Generate and manage employee payslips"

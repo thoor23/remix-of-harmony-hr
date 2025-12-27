@@ -1,6 +1,5 @@
 import { useParams, Link } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -62,12 +61,6 @@ export default function EmployeeDetails() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "Employees", href: "/admin/employees" },
-          { label: `${employee.firstName} ${employee.lastName}` },
-        ]}
-      />
 
       {/* Header Card */}
       <Card className="mb-6">

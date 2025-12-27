@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,14 +165,6 @@ export default function ShiftExchange() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "Dashboard", href: "/admin" },
-          { label: "Shift Management", href: "/admin/shifts" },
-          { label: "Exchange Requests" },
-        ]}
-      />
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Shift Exchange Requests</h1>

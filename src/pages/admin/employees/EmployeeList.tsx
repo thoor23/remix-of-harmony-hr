@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,8 +52,6 @@ export default function EmployeeList() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Employees" }]} />
-      
       <PageHeader
         title="Employees"
         description="Manage your organization's employees"

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,13 +13,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Bell,
-  Search,
   Sun,
   Moon,
   Menu,
   Settings,
   User,
   LogOut,
+  Home,
+  ChevronRight,
 } from "lucide-react";
 import { adminUser, currentUser } from "@/data/mockData";
 
@@ -29,8 +29,37 @@ interface TopBarProps {
   onMenuClick?: () => void;
 }
 
+// Route label mappings
+const routeLabels: Record<string, string> = {
+  admin: "Dashboard",
+  employee: "Dashboard",
+  employees: "Employees",
+  shifts: "Shifts",
+  leaves: "Leaves",
+  payroll: "Payroll",
+  attendance: "Attendance",
+  documents: "Documents",
+  announcements: "Announcements",
+  settings: "Settings",
+  reports: "Reports",
+  audit: "Audit Logs",
+  exchange: "Exchange Requests",
+  list: "Shift List",
+  rotations: "Rotations",
+  calendar: "Calendar",
+  assignments: "Assignments",
+  structure: "Salary Structure",
+  payslips: "Payslips",
+  policy: "Leave Policy",
+  add: "Add Employee",
+  profile: "Profile",
+  helpdesk: "Helpdesk",
+  holidays: "Holidays",
+};
+
 export function TopBar({ isAdmin = false, onMenuClick }: TopBarProps) {
   const [isDark, setIsDark] = useState(false);
+  const location = useLocation();
   const user = isAdmin ? adminUser : currentUser;
 
   const toggleTheme = () => {
@@ -38,29 +67,70 @@ export function TopBar({ isAdmin = false, onMenuClick }: TopBarProps) {
     document.documentElement.classList.toggle("dark");
   };
 
+  // Generate breadcrumbs from current path
+  const generateBreadcrumbs = () => {
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+    const breadcrumbs: { label: string; href?: string }[] = [];
+    let currentPath = "";
+
+    pathSegments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+      
+      // Don't add href to the last item (current page)
+      if (index < pathSegments.length - 1) {
+        breadcrumbs.push({ label, href: currentPath });
+      } else {
+        breadcrumbs.push({ label });
+      }
+    });
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
+  const basePath = isAdmin ? "/admin" : "/employee";
+
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 gap-4">
-      {/* Left side */}
-      <div className="flex items-center gap-4">
+      {/* Left side - Breadcrumbs */}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden flex-shrink-0"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="pl-9 w-64 bg-muted/50 border-0"
-          />
-        </div>
+        
+        <nav className="flex items-center text-sm text-muted-foreground overflow-hidden">
+          <Link
+            to={basePath}
+            className="flex items-center hover:text-foreground transition-colors flex-shrink-0"
+          >
+            <Home className="h-4 w-4" />
+          </Link>
+          {breadcrumbs.map((item, index) => (
+            <div key={index} className="flex items-center min-w-0">
+              <ChevronRight className="h-4 w-4 mx-2 flex-shrink-0" />
+              {item.href ? (
+                <Link
+                  to={item.href}
+                  className="hover:text-foreground transition-colors truncate"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span className="text-foreground font-medium truncate">{item.label}</span>
+              )}
+            </div>
+          ))}
+        </nav>
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Theme toggle */}
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
           {isDark ? (
