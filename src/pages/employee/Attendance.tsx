@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,8 +66,6 @@ export default function EmployeeAttendance() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "My Attendance" }]} />
-
       <PageHeader title="My Attendance" description="View your attendance records and summary" />
 
       {/* Stats Cards */}

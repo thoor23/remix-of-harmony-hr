@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,14 +171,11 @@ export default function ShiftAssignments() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shift Assignments</h1>
-        <p className="text-muted-foreground">
-          Assign employees to shifts and manage their schedules
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader 
+        title="Shift Assignments" 
+        description="Assign employees to shifts and manage their schedules"
+      />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -436,6 +434,6 @@ export default function ShiftAssignments() {
         title="Remove Assignment"
         description={`Are you sure you want to remove ${deleteAssignment?.employeeName} from ${deleteAssignment?.shiftName} shift?`}
       />
-    </div>
+    </PageContainer>
   );
 }

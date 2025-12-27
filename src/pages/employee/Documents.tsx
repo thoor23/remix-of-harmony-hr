@@ -1,5 +1,4 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,8 +32,6 @@ export default function EmployeeDocuments() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "My Documents" }]} />
-
       <PageHeader title="My Documents" description="Access your personal and company documents" />
 
       <Tabs defaultValue="personal">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,14 +116,11 @@ export default function ShiftList() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shift Management</h1>
-        <p className="text-muted-foreground">
-          Create and manage work shifts for your organization
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader 
+        title="Shift Management" 
+        description="Create and manage work shifts for your organization"
+      />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -319,6 +317,6 @@ export default function ShiftList() {
         title="Delete Shift"
         description={`Are you sure you want to delete "${deleteShift?.name}"? This action cannot be undone.`}
       />
-    </div>
+    </PageContainer>
   );
 }
