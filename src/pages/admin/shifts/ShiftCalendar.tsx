@@ -189,11 +189,13 @@ export default function ShiftCalendar() {
         </CardHeader>
         <CardContent>
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {DAYS.map((day) => (
+          <div className="grid grid-cols-7 border-b">
+            {DAYS.map((day, idx) => (
               <div 
                 key={day} 
-                className="text-center text-sm font-medium text-muted-foreground py-2"
+                className={`text-center text-sm font-semibold py-3 ${
+                  idx === 0 || idx === 6 ? "text-muted-foreground" : ""
+                }`}
               >
                 {day}
               </div>
@@ -201,53 +203,67 @@ export default function ShiftCalendar() {
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => (
-              <div
-                key={index}
-                className={`min-h-[100px] border rounded-lg p-1 ${
-                  day === null 
-                    ? "bg-muted/30" 
-                    : isToday(day)
-                      ? "border-primary bg-primary/5"
-                      : "bg-background hover:bg-muted/50"
-                }`}
-              >
-                {day !== null && (
-                  <>
-                    <div className={`text-sm font-medium mb-1 ${
-                      isToday(day) ? "text-primary" : ""
-                    }`}>
-                      {day}
-                    </div>
-                    <div className="space-y-0.5 overflow-hidden">
-                      {getAssignmentsForDay(day).slice(0, 3).map((assignment) => {
-                        const shift = getShiftById(assignment.shiftId);
-                        return shift ? (
-                          <div
-                            key={assignment.id}
-                            className="text-xs px-1 py-0.5 rounded truncate"
-                            style={{ 
-                              backgroundColor: `${shift.color}20`,
-                              color: shift.color,
-                              borderLeft: `2px solid ${shift.color}`
-                            }}
-                            title={`${assignment.employeeName} - ${shift.name}`}
-                          >
-                            {assignment.employeeName.split(' ')[0]}
+          <div className="grid grid-cols-7">
+            {calendarDays.map((day, index) => {
+              const dayAssignments = day ? getAssignmentsForDay(day) : [];
+              const isWeekend = index % 7 === 0 || index % 7 === 6;
+              
+              return (
+                <div
+                  key={index}
+                  className={`min-h-[120px] border-b border-r p-2 ${
+                    index % 7 === 0 ? "border-l" : ""
+                  } ${
+                    day === null 
+                      ? "bg-muted/20" 
+                      : isToday(day)
+                        ? "bg-primary/5"
+                        : isWeekend
+                          ? "bg-muted/10"
+                          : "bg-background"
+                  }`}
+                >
+                  {day !== null && (
+                    <>
+                      <div className={`text-sm font-medium mb-2 ${
+                        isToday(day) 
+                          ? "bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center" 
+                          : isWeekend 
+                            ? "text-muted-foreground"
+                            : ""
+                      }`}>
+                        {day}
+                      </div>
+                      <div className="space-y-1">
+                        {dayAssignments.slice(0, 4).map((assignment) => {
+                          const shift = getShiftById(assignment.shiftId);
+                          return shift ? (
+                            <div
+                              key={assignment.id}
+                              className="flex items-center gap-1.5 text-xs"
+                              title={`${assignment.employeeName} - ${shift.name}`}
+                            >
+                              <span 
+                                className="w-1 h-4 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: shift.color }}
+                              />
+                              <span className="truncate">
+                                {assignment.employeeName.split(' ')[0]}
+                              </span>
+                            </div>
+                          ) : null;
+                        })}
+                        {dayAssignments.length > 4 && (
+                          <div className="text-xs text-muted-foreground pl-2.5">
+                            +{dayAssignments.length - 4} more
                           </div>
-                        ) : null;
-                      })}
-                      {getAssignmentsForDay(day).length > 3 && (
-                        <div className="text-xs text-muted-foreground px-1">
-                          +{getAssignmentsForDay(day).length - 3} more
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
