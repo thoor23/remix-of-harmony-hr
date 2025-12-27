@@ -62,19 +62,14 @@ import {
   TrendingUp,
   LayoutTemplate,
 } from "lucide-react";
-import { useCompanyBranding, SizeOption } from "@/hooks/useCompanyBranding";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const logoSizeClasses: Record<SizeOption, string> = {
-  small: "h-6 w-6",
-  medium: "h-8 w-8",
-  large: "h-10 w-10",
-};
-
-const nameSizeClasses: Record<SizeOption, string> = {
-  small: "text-sm",
-  medium: "text-lg",
-  large: "text-xl",
+const fontWeightClasses = {
+  normal: "font-normal",
+  medium: "font-medium",
+  semibold: "font-semibold",
+  bold: "font-bold",
 };
 
 interface NavItem {
@@ -214,14 +209,24 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
     >
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b">
-        <Avatar className={cn("rounded-lg flex-shrink-0", logoSizeClasses[branding?.logoSize || "medium"])}>
+        <Avatar 
+          className="rounded-lg flex-shrink-0"
+          style={{ width: branding?.logoSize || 32, height: branding?.logoSize || 32 }}
+        >
           <AvatarImage src={branding?.companyLogo || undefined} alt={branding?.companyName || "Company"} />
           <AvatarFallback className="rounded-lg bg-primary">
-            <Building2 className="h-1/2 w-1/2 text-primary-foreground" />
+            <Building2 style={{ width: (branding?.logoSize || 32) / 2, height: (branding?.logoSize || 32) / 2 }} className="text-primary-foreground" />
           </AvatarFallback>
         </Avatar>
         {!collapsed && (
-          <span className={cn("font-semibold truncate", nameSizeClasses[branding?.nameSize || "medium"])}>
+          <span 
+            className={cn(
+              "truncate",
+              fontWeightClasses[branding?.nameFontWeight || "semibold"],
+              branding?.nameItalic && "italic"
+            )}
+            style={{ fontSize: branding?.nameSize || 18 }}
+          >
             {branding?.companyName || "HRMS Admin"}
           </span>
         )}
