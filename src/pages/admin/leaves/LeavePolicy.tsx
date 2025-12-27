@@ -22,8 +22,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, CalendarCheck, BookOpen, Shield, Banknote, Clock } from "lucide-react";
-import { leaveTypes } from "@/data/mockData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Edit, Trash2, CalendarCheck, BookOpen, Shield, Banknote } from "lucide-react";
+import { useLeaveTypes, useCreateLeaveType, useUpdateLeaveType, useDeleteLeaveType } from "@/hooks/useLeaves";
 import { toast } from "sonner";
 
 interface LeaveRules {
@@ -41,6 +42,11 @@ export default function LeavePolicy() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("types");
+
+  const { data: leaveTypes = [], isLoading } = useLeaveTypes();
+  const createLeaveType = useCreateLeaveType();
+  const updateLeaveType = useUpdateLeaveType();
+  const deleteLeaveType = useDeleteLeaveType();
 
   // Leave Rules state
   const [leaveRules, setLeaveRules] = useState<LeaveRules>({
@@ -81,29 +87,66 @@ export default function LeavePolicy() {
       setEditingType(id);
       setName(type.name);
       setCode(type.code);
-      setMaxDays(type.maxDays.toString());
-      setColor(type.color);
-      setCarryForward(type.carryForward);
-      setEncashable(type.encashable);
-      setDescription(type.description || "");
+      setMaxDays(type.max_days.toString());
+      setColor(type.color || "#10B981");
+      setCarryForward(type.carry_forward || false);
+      setEncashable(type.encashable || false);
+      setDescription("");
       setIsDialogOpen(true);
     }
   };
 
   const handleSave = () => {
-    toast.success(
-      editingType ? "Leave type updated successfully" : "Leave type added successfully"
-    );
-    setIsDialogOpen(false);
+    if (!name || !code || !maxDays) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    const data = {
+      name,
+      code,
+      max_days: parseInt(maxDays),
+      color,
+      carry_forward: carryForward,
+      encashable,
+    };
+
+    if (editingType) {
+      updateLeaveType.mutate(
+        { id: editingType, data },
+        { onSuccess: () => setIsDialogOpen(false) }
+      );
+    } else {
+      createLeaveType.mutate(data, {
+        onSuccess: () => setIsDialogOpen(false),
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
-    toast.success("Leave type deleted successfully");
+    if (confirm("Are you sure you want to delete this leave type?")) {
+      deleteLeaveType.mutate(id);
+    }
   };
 
   const saveLeaveRules = () => {
     toast.success("Leave rules saved successfully");
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Leave Policy & Rules" description="Configure leave types and policies" />
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const totalDays = leaveTypes.reduce((sum, t) => sum + t.max_days, 0);
+  const carryForwardCount = leaveTypes.filter((t) => t.carry_forward).length;
 
   return (
     <PageContainer>
@@ -161,9 +204,7 @@ export default function LeavePolicy() {
                     <CalendarCheck className="h-5 w-5 text-success" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold">
-                      {leaveTypes.reduce((sum, t) => sum + t.maxDays, 0)}
-                    </p>
+                    <p className="text-2xl font-semibold">{totalDays}</p>
                     <p className="text-sm text-muted-foreground">Total Days/Year</p>
                   </div>
                 </div>
@@ -176,9 +217,7 @@ export default function LeavePolicy() {
                     <CalendarCheck className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold">
-                      {leaveTypes.filter((t) => t.carryForward).length}
-                    </p>
+                    <p className="text-2xl font-semibold">{carryForwardCount}</p>
                     <p className="text-sm text-muted-foreground">Carry Forward</p>
                   </div>
                 </div>
@@ -186,81 +225,88 @@ export default function LeavePolicy() {
             </Card>
           </div>
 
-      {/* Leave Types Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Leave Types</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Leave Type</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead className="text-center">Max Days</TableHead>
-                <TableHead className="text-center">Carry Forward</TableHead>
-                <TableHead className="text-center">Encashable</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaveTypes.map((type) => (
-                <TableRow key={type.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-4 w-4 rounded-full"
-                        style={{ backgroundColor: type.color }}
-                      />
-                      <span className="font-medium">{type.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <code className="px-2 py-1 bg-muted rounded text-sm">
-                      {type.code}
-                    </code>
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    {type.maxDays}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {type.carryForward ? (
-                      <span className="text-success">Yes</span>
-                    ) : (
-                      <span className="text-muted-foreground">No</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {type.encashable ? (
-                      <span className="text-success">Yes</span>
-                    ) : (
-                      <span className="text-muted-foreground">No</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(type.id)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(type.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          {/* Leave Types Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Leave Types</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Leave Type</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead className="text-center">Max Days</TableHead>
+                    <TableHead className="text-center">Carry Forward</TableHead>
+                    <TableHead className="text-center">Encashable</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaveTypes.map((type) => (
+                    <TableRow key={type.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="h-4 w-4 rounded-full"
+                            style={{ backgroundColor: type.color || "#888" }}
+                          />
+                          <span className="font-medium">{type.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <code className="px-2 py-1 bg-muted rounded text-sm">
+                          {type.code}
+                        </code>
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {type.max_days}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {type.carry_forward ? (
+                          <span className="text-success">Yes</span>
+                        ) : (
+                          <span className="text-muted-foreground">No</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {type.encashable ? (
+                          <span className="text-success">Yes</span>
+                        ) : (
+                          <span className="text-muted-foreground">No</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(type.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(type.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {leaveTypes.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No leave types configured. Add your first leave type.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* General Rules Tab */}
@@ -383,16 +429,6 @@ export default function LeavePolicy() {
                 <Switch defaultChecked />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Limit Leave Types During Probation</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Only allow specific leave types during probation
-                  </p>
-                </div>
-                <Switch />
-              </div>
-
               <Button onClick={saveLeaveRules}>Save Rules</Button>
             </CardContent>
           </Card>
@@ -468,21 +504,12 @@ export default function LeavePolicy() {
                 <Switch />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label>Notify Before Expiry</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send reminders before leaves expire
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
               <Button onClick={saveLeaveRules}>Save Rules</Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -573,7 +600,10 @@ export default function LeavePolicy() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button 
+              onClick={handleSave}
+              disabled={createLeaveType.isPending || updateLeaveType.isPending}
+            >
               {editingType ? "Update" : "Add"} Leave Type
             </Button>
           </DialogFooter>

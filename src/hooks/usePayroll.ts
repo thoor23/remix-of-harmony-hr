@@ -81,13 +81,106 @@ export function useSalaryStructures() {
           employee:employees(
             id,
             employee_id,
-            user_id
+            user_id,
+            department:departments(id, name)
           )
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Fetch profiles
+      const userIds = data?.map(s => s.employee?.user_id).filter(Boolean) || [];
+      let profiles: Record<string, any> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name")
+          .in("user_id", userIds);
+        
+        profilesData?.forEach(p => {
+          profiles[p.user_id] = p;
+        });
+      }
+
+      return data?.map(salary => ({
+        ...salary,
+        employee: salary.employee ? {
+          ...salary.employee,
+          profile: salary.employee.user_id ? profiles[salary.employee.user_id] : null
+        } : null
+      }));
+    },
+  });
+}
+
+export function useCreateSalaryStructure() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (structure: {
+      employee_id: string;
+      basic_salary: number;
+      hra?: number;
+      transport_allowance?: number;
+      medical_allowance?: number;
+      other_allowances?: number;
+      pf_deduction?: number;
+      tax_deduction?: number;
+      other_deductions?: number;
+      effective_from: string;
+    }) => {
+      const { error } = await supabase
+        .from("salary_structures")
+        .insert(structure);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
+      toast.success("Salary structure created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create salary structure: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateSalaryStructure() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        basic_salary?: number;
+        hra?: number;
+        transport_allowance?: number;
+        medical_allowance?: number;
+        other_allowances?: number;
+        pf_deduction?: number;
+        tax_deduction?: number;
+        other_deductions?: number;
+        effective_from?: string;
+      };
+    }) => {
+      const { error } = await supabase
+        .from("salary_structures")
+        .update(data)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
+      toast.success("Salary structure updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update salary structure: ${error.message}`);
     },
   });
 }

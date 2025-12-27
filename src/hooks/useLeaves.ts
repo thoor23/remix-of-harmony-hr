@@ -12,22 +12,29 @@ export interface LeaveRequestWithDetails {
   reason: string | null;
   status: string;
   comments: string | null;
-  created_at: string;
   approved_by: string | null;
   approved_on: string | null;
-  employee: {
-    employee_id: string;
-    profile: {
-      first_name: string | null;
-      last_name: string | null;
-      avatar_url: string | null;
-    } | null;
-  } | null;
+  created_at: string;
+  updated_at: string;
   leave_type: {
     id: string;
     name: string;
     code: string;
     color: string | null;
+  } | null;
+  employee: {
+    id: string;
+    employee_id: string;
+    user_id: string | null;
+    department: {
+      id: string;
+      name: string;
+    } | null;
+    profile?: {
+      first_name: string | null;
+      last_name: string | null;
+      avatar_url: string | null;
+    } | null;
   } | null;
 }
 
@@ -39,40 +46,39 @@ export function useLeaveRequests() {
         .from("leave_requests")
         .select(`
           *,
-          leave_type:leave_types(id, name, code, color)
+          leave_type:leave_types(id, name, code, color),
+          employee:employees!leave_requests_employee_id_fkey(
+            id,
+            employee_id,
+            user_id,
+            department:departments(id, name)
+          )
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch employee details
-      const employeeIds = data?.map(r => r.employee_id) || [];
-      const { data: employees } = await supabase
-        .from("employees")
-        .select("id, employee_id, user_id")
-        .in("id", employeeIds);
-
-      const userIds = employees?.filter(e => e.user_id).map(e => e.user_id) || [];
-      let profiles: Record<string, any> = {};
+      // Fetch profiles for employees
+      const userIds = data?.map(r => r.employee?.user_id).filter(Boolean) as string[] || [];
+      let profiles: Record<string, { first_name: string | null; last_name: string | null; avatar_url: string | null }> = {};
+      
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, avatar_url")
           .in("user_id", userIds);
-        profilesData?.forEach(p => { profiles[p.user_id] = p; });
+        
+        profilesData?.forEach(p => {
+          profiles[p.user_id] = p;
+        });
       }
 
-      const employeeMap: Record<string, any> = {};
-      employees?.forEach(e => {
-        employeeMap[e.id] = {
-          employee_id: e.employee_id,
-          profile: e.user_id ? profiles[e.user_id] || null : null,
-        };
-      });
-
-      return data?.map(r => ({
-        ...r,
-        employee: employeeMap[r.employee_id] || null,
+      return data?.map(request => ({
+        ...request,
+        employee: request.employee ? {
+          ...request.employee,
+          profile: request.employee.user_id ? profiles[request.employee.user_id] : null
+        } : null
       })) as LeaveRequestWithDetails[];
     },
   });
@@ -119,14 +125,7 @@ export function useCreateLeaveRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      employee_id,
-      leave_type_id,
-      start_date,
-      end_date,
-      days,
-      reason,
-    }: {
+    mutationFn: async (request: {
       employee_id: string;
       leave_type_id: string;
       start_date: string;
@@ -134,20 +133,15 @@ export function useCreateLeaveRequest() {
       days: number;
       reason?: string;
     }) => {
-      const { error } = await supabase.from("leave_requests").insert({
-        employee_id,
-        leave_type_id,
-        start_date,
-        end_date,
-        days,
-        reason,
-      });
+      const { error } = await supabase
+        .from("leave_requests")
+        .insert(request);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
       toast.success("Leave request submitted successfully");
     },
@@ -170,8 +164,8 @@ export function useCancelLeaveRequest() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       toast.success("Leave request cancelled");
     },
     onError: (error: Error) => {
@@ -184,14 +178,14 @@ export function useUpdateLeaveRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      id, 
-      status, 
+    mutationFn: async ({
+      id,
+      status,
       comments,
-      approved_by 
-    }: { 
-      id: string; 
-      status: "approved" | "rejected";
+      approved_by,
+    }: {
+      id: string;
+      status: string;
       comments?: string;
       approved_by?: string;
     }) => {
@@ -201,7 +195,7 @@ export function useUpdateLeaveRequest() {
           status,
           comments,
           approved_by,
-          approved_on: new Date().toISOString(),
+          approved_on: status === "approved" || status === "rejected" ? new Date().toISOString() : null,
         })
         .eq("id", id);
 
@@ -214,6 +208,92 @@ export function useUpdateLeaveRequest() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to update leave request: ${error.message}`);
+    },
+  });
+}
+
+// Leave Types CRUD
+export function useCreateLeaveType() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (leaveType: {
+      name: string;
+      code: string;
+      max_days: number;
+      color?: string;
+      carry_forward?: boolean;
+      encashable?: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("leave_types")
+        .insert(leaveType);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success("Leave type created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create leave type: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateLeaveType() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        code?: string;
+        max_days?: number;
+        color?: string;
+        carry_forward?: boolean;
+        encashable?: boolean;
+      };
+    }) => {
+      const { error } = await supabase
+        .from("leave_types")
+        .update(data)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success("Leave type updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update leave type: ${error.message}`);
+    },
+  });
+}
+
+export function useDeleteLeaveType() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("leave_types")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success("Leave type deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete leave type: ${error.message}`);
     },
   });
 }
