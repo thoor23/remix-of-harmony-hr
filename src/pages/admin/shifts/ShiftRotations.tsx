@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,14 +196,11 @@ export default function ShiftRotations() {
   const getShiftById = (id: string) => shifts.find(s => s.id === id);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shift Rotations</h1>
-        <p className="text-muted-foreground">
-          Create rotation patterns to automatically alternate employee shifts
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader 
+        title="Shift Rotations" 
+        description="Create rotation patterns to automatically alternate employee shifts"
+      />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -514,6 +512,6 @@ export default function ShiftRotations() {
         title="Delete Rotation"
         description={`Are you sure you want to delete "${deleteRotation?.name}"? This will stop all automatic shift rotations for assigned employees.`}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,8 +68,6 @@ export default function EmployeeHelpdesk() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Helpdesk" }]} />
-
       <PageHeader title="Helpdesk" description="Submit and track your support requests">
         <Button onClick={() => setIsNewTicketOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

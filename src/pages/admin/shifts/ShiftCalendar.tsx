@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -132,14 +133,11 @@ export default function ShiftCalendar() {
   }, [selectedDayAssignments]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shift Calendar</h1>
-        <p className="text-muted-foreground">
-          View employee shift assignments in calendar format
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader 
+        title="Shift Calendar" 
+        description="View employee shift assignments in calendar format"
+      />
 
       {/* Stats/Legend */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -389,6 +387,6 @@ export default function ShiftCalendar() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

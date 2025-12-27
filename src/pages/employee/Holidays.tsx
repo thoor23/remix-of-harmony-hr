@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -44,8 +43,6 @@ export default function HolidayCalendar() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Holiday Calendar" }]} />
-
       <PageHeader title="Holiday Calendar" description="View upcoming holidays and plan your time off" />
 
       {/* Upcoming Holidays */}
