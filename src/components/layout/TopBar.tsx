@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
+import { ClockInOutButton } from "@/components/attendance/ClockInOutButton";
 
 interface TopBarProps {
   isAdmin?: boolean;
@@ -162,7 +163,10 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Clock In/Out for employees */}
+        {!isAdmin && <ClockInOutButton />}
+        
         {/* Notifications */}
         <NotificationsDropdown />
 
