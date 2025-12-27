@@ -23,6 +23,8 @@ import {
   Building2,
   LayoutDashboard,
   Users,
+  Users2,
+  UserPlus,
   CalendarDays,
   CalendarCheck,
   Wallet,
@@ -36,13 +38,28 @@ import {
   ChevronRight,
   LogOut,
   Clock,
+  Eye,
+  ClipboardCheck,
+  FileCheck,
+  BookOpen,
+  List,
+  UserCog,
+  RefreshCw,
+  ArrowLeftRight,
+  Calendar,
+  Banknote,
+  Receipt,
+  PieChart,
+  Building,
+  BadgeCheck,
+  Shield,
 } from "lucide-react";
 
 interface NavItem {
   title: string;
   href?: string;
   icon: React.ElementType;
-  children?: { title: string; href: string }[];
+  children?: { title: string; href: string; icon: React.ElementType }[];
 }
 
 const adminNavItems: NavItem[] = [
@@ -51,43 +68,43 @@ const adminNavItems: NavItem[] = [
     title: "Employees",
     icon: Users,
     children: [
-      { title: "All Employees", href: "/admin/employees" },
-      { title: "Add Employee", href: "/admin/employees/new" },
+      { title: "All Employees", href: "/admin/employees", icon: Users2 },
+      { title: "Add Employee", href: "/admin/employees/new", icon: UserPlus },
     ],
   },
   {
     title: "Attendance",
     icon: CalendarDays,
     children: [
-      { title: "Overview", href: "/admin/attendance" },
-      { title: "Regularization", href: "/admin/attendance/regularization" },
+      { title: "Overview", href: "/admin/attendance", icon: Eye },
+      { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardCheck },
     ],
   },
   {
     title: "Leave Management",
     icon: CalendarCheck,
     children: [
-      { title: "Leave Requests", href: "/admin/leaves" },
-      { title: "Leave Policy", href: "/admin/leaves/policy" },
+      { title: "Leave Requests", href: "/admin/leaves", icon: FileCheck },
+      { title: "Leave Policy", href: "/admin/leaves/policy", icon: BookOpen },
     ],
   },
   {
     title: "Shift Management",
     icon: Clock,
     children: [
-      { title: "All Shifts", href: "/admin/shifts" },
-      { title: "Assignments", href: "/admin/shifts/assignments" },
-      { title: "Rotations", href: "/admin/shifts/rotations" },
-      { title: "Exchange Requests", href: "/admin/shifts/exchange" },
-      { title: "Calendar", href: "/admin/shifts/calendar" },
+      { title: "All Shifts", href: "/admin/shifts", icon: List },
+      { title: "Assignments", href: "/admin/shifts/assignments", icon: UserCog },
+      { title: "Rotations", href: "/admin/shifts/rotations", icon: RefreshCw },
+      { title: "Exchange Requests", href: "/admin/shifts/exchange", icon: ArrowLeftRight },
+      { title: "Calendar", href: "/admin/shifts/calendar", icon: Calendar },
     ],
   },
   {
     title: "Payroll",
     icon: Wallet,
     children: [
-      { title: "Salary Structure", href: "/admin/payroll/structure" },
-      { title: "Payslips", href: "/admin/payroll/payslips" },
+      { title: "Salary Structure", href: "/admin/payroll/structure", icon: Banknote },
+      { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
     ],
   },
   { title: "Documents", href: "/admin/documents", icon: FileText },
@@ -96,20 +113,20 @@ const adminNavItems: NavItem[] = [
     title: "Reports",
     icon: BarChart3,
     children: [
-      { title: "Overview", href: "/admin/reports" },
-      { title: "Employee", href: "/admin/reports/employee" },
-      { title: "Attendance", href: "/admin/reports/attendance" },
-      { title: "Leave", href: "/admin/reports/leave" },
-      { title: "Payroll", href: "/admin/reports/payroll" },
+      { title: "Overview", href: "/admin/reports", icon: Eye },
+      { title: "Employee", href: "/admin/reports/employee", icon: Users2 },
+      { title: "Attendance", href: "/admin/reports/attendance", icon: CalendarDays },
+      { title: "Leave", href: "/admin/reports/leave", icon: CalendarCheck },
+      { title: "Payroll", href: "/admin/reports/payroll", icon: PieChart },
     ],
   },
   {
     title: "Settings",
     icon: Settings,
     children: [
-      { title: "Departments", href: "/admin/settings/departments" },
-      { title: "Designations", href: "/admin/settings/designations" },
-      { title: "Roles", href: "/admin/settings/roles" },
+      { title: "Departments", href: "/admin/settings/departments", icon: Building },
+      { title: "Designations", href: "/admin/settings/designations", icon: BadgeCheck },
+      { title: "Roles", href: "/admin/settings/roles", icon: Shield },
     ],
   },
   { title: "Audit Logs", href: "/admin/audit-logs", icon: ClipboardList },
@@ -192,12 +209,13 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
                             key={child.href}
                             to={child.href}
                             className={cn(
-                              "block py-2 px-2 rounded-md text-sm transition-colors",
+                              "flex items-center gap-2 py-2 px-2 rounded-md text-sm transition-colors",
                               isActive(child.href)
                                 ? "bg-accent text-accent-foreground font-medium"
                                 : "text-foreground hover:bg-accent hover:text-accent-foreground"
                             )}
                           >
+                            <child.icon className="h-4 w-4" />
                             {child.title}
                           </Link>
                         ))}
@@ -240,12 +258,13 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
                         key={child.href}
                         to={child.href}
                         className={cn(
-                          "block py-2 px-3 rounded-md text-sm transition-colors",
+                          "flex items-center gap-2 py-2 px-3 rounded-md text-sm transition-colors",
                           isActive(child.href)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
+                        <child.icon className="h-4 w-4" />
                         {child.title}
                       </Link>
                     ))}
