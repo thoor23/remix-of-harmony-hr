@@ -5,7 +5,9 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Calendar as CalendarIcon,
-  Users
+  Users,
+  X,
+  Clock
 } from "lucide-react";
 import { ShiftAssignment, Shift } from "@/types/settings";
 import { defaultShiftAssignments, defaultShifts } from "@/data/settingsData";
@@ -18,6 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock employees with department
 const mockEmployees = [
@@ -39,7 +48,7 @@ export default function ShiftCalendar() {
   const [shifts] = useState<Shift[]>(defaultShifts);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [viewMode, setViewMode] = useState<"month" | "week">("month");
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const departments = [...new Set(mockEmployees.map(e => e.department))];
 
@@ -108,6 +117,21 @@ export default function ShiftCalendar() {
     });
     return counts;
   }, [filteredAssignments]);
+
+  const selectedDayAssignments = selectedDay ? getAssignmentsForDay(selectedDay) : [];
+  const selectedDateStr = selectedDay 
+    ? `${MONTHS[month]} ${selectedDay}, ${year}` 
+    : "";
+
+  // Group selected day assignments by shift
+  const groupedByShift = useMemo(() => {
+    const groups: Record<string, ShiftAssignment[]> = {};
+    selectedDayAssignments.forEach(a => {
+      if (!groups[a.shiftId]) groups[a.shiftId] = [];
+      groups[a.shiftId].push(a);
+    });
+    return groups;
+  }, [selectedDayAssignments]);
 
   return (
     <div className="space-y-6">
@@ -211,17 +235,18 @@ export default function ShiftCalendar() {
               return (
                 <div
                   key={index}
+                  onClick={() => day !== null && setSelectedDay(day)}
                   className={`min-h-[120px] border-b border-r p-2 ${
                     index % 7 === 0 ? "border-l" : ""
                   } ${
                     day === null 
                       ? "bg-muted/20" 
                       : isToday(day)
-                        ? "bg-primary/5"
+                        ? "bg-primary/5 cursor-pointer hover:bg-primary/10"
                         : isWeekend
-                          ? "bg-muted/10"
-                          : "bg-background"
-                  }`}
+                          ? "bg-muted/10 cursor-pointer hover:bg-muted/20"
+                          : "bg-background cursor-pointer hover:bg-muted/50"
+                  } transition-colors`}
                 >
                   {day !== null && (
                     <>
@@ -294,6 +319,78 @@ export default function ShiftCalendar() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Day Detail Dialog */}
+      <Dialog open={selectedDay !== null} onOpenChange={(open) => !open && setSelectedDay(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              {selectedDateStr}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-2">
+            {selectedDayAssignments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No shifts scheduled for this day</p>
+              </div>
+            ) : (
+              <ScrollArea className="max-h-[400px]">
+                <div className="space-y-4">
+                  {Object.entries(groupedByShift).map(([shiftId, shiftAssignments]) => {
+                    const shift = getShiftById(shiftId);
+                    if (!shift) return null;
+                    
+                    return (
+                      <div key={shiftId} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <ShiftBadge 
+                            name={shift.name} 
+                            color={shift.color}
+                            isNightShift={shift.isNightShift}
+                            isFlexible={shift.isFlexible}
+                          />
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {shift.isFlexible ? "Flexible" : `${shift.startTime} - ${shift.endTime}`}
+                          </div>
+                        </div>
+                        <div className="pl-2 border-l-2 space-y-1" style={{ borderColor: shift.color }}>
+                          {shiftAssignments.map((assignment) => (
+                            <div 
+                              key={assignment.id}
+                              className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50"
+                            >
+                              <div>
+                                <p className="font-medium text-sm">{assignment.employeeName}</p>
+                                <p className="text-xs text-muted-foreground">{assignment.department}</p>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {assignment.employeeCode}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center pt-2 border-t">
+            <p className="text-sm text-muted-foreground">
+              {selectedDayAssignments.length} employee{selectedDayAssignments.length !== 1 ? 's' : ''} scheduled
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setSelectedDay(null)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
