@@ -31,18 +31,20 @@ export function useAnnouncements() {
   });
 }
 
+interface CreateAnnouncementData {
+  title: string;
+  content: string;
+  type: string;
+  priority: string;
+  target_audience: string;
+}
+
 export function useCreateAnnouncement() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (announcement: {
-      title: string;
-      content: string;
-      type: string;
-      priority: string;
-      target_audience: string;
-    }) => {
+    mutationFn: async (announcement: CreateAnnouncementData) => {
       if (!user?.id) throw new Error("Not authenticated");
 
       const { error } = await supabase
