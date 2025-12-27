@@ -20,25 +20,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { attendanceRecords, employees } from "@/data/mockData";
+import { useAttendanceRecords, useTodayAttendanceStats } from "@/hooks/useAttendance";
+import { useEmployees } from "@/hooks/useEmployees";
+import { format } from "date-fns";
 
 export default function AttendanceManagement() {
-  const [selectedMonth, setSelectedMonth] = useState("2024-12");
-  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
+  );
 
-  // Calculate today's attendance stats
-  const today = new Date().toISOString().split("T")[0];
-  const todayRecords = attendanceRecords.filter((r) => r.date === today);
-  const presentCount = todayRecords.filter((r) => r.status === "present").length;
-  const absentCount = todayRecords.filter((r) => r.status === "absent").length;
-  const lateCount = todayRecords.filter((r) => r.status === "late").length;
-  const onLeaveCount = todayRecords.filter((r) => r.status === "on-leave").length;
+  const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useAttendanceRecords(selectedMonth);
+  const { data: todayStats } = useTodayAttendanceStats();
+
+  const isLoading = employeesLoading || attendanceLoading;
 
   // Group attendance by employee for overview
   const employeeAttendance = employees.map((emp) => {
-    const records = attendanceRecords.filter((r) => r.employeeId === emp.id);
+    const records = attendanceRecords.filter((r) => r.employee_id === emp.id);
     const present = records.filter((r) => r.status === "present").length;
     const absent = records.filter((r) => r.status === "absent").length;
     const late = records.filter((r) => r.status === "late").length;
@@ -57,6 +60,33 @@ export default function AttendanceManagement() {
       attendanceRate: totalWorkDays > 0 ? ((present + late) / totalWorkDays) * 100 : 0,
     };
   });
+
+  const getMonthOptions = () => {
+    const options = [];
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = format(date, "MMMM yyyy");
+      options.push({ value, label });
+    }
+    return options;
+  };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 md:grid-cols-5">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-[400px]" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -88,7 +118,7 @@ export default function AttendanceManagement() {
               <CheckCircle className="h-5 w-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{presentCount}</p>
+              <p className="text-2xl font-semibold">{todayStats?.present || 0}</p>
               <p className="text-sm text-muted-foreground">Present Today</p>
             </div>
           </CardContent>
@@ -99,7 +129,7 @@ export default function AttendanceManagement() {
               <Clock className="h-5 w-5 text-warning" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{lateCount}</p>
+              <p className="text-2xl font-semibold">{todayStats?.late || 0}</p>
               <p className="text-sm text-muted-foreground">Late Today</p>
             </div>
           </CardContent>
@@ -110,7 +140,7 @@ export default function AttendanceManagement() {
               <XCircle className="h-5 w-5 text-destructive" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{absentCount}</p>
+              <p className="text-2xl font-semibold">{todayStats?.absent || 0}</p>
               <p className="text-sm text-muted-foreground">Absent Today</p>
             </div>
           </CardContent>
@@ -121,7 +151,7 @@ export default function AttendanceManagement() {
               <AlertCircle className="h-5 w-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{onLeaveCount}</p>
+              <p className="text-2xl font-semibold">{todayStats?.onLeave || 0}</p>
               <p className="text-sm text-muted-foreground">On Leave</p>
             </div>
           </CardContent>
@@ -140,9 +170,11 @@ export default function AttendanceManagement() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2024-12">December 2024</SelectItem>
-                <SelectItem value="2024-11">November 2024</SelectItem>
-                <SelectItem value="2024-10">October 2024</SelectItem>
+                {getMonthOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -167,28 +199,28 @@ export default function AttendanceManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employeeAttendance.map((emp) => (
+                  {employeeAttendance.length > 0 ? employeeAttendance.map((emp) => (
                     <TableRow key={emp.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={emp.avatar} />
+                            <AvatarImage src={emp.profile?.avatar_url || ""} />
                             <AvatarFallback>
-                              {emp.firstName[0]}
-                              {emp.lastName[0]}
+                              {emp.profile?.first_name?.[0] || ""}
+                              {emp.profile?.last_name?.[0] || ""}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">
-                              {emp.firstName} {emp.lastName}
+                              {emp.profile?.first_name} {emp.profile?.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {emp.employeeId}
+                              {emp.employee_id}
                             </p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{emp.department.name}</TableCell>
+                      <TableCell>{emp.department?.name || "-"}</TableCell>
                       <TableCell className="text-center">
                         <span className="text-success font-medium">{emp.present}</span>
                       </TableCell>
@@ -215,7 +247,13 @@ export default function AttendanceManagement() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No attendance records found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -240,35 +278,38 @@ export default function AttendanceManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attendanceRecords.slice(0, 20).map((record) => {
-                    const emp = employees.find((e) => e.id === record.employeeId);
-                    if (!emp) return null;
-                    return (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={emp.avatar} />
-                              <AvatarFallback>
-                                {emp.firstName[0]}
-                                {emp.lastName[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">
-                              {emp.firstName} {emp.lastName}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{record.date}</TableCell>
-                        <TableCell>{record.checkIn || "-"}</TableCell>
-                        <TableCell>{record.checkOut || "-"}</TableCell>
-                        <TableCell>{record.workHours ? `${record.workHours}h` : "-"}</TableCell>
-                        <TableCell>
-                          <StatusBadge status={record.status} />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {attendanceRecords.slice(0, 20).map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={record.employee?.profile?.avatar_url || ""} />
+                            <AvatarFallback>
+                              {record.employee?.profile?.first_name?.[0] || ""}
+                              {record.employee?.profile?.last_name?.[0] || ""}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">
+                            {record.employee?.profile?.first_name} {record.employee?.profile?.last_name}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{format(new Date(record.date), "MMM dd, yyyy")}</TableCell>
+                      <TableCell>{record.check_in || "-"}</TableCell>
+                      <TableCell>{record.check_out || "-"}</TableCell>
+                      <TableCell>{record.work_hours ? `${record.work_hours}h` : "-"}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={record.status as StatusType} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {attendanceRecords.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No attendance records found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

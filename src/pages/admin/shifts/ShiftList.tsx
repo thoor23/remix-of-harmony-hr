@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Plus, 
   Search, 
@@ -10,14 +11,10 @@ import {
   Users,
   Moon,
   LayoutGrid,
-  List
+  List,
+  Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Shift } from "@/types/settings";
-import { defaultShifts } from "@/data/settingsData";
 import { ShiftCard } from "@/components/shifts/ShiftCard";
-import { ShiftForm } from "@/components/shifts/ShiftForm";
-import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import {
   Table,
@@ -27,18 +24,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useShifts, useCreateShift, useUpdateShift, useDeleteShift, ShiftData } from "@/hooks/useShifts";
+import { toast } from "sonner";
 
 export default function ShiftList() {
-  const { toast } = useToast();
-  const [shifts, setShifts] = useState<Shift[]>(defaultShifts);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [deleteShift, setDeleteShift] = useState<Shift | null>(null);
+  const [editingShift, setEditingShift] = useState<ShiftData | null>(null);
+  const [deleteShift, setDeleteShift] = useState<ShiftData | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    start_time: "09:00",
+    end_time: "18:00",
+    break_duration: 60,
+    color: "#3B82F6",
+  });
+
+  const { data: shifts = [], isLoading } = useShifts();
+  const createShift = useCreateShift();
+  const updateShift = useUpdateShift();
+  const deleteShiftMutation = useDeleteShift();
 
   const filteredShifts = shifts.filter(
     (shift) =>
@@ -46,74 +64,90 @@ export default function ShiftList() {
       shift.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSaveShift = (shiftData: Partial<Shift>) => {
-    if (editingShift) {
-      setShifts(prev =>
-        prev.map(s =>
-          s.id === editingShift.id
-            ? { ...s, ...shiftData, updatedAt: new Date().toISOString().split('T')[0] }
-            : s
-        )
-      );
-      toast({ title: "Shift updated successfully" });
+  const handleOpenForm = (shift?: ShiftData) => {
+    if (shift) {
+      setEditingShift(shift);
+      setFormData({
+        name: shift.name,
+        code: shift.code,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        break_duration: shift.break_duration || 60,
+        color: shift.color || "#3B82F6",
+      });
     } else {
-      const newShift: Shift = {
-        ...shiftData,
-        id: `shift-${Date.now()}`,
-        employeeCount: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-      } as Shift;
-      setShifts(prev => [...prev, newShift]);
-      toast({ title: "Shift created successfully" });
+      setEditingShift(null);
+      setFormData({
+        name: "",
+        code: "",
+        start_time: "09:00",
+        end_time: "18:00",
+        break_duration: 60,
+        color: "#3B82F6",
+      });
     }
-    setEditingShift(null);
-  };
-
-  const handleEdit = (shift: Shift) => {
-    setEditingShift(shift);
     setFormOpen(true);
   };
 
-  const handleDelete = (shift: Shift) => {
-    setDeleteShift(shift);
+  const handleSaveShift = () => {
+    if (!formData.name || !formData.code) {
+      toast.error("Name and code are required");
+      return;
+    }
+
+    if (editingShift) {
+      updateShift.mutate({
+        id: editingShift.id,
+        data: formData,
+      }, {
+        onSuccess: () => setFormOpen(false),
+      });
+    } else {
+      createShift.mutate(formData, {
+        onSuccess: () => setFormOpen(false),
+      });
+    }
+  };
+
+  const handleToggleActive = (shift: ShiftData) => {
+    updateShift.mutate({
+      id: shift.id,
+      data: { is_active: !shift.is_active },
+    });
   };
 
   const confirmDelete = () => {
     if (deleteShift) {
-      setShifts(prev => prev.filter(s => s.id !== deleteShift.id));
-      toast({ title: "Shift deleted successfully" });
-      setDeleteShift(null);
+      deleteShiftMutation.mutate(deleteShift.id, {
+        onSuccess: () => setDeleteShift(null),
+      });
     }
-  };
-
-  const handleToggleActive = (shift: Shift) => {
-    setShifts(prev =>
-      prev.map(s =>
-        s.id === shift.id ? { ...s, isActive: !s.isActive } : s
-      )
-    );
-    toast({
-      title: `Shift ${shift.isActive ? "deactivated" : "activated"}`,
-    });
-  };
-
-  const handleSetDefault = (shift: Shift) => {
-    setShifts(prev =>
-      prev.map(s => ({
-        ...s,
-        isDefault: s.id === shift.id,
-      }))
-    );
-    toast({ title: `${shift.name} set as default shift` });
   };
 
   const stats = {
     total: shifts.length,
-    active: shifts.filter(s => s.isActive).length,
-    nightShifts: shifts.filter(s => s.isNightShift).length,
-    totalEmployees: shifts.reduce((acc, s) => acc + s.employeeCount, 0),
+    active: shifts.filter(s => s.is_active).length,
+    nightShifts: shifts.filter(s => {
+      const startHour = parseInt(s.start_time?.split(":")[0] || "0");
+      return startHour >= 18 || startHour < 6;
+    }).length,
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-[400px]" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -170,7 +204,7 @@ export default function ShiftList() {
                 <Users className="h-6 w-6 text-orange-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.totalEmployees}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-sm text-muted-foreground">Total Assigned</p>
               </div>
             </div>
@@ -203,7 +237,7 @@ export default function ShiftList() {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Button onClick={() => { setEditingShift(null); setFormOpen(true); }}>
+              <Button onClick={() => handleOpenForm()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Shift
               </Button>
@@ -214,14 +248,37 @@ export default function ShiftList() {
           {viewMode === "grid" ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredShifts.map((shift) => (
-                <ShiftCard
-                  key={shift.id}
-                  shift={shift}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleActive={handleToggleActive}
-                  onSetDefault={handleSetDefault}
-                />
+                <Card key={shift.id} className="relative">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div 
+                        className="h-3 w-3 rounded-full" 
+                        style={{ backgroundColor: shift.color || "#3B82F6" }} 
+                      />
+                      <span className="font-medium">{shift.name}</span>
+                      {!shift.is_active && (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Code: {shift.code}
+                    </p>
+                    <p className="text-sm">
+                      {shift.start_time} - {shift.end_time}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Break: {shift.break_duration || 0} min
+                    </p>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" size="sm" onClick={() => handleOpenForm(shift)}>
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setDeleteShift(shift)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
@@ -232,8 +289,6 @@ export default function ShiftList() {
                   <TableHead>Code</TableHead>
                   <TableHead>Timing</TableHead>
                   <TableHead>Break</TableHead>
-                  <TableHead>Grace</TableHead>
-                  <TableHead>Employees</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -243,27 +298,19 @@ export default function ShiftList() {
                   <TableRow key={shift.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <ShiftBadge 
-                          name={shift.name} 
-                          color={shift.color}
-                          isNightShift={shift.isNightShift}
-                          isFlexible={shift.isFlexible}
+                        <div 
+                          className="h-3 w-3 rounded-full" 
+                          style={{ backgroundColor: shift.color || "#3B82F6" }} 
                         />
-                        {shift.isDefault && (
-                          <Badge variant="secondary" className="text-xs">Default</Badge>
-                        )}
+                        <span className="font-medium">{shift.name}</span>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{shift.code}</TableCell>
-                    <TableCell>
-                      {shift.isFlexible ? "Flexible" : `${shift.startTime} - ${shift.endTime}`}
-                    </TableCell>
-                    <TableCell>{shift.breakDuration} min</TableCell>
-                    <TableCell>{shift.gracePeriod} min</TableCell>
-                    <TableCell>{shift.employeeCount}</TableCell>
+                    <TableCell>{shift.start_time} - {shift.end_time}</TableCell>
+                    <TableCell>{shift.break_duration || 0} min</TableCell>
                     <TableCell>
                       <Switch 
-                        checked={shift.isActive} 
+                        checked={shift.is_active || false} 
                         onCheckedChange={() => handleToggleActive(shift)}
                       />
                     </TableCell>
@@ -272,15 +319,14 @@ export default function ShiftList() {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleEdit(shift)}
+                          onClick={() => handleOpenForm(shift)}
                         >
                           Edit
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleDelete(shift)}
-                          disabled={shift.isDefault || shift.employeeCount > 0}
+                          onClick={() => setDeleteShift(shift)}
                         >
                           Delete
                         </Button>
@@ -301,13 +347,78 @@ export default function ShiftList() {
       </Card>
 
       {/* Form Dialog */}
-      <ShiftForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        shift={editingShift}
-        onSave={handleSaveShift}
-        existingCodes={shifts.map(s => s.code)}
-      />
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingShift ? "Edit Shift" : "Add New Shift"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Shift Name *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Morning Shift"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Code *</Label>
+                <Input
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="MORN"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Break Duration (minutes)</Label>
+                <Input
+                  type="number"
+                  value={formData.break_duration}
+                  onChange={(e) => setFormData({ ...formData, break_duration: parseInt(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Input
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSaveShift}
+              disabled={createShift.isPending || updateShift.isPending}
+            >
+              {(createShift.isPending || updateShift.isPending) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {editingShift ? "Update" : "Create"} Shift
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog

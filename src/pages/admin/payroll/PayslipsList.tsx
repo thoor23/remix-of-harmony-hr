@@ -25,46 +25,56 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Download, Eye, Send, Calendar } from "lucide-react";
-import { employees, payslips } from "@/data/mockData";
-import { Payslip } from "@/types/hrms";
+import { usePayslips } from "@/hooks/usePayroll";
+import { useEmployees } from "@/hooks/useEmployees";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function PayslipsList() {
-  const [selectedMonth, setSelectedMonth] = useState("2024-12");
-  const [previewPayslip, setPreviewPayslip] = useState<Payslip | null>(null);
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
+  );
+  const [previewPayslip, setPreviewPayslip] = useState<any>(null);
 
-  // Generate payslips for all employees for display
+  const { data: payslips = [], isLoading: payslipsLoading } = usePayslips();
+  const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+
+  const isLoading = payslipsLoading || employeesLoading;
+
+  // Generate display data - show employees with their payslips if available
   const allPayslips = employees.map((emp) => {
-    const existing = payslips.find((p) => p.employeeId === emp.id);
+    const existing = payslips.find((p) => p.employee_id === emp.id);
+    const employeeName = `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim() || "Unknown";
+    
     return existing || {
-      id: `ps-${emp.id}`,
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      month: 12,
-      year: 2024,
-      payPeriod: "December 2024",
-      basic: 50000,
-      hra: 20000,
-      conveyance: 3000,
-      medicalAllowance: 2500,
-      specialAllowance: 10000,
-      otherAllowances: 2000,
-      grossEarnings: 87500,
-      pf: 6000,
-      esi: 1313,
-      professionalTax: 200,
-      incomeTax: 8750,
-      otherDeductions: 0,
-      totalDeductions: 16263,
-      netPay: 71237,
-      paidDays: 31,
-      lopDays: 0,
-      status: "generated" as const,
-      generatedOn: "2024-12-28T10:00:00Z",
+      id: `temp-${emp.id}`,
+      employee_id: emp.id,
+      employeeName,
+      employeeCode: emp.employee_id,
+      avatar: emp.profile?.avatar_url,
+      pay_period: format(currentDate, "MMMM yyyy"),
+      basic_salary: 0,
+      gross_earnings: 0,
+      total_deductions: 0,
+      net_pay: 0,
+      status: "draft" as const,
     };
   });
+
+  const getMonthOptions = () => {
+    const options = [];
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = format(date, "MMMM yyyy");
+      options.push({ value, label });
+    }
+    return options;
+  };
 
   const handleGenerateAll = () => {
     toast.success("Payslips generated for all employees!");
@@ -73,6 +83,18 @@ export default function PayslipsList() {
   const handleSendAll = () => {
     toast.success("Payslips sent to all employees via email!");
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-[400px]" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -104,10 +126,11 @@ export default function PayslipsList() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2024-12">December 2024</SelectItem>
-              <SelectItem value="2024-11">November 2024</SelectItem>
-              <SelectItem value="2024-10">October 2024</SelectItem>
-              <SelectItem value="2024-09">September 2024</SelectItem>
+              {getMonthOptions().map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -116,7 +139,7 @@ export default function PayslipsList() {
       {/* Payslips Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Employee Payslips - {selectedMonth === "2024-12" ? "December 2024" : selectedMonth}</CardTitle>
+          <CardTitle>Employee Payslips</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -126,54 +149,47 @@ export default function PayslipsList() {
                 <TableHead className="text-right">Gross Earnings</TableHead>
                 <TableHead className="text-right">Deductions</TableHead>
                 <TableHead className="text-right">Net Pay</TableHead>
-                <TableHead className="text-center">Paid Days</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPayslips.map((payslip) => {
-                const emp = employees.find((e) => e.id === payslip.employeeId);
+              {allPayslips.length > 0 ? allPayslips.map((payslip) => {
+                const emp = employees.find((e) => e.id === payslip.employee_id);
+                const employeeName = emp 
+                  ? `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim() 
+                  : "Unknown";
+                
                 return (
                   <TableRow key={payslip.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={emp?.avatar} />
+                          <AvatarImage src={emp?.profile?.avatar_url || ""} />
                           <AvatarFallback>
-                            {payslip.employeeName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
+                            {emp?.profile?.first_name?.[0] || ""}
+                            {emp?.profile?.last_name?.[0] || ""}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{payslip.employeeName}</p>
+                          <p className="font-medium">{employeeName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {emp?.employeeId}
+                            {emp?.employee_id}
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      ${payslip.grossEarnings.toLocaleString()}
+                      ${(payslip.gross_earnings || 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
-                      ${payslip.totalDeductions.toLocaleString()}
+                      ${(payslip.total_deductions || 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-primary">
-                      ${payslip.netPay.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {payslip.paidDays}
-                      {payslip.lopDays > 0 && (
-                        <span className="text-destructive text-xs ml-1">
-                          (-{payslip.lopDays} LOP)
-                        </span>
-                      )}
+                      ${(payslip.net_pay || 0).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={payslip.status} />
+                      <StatusBadge status={payslip.status as StatusType} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -194,7 +210,13 @@ export default function PayslipsList() {
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              }) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No payslips found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -220,20 +242,8 @@ export default function PayslipsList() {
                 <div className="text-right">
                   <p className="font-medium">Payslip</p>
                   <p className="text-sm text-muted-foreground">
-                    {previewPayslip.payPeriod}
+                    {previewPayslip.pay_period}
                   </p>
-                </div>
-              </div>
-
-              {/* Employee Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Employee Name</p>
-                  <p className="font-medium">{previewPayslip.employeeName}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Paid Days</p>
-                  <p className="font-medium">{previewPayslip.paidDays}</p>
                 </div>
               </div>
 
@@ -244,31 +254,11 @@ export default function PayslipsList() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Basic Salary</span>
-                      <span>${previewPayslip.basic.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>HRA</span>
-                      <span>${previewPayslip.hra.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Conveyance</span>
-                      <span>${previewPayslip.conveyance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Medical Allowance</span>
-                      <span>${previewPayslip.medicalAllowance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Special Allowance</span>
-                      <span>${previewPayslip.specialAllowance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Other Allowances</span>
-                      <span>${previewPayslip.otherAllowances.toLocaleString()}</span>
+                      <span>${(previewPayslip.basic_salary || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-medium pt-2 border-t">
                       <span>Gross Earnings</span>
-                      <span>${previewPayslip.grossEarnings.toLocaleString()}</span>
+                      <span>${(previewPayslip.gross_earnings || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -276,25 +266,9 @@ export default function PayslipsList() {
                 <div>
                   <h4 className="font-medium mb-3 text-destructive">Deductions</h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Provident Fund</span>
-                      <span>${previewPayslip.pf.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ESI</span>
-                      <span>${previewPayslip.esi.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Professional Tax</span>
-                      <span>${previewPayslip.professionalTax.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Income Tax (TDS)</span>
-                      <span>${previewPayslip.incomeTax.toLocaleString()}</span>
-                    </div>
                     <div className="flex justify-between font-medium pt-2 border-t">
                       <span>Total Deductions</span>
-                      <span>${previewPayslip.totalDeductions.toLocaleString()}</span>
+                      <span>${(previewPayslip.total_deductions || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -305,7 +279,7 @@ export default function PayslipsList() {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Net Pay</span>
                   <span className="text-2xl font-bold text-primary">
-                    ${previewPayslip.netPay.toLocaleString()}
+                    ${(previewPayslip.net_pay || 0).toLocaleString()}
                   </span>
                 </div>
               </div>

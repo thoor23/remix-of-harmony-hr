@@ -168,6 +168,50 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          is_company_document: boolean | null
+          name: string
+          type: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_company_document?: boolean | null
+          name: string
+          type: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_company_document?: boolean | null
+          name?: string
+          type?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address_city: string | null
@@ -267,6 +311,144 @@ export type Database = {
             columns: ["reporting_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_tickets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          is_optional: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          is_optional?: boolean | null
+          name: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          is_optional?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      leave_balances: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          leave_type_id: string
+          pending_days: number
+          total_days: number
+          updated_at: string
+          used_days: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          leave_type_id: string
+          pending_days?: number
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          leave_type_id?: string
+          pending_days?: number
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_leave_type_id_fkey"
+            columns: ["leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
             referencedColumns: ["id"]
           },
         ]
@@ -374,6 +556,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payslips: {
+        Row: {
+          basic_salary: number
+          created_at: string
+          employee_id: string
+          gross_earnings: number
+          id: string
+          net_pay: number
+          pay_date: string
+          pay_period: string
+          status: string
+          total_deductions: number
+        }
+        Insert: {
+          basic_salary?: number
+          created_at?: string
+          employee_id: string
+          gross_earnings?: number
+          id?: string
+          net_pay?: number
+          pay_date: string
+          pay_period: string
+          status?: string
+          total_deductions?: number
+        }
+        Update: {
+          basic_salary?: number
+          created_at?: string
+          employee_id?: string
+          gross_earnings?: number
+          id?: string
+          net_pay?: number
+          pay_date?: string
+          pay_period?: string
+          status?: string
+          total_deductions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -415,6 +644,107 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      salary_structures: {
+        Row: {
+          basic_salary: number
+          created_at: string
+          effective_from: string
+          employee_id: string
+          hra: number | null
+          id: string
+          medical_allowance: number | null
+          other_allowances: number | null
+          other_deductions: number | null
+          pf_deduction: number | null
+          tax_deduction: number | null
+          transport_allowance: number | null
+          updated_at: string
+        }
+        Insert: {
+          basic_salary?: number
+          created_at?: string
+          effective_from?: string
+          employee_id: string
+          hra?: number | null
+          id?: string
+          medical_allowance?: number | null
+          other_allowances?: number | null
+          other_deductions?: number | null
+          pf_deduction?: number | null
+          tax_deduction?: number | null
+          transport_allowance?: number | null
+          updated_at?: string
+        }
+        Update: {
+          basic_salary?: number
+          created_at?: string
+          effective_from?: string
+          employee_id?: string
+          hra?: number | null
+          id?: string
+          medical_allowance?: number | null
+          other_allowances?: number | null
+          other_deductions?: number | null
+          pf_deduction?: number | null
+          tax_deduction?: number | null
+          transport_allowance?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_structures_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_assignments: {
+        Row: {
+          created_at: string
+          employee_id: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          shift_id: string
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          shift_id: string
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          shift_id?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shifts: {
         Row: {
