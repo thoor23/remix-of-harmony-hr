@@ -3,8 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
-export type SizeOption = "small" | "medium" | "large";
-
 export interface CompanyBranding {
   companyName: string;
   companyLogo: string | null;
@@ -13,8 +11,10 @@ export interface CompanyBranding {
   companyPhone: string;
   companyAddress: string;
   companyWebsite: string;
-  logoSize: SizeOption;
-  nameSize: SizeOption;
+  logoSize: number;
+  nameSize: number;
+  nameFontWeight: "normal" | "medium" | "semibold" | "bold";
+  nameItalic: boolean;
 }
 
 const defaultBranding: CompanyBranding = {
@@ -25,8 +25,10 @@ const defaultBranding: CompanyBranding = {
   companyPhone: "",
   companyAddress: "",
   companyWebsite: "",
-  logoSize: "medium",
-  nameSize: "medium",
+  logoSize: 32,
+  nameSize: 18,
+  nameFontWeight: "semibold",
+  nameItalic: false,
 };
 
 export function useCompanyBranding() {

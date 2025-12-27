@@ -25,23 +25,11 @@ import {
   useUploadFavicon,
   useDeleteFavicon,
   CompanyBranding,
-  SizeOption 
 } from "@/hooks/useCompanyBranding";
-import { Loader2, Upload, X, Building2, Image } from "lucide-react";
+import { Loader2, Upload, X, Building2, Image, Bold, Italic } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-
-const logoSizeClasses = {
-  small: "h-6 w-6",
-  medium: "h-8 w-8",
-  large: "h-10 w-10",
-};
-
-const nameSizeClasses = {
-  small: "text-sm",
-  medium: "text-lg",
-  large: "text-xl",
-};
+import { Toggle } from "@/components/ui/toggle";
+import { Slider } from "@/components/ui/slider";
 
 export default function CompanySettingsPage() {
   const { data: branding, isLoading } = useCompanyBranding();
@@ -62,8 +50,10 @@ export default function CompanySettingsPage() {
     companyPhone: "",
     companyAddress: "",
     companyWebsite: "",
-    logoSize: "medium",
-    nameSize: "medium",
+    logoSize: 32,
+    nameSize: 18,
+    nameFontWeight: "semibold",
+    nameItalic: false,
   });
 
   const [regionalSettings, setRegionalSettings] = useState({
@@ -73,7 +63,6 @@ export default function CompanySettingsPage() {
     financialYearStart: "April",
   });
 
-  // Sync form data with fetched branding
   useEffect(() => {
     if (branding) {
       setFormData(branding);
@@ -134,10 +123,27 @@ export default function CompanySettingsPage() {
     }
   };
 
-  const handleSizeChange = async (type: "logoSize" | "nameSize", value: SizeOption) => {
-    if (!value) return;
-    setFormData(prev => ({ ...prev, [type]: value }));
-    await updateBranding.mutateAsync({ [type]: value });
+  const handleLogoSizeChange = async (value: number[]) => {
+    const size = value[0];
+    setFormData(prev => ({ ...prev, logoSize: size }));
+    await updateBranding.mutateAsync({ logoSize: size });
+  };
+
+  const handleNameSizeChange = async (value: number[]) => {
+    const size = value[0];
+    setFormData(prev => ({ ...prev, nameSize: size }));
+    await updateBranding.mutateAsync({ nameSize: size });
+  };
+
+  const handleFontWeightChange = async (weight: CompanyBranding["nameFontWeight"]) => {
+    setFormData(prev => ({ ...prev, nameFontWeight: weight }));
+    await updateBranding.mutateAsync({ nameFontWeight: weight });
+  };
+
+  const handleItalicToggle = async () => {
+    const newValue = !formData.nameItalic;
+    setFormData(prev => ({ ...prev, nameItalic: newValue }));
+    await updateBranding.mutateAsync({ nameItalic: newValue });
   };
 
   const saveCompanySettings = async () => {
@@ -148,6 +154,13 @@ export default function CompanySettingsPage() {
       companyAddress: formData.companyAddress,
       companyWebsite: formData.companyWebsite,
     });
+  };
+
+  const fontWeightClass = {
+    normal: "font-normal",
+    medium: "font-medium",
+    semibold: "font-semibold",
+    bold: "font-bold",
   };
 
   if (isLoading) {
@@ -287,53 +300,110 @@ export default function CompanySettingsPage() {
           </div>
         </SettingsCard>
 
-        {/* Display Size Settings */}
+        {/* Logo Size Settings */}
         <SettingsCard
-          title="Sidebar Display Settings"
-          description="Customize how the logo and company name appear in the sidebar"
+          title="Logo Size"
+          description="Customize the logo size in the sidebar"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar 
+                className="rounded-lg flex-shrink-0"
+                style={{ width: formData.logoSize, height: formData.logoSize }}
+              >
+                <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
+                <AvatarFallback className="rounded-lg bg-primary">
+                  <Building2 style={{ width: formData.logoSize / 2, height: formData.logoSize / 2 }} className="text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-muted-foreground">{formData.logoSize}px</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Slider
+                value={[formData.logoSize]}
+                onValueChange={handleLogoSizeChange}
+                min={20}
+                max={64}
+                step={2}
+                className="flex-1"
+              />
+              <Input
+                type="number"
+                value={formData.logoSize}
+                onChange={(e) => handleLogoSizeChange([Number(e.target.value)])}
+                min={20}
+                max={64}
+                className="w-20"
+              />
+            </div>
+          </div>
+        </SettingsCard>
+
+        {/* Name Display Settings */}
+        <SettingsCard
+          title="Company Name Display"
+          description="Customize how the company name appears in the sidebar"
         >
           <div className="space-y-6">
             {/* Preview */}
             <div className="p-4 rounded-lg border bg-sidebar">
-              <div className="flex items-center gap-2">
-                <Avatar className={`rounded-lg flex-shrink-0 ${logoSizeClasses[formData.logoSize]}`}>
-                  <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
-                  <AvatarFallback className="rounded-lg bg-primary">
-                    <Building2 className="h-1/2 w-1/2 text-primary-foreground" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className={`font-semibold truncate ${nameSizeClasses[formData.nameSize]}`}>
-                  {formData.companyName || "Company Name"}
-                </span>
+              <span 
+                className={`truncate ${fontWeightClass[formData.nameFontWeight]} ${formData.nameItalic ? 'italic' : ''}`}
+                style={{ fontSize: formData.nameSize }}
+              >
+                {formData.companyName || "Company Name"}
+              </span>
+            </div>
+
+            {/* Size Control */}
+            <div className="space-y-2">
+              <Label>Text Size</Label>
+              <div className="flex items-center gap-4">
+                <Slider
+                  value={[formData.nameSize]}
+                  onValueChange={handleNameSizeChange}
+                  min={12}
+                  max={28}
+                  step={1}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  value={formData.nameSize}
+                  onChange={(e) => handleNameSizeChange([Number(e.target.value)])}
+                  min={12}
+                  max={28}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground w-8">px</span>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Logo Size</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={formData.logoSize}
-                  onValueChange={(value) => value && handleSizeChange("logoSize", value as SizeOption)}
-                  className="justify-start"
+            {/* Font Style Controls */}
+            <div className="space-y-2">
+              <Label>Font Style</Label>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={formData.nameFontWeight}
+                  onValueChange={(value) => handleFontWeightChange(value as CompanyBranding["nameFontWeight"])}
                 >
-                  <ToggleGroupItem value="small" aria-label="Small">Small</ToggleGroupItem>
-                  <ToggleGroupItem value="medium" aria-label="Medium">Medium</ToggleGroupItem>
-                  <ToggleGroupItem value="large" aria-label="Large">Large</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-              <div className="space-y-2">
-                <Label>Company Name Size</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={formData.nameSize}
-                  onValueChange={(value) => value && handleSizeChange("nameSize", value as SizeOption)}
-                  className="justify-start"
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="semibold">Semibold</SelectItem>
+                    <SelectItem value="bold">Bold</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Toggle 
+                  pressed={formData.nameItalic} 
+                  onPressedChange={handleItalicToggle}
+                  aria-label="Toggle italic"
                 >
-                  <ToggleGroupItem value="small" aria-label="Small">Small</ToggleGroupItem>
-                  <ToggleGroupItem value="medium" aria-label="Medium">Medium</ToggleGroupItem>
-                  <ToggleGroupItem value="large" aria-label="Large">Large</ToggleGroupItem>
-                </ToggleGroup>
+                  <Italic className="h-4 w-4" />
+                </Toggle>
               </div>
             </div>
           </div>
