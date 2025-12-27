@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -18,11 +17,6 @@ export default function NotificationSettingsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[
-        { label: "Settings", href: "/admin/settings/departments" },
-        { label: "Notifications" }
-      ]} />
-
       <PageHeader
         title="Notification Settings"
         description="Configure email and in-app notification preferences"

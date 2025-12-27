@@ -1,5 +1,4 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -80,11 +79,6 @@ export default function AppearancePage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[
-        { label: "Settings", href: "/admin/settings/departments" },
-        { label: "Appearance" }
-      ]} />
-
       <PageHeader
         title="Appearance"
         description="Customize the look and feel of your application"
