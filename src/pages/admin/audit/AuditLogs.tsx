@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -19,16 +21,30 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
-import { auditLogs } from "@/data/mockData";
+import { useAuditLogs } from "@/hooks/useAuditLogs";
+import { format } from "date-fns";
 
 const actionColors: Record<string, string> = {
-  CREATE: "bg-success/10 text-success",
-  UPDATE: "bg-warning/10 text-warning",
-  DELETE: "bg-destructive/10 text-destructive",
-  LOGIN: "bg-info/10 text-info",
+  CREATE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  UPDATE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  DELETE: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  LOGIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  LOGOUT: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
+const modules = ["Employee", "Leave", "Payroll", "Announcement", "Settings", "Auth", "Documents", "Departments", "Designations"];
+
 export default function AuditLogs() {
+  const [search, setSearch] = useState("");
+  const [action, setAction] = useState("all");
+  const [module, setModule] = useState("all");
+
+  const { data: logs = [], isLoading } = useAuditLogs({
+    search: search || undefined,
+    action: action !== "all" ? action : undefined,
+    module: module !== "all" ? module : undefined,
+  });
+
   return (
     <PageContainer>
       <Breadcrumbs items={[{ label: "Audit Logs" }]} />
@@ -43,9 +59,14 @@ export default function AuditLogs() {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search logs..." className="pl-9" />
+            <Input 
+              placeholder="Search logs..." 
+              className="pl-9" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <Select defaultValue="all">
+          <Select value={action} onValueChange={setAction}>
             <SelectTrigger className="w-full md:w-40">
               <SelectValue placeholder="Action" />
             </SelectTrigger>
@@ -55,20 +76,18 @@ export default function AuditLogs() {
               <SelectItem value="UPDATE">Update</SelectItem>
               <SelectItem value="DELETE">Delete</SelectItem>
               <SelectItem value="LOGIN">Login</SelectItem>
+              <SelectItem value="LOGOUT">Logout</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
+          <Select value={module} onValueChange={setModule}>
             <SelectTrigger className="w-full md:w-40">
               <SelectValue placeholder="Module" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Modules</SelectItem>
-              <SelectItem value="Employee">Employee</SelectItem>
-              <SelectItem value="Leave">Leave</SelectItem>
-              <SelectItem value="Payroll">Payroll</SelectItem>
-              <SelectItem value="Announcement">Announcement</SelectItem>
-              <SelectItem value="Settings">Settings</SelectItem>
-              <SelectItem value="Auth">Auth</SelectItem>
+              {modules.map((mod) => (
+                <SelectItem key={mod} value={mod}>{mod}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -76,42 +95,58 @@ export default function AuditLogs() {
 
       {/* Logs Table */}
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Module</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Performed By</TableHead>
-              <TableHead>IP Address</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {auditLogs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell className="text-muted-foreground whitespace-nowrap">
-                  {new Date(log.timestamp).toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  <Badge className={actionColors[log.action] || "bg-muted"}>
-                    {log.action}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{log.module}</Badge>
-                </TableCell>
-                <TableCell className="max-w-xs truncate">
-                  {log.description}
-                </TableCell>
-                <TableCell className="font-medium">{log.performedByName}</TableCell>
-                <TableCell className="font-mono text-sm text-muted-foreground">
-                  {log.ipAddress}
-                </TableCell>
+        {isLoading ? (
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Timestamp</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Module</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Performed By</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    No audit logs found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {format(new Date(log.created_at), "MMM d, yyyy h:mm a")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={actionColors[log.action] || "bg-muted"}>
+                        {log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{log.module}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {log.description}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {log.performer_name || "System"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </PageContainer>
   );

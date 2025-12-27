@@ -97,6 +97,42 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          description: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          module: string
+          performed_by: string | null
+          performer_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          description: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          module?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string

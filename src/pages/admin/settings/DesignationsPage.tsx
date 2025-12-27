@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -29,19 +30,34 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
-import { departments as initialDepartments, designations as initialDesignations } from "@/data/mockData";
-import { Department, Designation } from "@/types/hrms";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
-import { toast } from "sonner";
+import { useDepartmentsData } from "@/hooks/useDepartments";
+import {
+  useDesignationsData,
+  useCreateDesignation,
+  useUpdateDesignation,
+  useDeleteDesignation,
+} from "@/hooks/useDesignations";
+
+interface DesignationForm {
+  name: string;
+  code: string;
+  level: number;
+  department_id: string;
+}
 
 export default function DesignationsPage() {
-  const [departments] = useState<Department[]>(initialDepartments);
-  const [designations, setDesignations] = useState<Designation[]>(initialDesignations);
+  const { data: departments = [] } = useDepartmentsData();
+  const { data: designations = [], isLoading } = useDesignationsData();
+  const createDesignation = useCreateDesignation();
+  const updateDesignation = useUpdateDesignation();
+  const deleteDesignation = useDeleteDesignation();
+
   const [desSearch, setDesSearch] = useState("");
   const [desDialogOpen, setDesDialogOpen] = useState(false);
-  const [editingDes, setEditingDes] = useState<Designation | null>(null);
-  const [desForm, setDesForm] = useState({ name: "", code: "", level: 1, departmentId: "" });
-  const [deleteDesDialog, setDeleteDesDialog] = useState<Designation | null>(null);
+  const [editingDes, setEditingDes] = useState<typeof designations[0] | null>(null);
+  const [desForm, setDesForm] = useState<DesignationForm>({ name: "", code: "", level: 1, department_id: "" });
+  const [deleteDesDialog, setDeleteDesDialog] = useState<typeof designations[0] | null>(null);
 
   const filteredDesignations = useMemo(() => 
     designations.filter(d => 
@@ -49,51 +65,69 @@ export default function DesignationsPage() {
       d.code.toLowerCase().includes(desSearch.toLowerCase())
     ), [designations, desSearch]);
 
-  const openDesDialog = (des?: Designation) => {
+  const openDesDialog = (des?: typeof designations[0]) => {
     if (des) {
       setEditingDes(des);
-      setDesForm({ name: des.name, code: des.code, level: des.level, departmentId: des.departmentId || "" });
+      setDesForm({ 
+        name: des.name, 
+        code: des.code, 
+        level: des.level || 1, 
+        department_id: des.department_id || "" 
+      });
     } else {
       setEditingDes(null);
-      setDesForm({ name: "", code: "", level: 1, departmentId: "" });
+      setDesForm({ name: "", code: "", level: 1, department_id: "" });
     }
     setDesDialogOpen(true);
   };
 
-  const saveDes = () => {
+  const saveDes = async () => {
     if (!desForm.name.trim() || !desForm.code.trim()) {
-      toast.error("Name and Code are required");
       return;
     }
 
     if (editingDes) {
-      setDesignations(prev => prev.map(d => 
-        d.id === editingDes.id 
-          ? { ...d, name: desForm.name, code: desForm.code, level: desForm.level, departmentId: desForm.departmentId }
-          : d
-      ));
-      toast.success("Designation updated successfully");
-    } else {
-      const newDes: Designation = {
-        id: `des-${Date.now()}`,
+      await updateDesignation.mutateAsync({
+        id: editingDes.id,
         name: desForm.name,
         code: desForm.code.toUpperCase(),
         level: desForm.level,
-        departmentId: desForm.departmentId || undefined,
-      };
-      setDesignations(prev => [...prev, newDes]);
-      toast.success("Designation added successfully");
+        department_id: desForm.department_id || undefined,
+      });
+    } else {
+      await createDesignation.mutateAsync({
+        name: desForm.name,
+        code: desForm.code.toUpperCase(),
+        level: desForm.level,
+        department_id: desForm.department_id || undefined,
+      });
     }
     setDesDialogOpen(false);
   };
 
-  const deleteDes = () => {
+  const handleDeleteDes = async () => {
     if (deleteDesDialog) {
-      setDesignations(prev => prev.filter(d => d.id !== deleteDesDialog.id));
-      toast.success("Designation deleted successfully");
+      await deleteDesignation.mutateAsync({ id: deleteDesDialog.id, name: deleteDesDialog.name });
       setDeleteDesDialog(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Designations" description="Manage job titles and position levels" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -148,13 +182,10 @@ export default function DesignationsPage() {
                         <Badge variant="secondary" className="font-mono">{des.code}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">Level {des.level}</Badge>
+                        <Badge variant="outline">Level {des.level || 1}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {des.departmentId 
-                          ? departments.find(d => d.id === des.departmentId)?.name || "-"
-                          : "All Departments"
-                        }
+                        {des.department?.name || "All Departments"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -215,8 +246,8 @@ export default function DesignationsPage() {
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={desForm.departmentId || "_all"}
-                onValueChange={(value) => setDesForm(prev => ({ ...prev, departmentId: value === "_all" ? "" : value }))}
+                value={desForm.department_id || "_all"}
+                onValueChange={(value) => setDesForm(prev => ({ ...prev, department_id: value === "_all" ? "" : value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Departments" />
@@ -234,7 +265,10 @@ export default function DesignationsPage() {
             <Button variant="outline" onClick={() => setDesDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveDes}>
+            <Button 
+              onClick={saveDes}
+              disabled={createDesignation.isPending || updateDesignation.isPending}
+            >
               {editingDes ? "Update" : "Create"}
             </Button>
           </DialogFooter>
@@ -247,7 +281,7 @@ export default function DesignationsPage() {
         title="Delete Designation"
         description="Are you sure you want to delete this designation? This action cannot be undone."
         itemName={deleteDesDialog?.name}
-        onConfirm={deleteDes}
+        onConfirm={handleDeleteDes}
       />
     </PageContainer>
   );

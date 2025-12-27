@@ -32,6 +32,7 @@ import { usePayslips } from "@/hooks/usePayroll";
 import { useEmployees } from "@/hooks/useEmployees";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { downloadPayslipPDF } from "@/lib/pdfGenerator";
 
 export default function PayslipsList() {
   const currentDate = new Date();
@@ -200,7 +201,27 @@ export default function PayslipsList() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            downloadPayslipPDF({
+                              employeeName,
+                              employeeId: emp?.employee_id || "",
+                              department: emp?.department?.name || "N/A",
+                              designation: emp?.designation?.name || "N/A",
+                              payPeriod: payslip.pay_period,
+                              payDate: payslip.pay_date || new Date().toISOString(),
+                              basicSalary: payslip.basic_salary || 0,
+                              grossEarnings: payslip.gross_earnings || 0,
+                              totalDeductions: payslip.total_deductions || 0,
+                              netPay: payslip.net_pay || 0,
+                              companyName: "Company Name Inc.",
+                              companyAddress: "123 Business Street, San Francisco, CA 94102",
+                            });
+                            toast.success("Payslip PDF downloaded");
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon">
