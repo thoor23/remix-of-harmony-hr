@@ -39,12 +39,14 @@ import {
   FileImage,
   File,
   ArrowLeft,
+  Eye,
 } from "lucide-react";
 import { useEmployee } from "@/hooks/useEmployees";
 import { useAllDocuments, useUploadFile, useDeleteDocument, downloadDocument } from "@/hooks/useDocuments";
 import { useGeneratedLetters } from "@/hooks/useGeneratedLetters";
 import { format } from "date-fns";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
+import { DocumentPreview } from "@/components/documents/DocumentPreview";
 
 const documentTypes = [
   "ID Proof",
@@ -84,6 +86,7 @@ export default function EmployeeFolderPage() {
   const [docName, setDocName] = useState("");
   const [docType, setDocType] = useState("");
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; file_url?: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; type: string; file_url: string } | null>(null);
 
   // Filter documents for this employee
   const employeeDocuments = allDocuments.filter((doc) => doc.employee_id === employeeId);
@@ -220,18 +223,30 @@ export default function EmployeeFolderPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           {doc.file_url && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => downloadDocument(doc.file_url!, doc.name)}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPreviewDoc({ name: doc.name, type: doc.type, file_url: doc.file_url! })}
+                                title="Preview"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => downloadDocument(doc.file_url!, doc.name)}
+                                title="Download"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteDialog({ id: doc.id, name: doc.name, file_url: doc.file_url || undefined })}
+                            title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -340,6 +355,14 @@ export default function EmployeeFolderPage() {
         description="Are you sure you want to delete this document? This action cannot be undone."
         itemName={deleteDialog?.name}
         onConfirm={handleDelete}
+      />
+
+      {/* Document Preview */}
+      <DocumentPreview
+        open={!!previewDoc}
+        onOpenChange={(open) => !open && setPreviewDoc(null)}
+        document={previewDoc}
+        onDownload={previewDoc ? () => downloadDocument(previewDoc.file_url, previewDoc.name) : undefined}
       />
     </PageContainer>
   );
