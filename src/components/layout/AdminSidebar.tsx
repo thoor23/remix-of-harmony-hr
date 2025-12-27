@@ -77,7 +77,7 @@ const adminNavItems: NavItem[] = [
     icon: CalendarDays,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: Eye },
-      { title: "Settings", href: "/admin/attendance/settings", icon: Settings2 },
+      { title: "Policy & Rules", href: "/admin/attendance/policy", icon: BookOpen },
     ],
   },
   {
@@ -85,7 +85,7 @@ const adminNavItems: NavItem[] = [
     icon: CalendarCheck,
     children: [
       { title: "Leave Requests", href: "/admin/leaves", icon: FileCheck },
-      { title: "Leave Policy", href: "/admin/leaves/policy", icon: BookOpen },
+      { title: "Policy & Rules", href: "/admin/leaves/policy", icon: BookOpen },
     ],
   },
   {
@@ -97,6 +97,7 @@ const adminNavItems: NavItem[] = [
       { title: "Rotations", href: "/admin/shifts/rotations", icon: RefreshCw },
       { title: "Exchange Requests", href: "/admin/shifts/exchange", icon: ArrowLeftRight },
       { title: "Calendar", href: "/admin/shifts/calendar", icon: Calendar },
+      { title: "Policy & Rules", href: "/admin/shifts/policy", icon: BookOpen },
     ],
   },
   {

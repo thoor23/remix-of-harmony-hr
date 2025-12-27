@@ -42,7 +42,8 @@ import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
 import DesignationsPage from "./pages/admin/settings/DesignationsPage";
 import RolesPage from "./pages/admin/settings/RolesPage";
 import CompanySettingsPage from "./pages/admin/settings/CompanySettingsPage";
-import AttendanceSettingsPage from "./pages/admin/settings/AttendanceSettingsPage";
+import AttendancePolicyPage from "./pages/admin/attendance/AttendancePolicyPage";
+import ShiftPolicyPage from "./pages/admin/shifts/ShiftPolicyPage";
 import NotificationSettingsPage from "./pages/admin/settings/NotificationSettingsPage";
 import SystemSettingsPage from "./pages/admin/settings/SystemSettingsPage";
 import AppearancePage from "./pages/admin/settings/AppearancePage";
@@ -81,7 +82,7 @@ const App = () => (
               <Route path="employees/new" element={<AddEmployee />} />
               <Route path="employees/:id" element={<EmployeeDetails />} />
               <Route path="attendance" element={<AttendanceManagement />} />
-              <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
+              <Route path="attendance/policy" element={<AttendancePolicyPage />} />
               <Route path="leaves" element={<LeaveManagement />} />
               <Route path="leaves/policy" element={<LeavePolicy />} />
               <Route path="payroll/structure" element={<SalaryStructure />} />
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="shifts/rotations" element={<ShiftRotations />} />
               <Route path="shifts/exchange" element={<ShiftExchange />} />
               <Route path="shifts/calendar" element={<ShiftCalendar />} />
+              <Route path="shifts/policy" element={<ShiftPolicyPage />} />
               {/* Settings Routes */}
               <Route path="settings/departments" element={<DepartmentsPage />} />
               <Route path="settings/designations" element={<DesignationsPage />} />
