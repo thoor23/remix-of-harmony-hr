@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,8 +152,6 @@ export default function LeaveManagement() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Leave Management" }]} />
-
       <PageHeader
         title="Leave Management"
         description="Review and manage employee leave requests"

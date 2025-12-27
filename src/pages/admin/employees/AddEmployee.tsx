@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,13 +46,6 @@ export default function AddEmployee() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "Employees", href: "/admin/employees" },
-          { label: "Add Employee" },
-        ]}
-      />
-
       <PageHeader
         title="Add New Employee"
         description="Fill in the details to create a new employee record"

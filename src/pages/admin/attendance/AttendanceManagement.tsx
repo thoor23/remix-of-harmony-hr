@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,8 +60,6 @@ export default function AttendanceManagement() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Attendance" }]} />
-
       <PageHeader
         title="Attendance Management"
         description="Track and manage employee attendance"

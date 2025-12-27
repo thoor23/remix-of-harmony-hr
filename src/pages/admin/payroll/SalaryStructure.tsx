@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,13 +78,6 @@ export default function SalaryStructure() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "Payroll", href: "/admin/payroll/structure" },
-          { label: "Salary Structure" },
-        ]}
-      />
-
       <PageHeader
         title="Salary Structure"
         description="Manage employee salary components and structures"
