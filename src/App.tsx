@@ -26,6 +26,7 @@ import LeaveManagement from "./pages/admin/leaves/LeaveManagement";
 import LeavePolicy from "./pages/admin/leaves/LeavePolicy";
 import SalaryStructure from "./pages/admin/payroll/SalaryStructure";
 import PayslipsList from "./pages/admin/payroll/PayslipsList";
+import PayslipTemplatesPage from "./pages/admin/payroll/PayslipTemplatesPage";
 // File Manager Pages
 import EmployeeDocumentsPage from "./pages/admin/file-manager/EmployeeDocumentsPage";
 import EmployeeFolderPage from "./pages/admin/file-manager/EmployeeFolderPage";
@@ -107,6 +108,7 @@ const App = () => (
                 <Route path="leaves/policy" element={<LeavePolicy />} />
                 <Route path="payroll/structure" element={<SalaryStructure />} />
                 <Route path="payroll/payslips" element={<PayslipsList />} />
+                <Route path="payroll/templates" element={<PayslipTemplatesPage />} />
                 {/* File Manager Routes */}
                 <Route path="file-manager" element={<EmployeeDocumentsPage />} />
                 <Route path="file-manager/:employeeId" element={<EmployeeFolderPage />} />
