@@ -17,6 +17,7 @@ interface TodayAttendance {
   check_in: string | null;
   check_out: string | null;
   status: string;
+  date: string;
 }
 
 export const ClockInOutButton = () => {
@@ -50,15 +51,18 @@ export const ClockInOutButton = () => {
       if (!employeeId) return;
 
       const today = format(new Date(), "yyyy-MM-dd");
+      
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, check_in, check_out, status")
+        .select("id, check_in, check_out, status, date")
         .eq("employee_id", employeeId)
         .eq("date", today)
         .maybeSingle();
 
-      if (!error) {
+      if (!error && data) {
         setTodayRecord(data);
+      } else {
+        setTodayRecord(null);
       }
     };
 
@@ -92,8 +96,8 @@ export const ClockInOutButton = () => {
     }
 
     setLoading(true);
-    const today = format(new Date(), "yyyy-MM-dd");
     const currentTime = format(new Date(), "HH:mm:ss");
+    const today = format(new Date(), "yyyy-MM-dd");
 
     const { error } = await supabase.from("attendance_records").insert({
       employee_id: employeeId,
@@ -105,8 +109,21 @@ export const ClockInOutButton = () => {
     setLoading(false);
 
     if (error) {
-      toast.error("Failed to clock in");
-      console.error(error);
+      if (error.code === '23505') {
+        // Duplicate - record already exists, just refresh state
+        toast.info("Already clocked in for today");
+        // Refetch the record
+        const { data } = await supabase
+          .from("attendance_records")
+          .select("id, check_in, check_out, status, date")
+          .eq("employee_id", employeeId)
+          .eq("date", today)
+          .maybeSingle();
+        if (data) setTodayRecord(data);
+      } else {
+        toast.error("Failed to clock in");
+        console.error(error);
+      }
     } else {
       toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
     }
