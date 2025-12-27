@@ -14,6 +14,7 @@ import { EmployeeLayout } from "./components/layout/EmployeeLayout";
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
+import AdminProfilePage from "./pages/admin/ProfilePage";
 import EmployeeList from "./pages/admin/employees/EmployeeList";
 import EmployeeDetails from "./pages/admin/employees/EmployeeDetails";
 import AddEmployee from "./pages/admin/employees/AddEmployee";
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="profile" element={<AdminProfilePage />} />
               <Route path="employees" element={<EmployeeList />} />
               <Route path="employees/new" element={<AddEmployee />} />
               <Route path="employees/:id" element={<EmployeeDetails />} />
