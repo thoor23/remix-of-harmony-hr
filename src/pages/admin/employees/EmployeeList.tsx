@@ -38,29 +38,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { employees as initialEmployees, departments } from "@/data/mockData";
+import { useEmployees, useDepartments, useDeleteEmployee, EmployeeWithDetails } from "@/hooks/useEmployees";
 import { usePagination } from "@/hooks/usePagination";
-import { toast } from "sonner";
-import { Employee } from "@/types/hrms";
+import { format } from "date-fns";
 
 export default function EmployeeList() {
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [employeeList, setEmployeeList] = useState<Employee[]>(initialEmployees);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeWithDetails | null>(null);
 
-  const filteredEmployees = employeeList.filter((emp) => {
+  const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
+  const { data: departments = [], isLoading: loadingDepartments } = useDepartments();
+  const deleteEmployee = useDeleteEmployee();
+
+  const filteredEmployees = employees.filter((emp) => {
+    const firstName = emp.profile?.first_name || "";
+    const lastName = emp.profile?.last_name || "";
+    const email = emp.profile?.email || "";
+    const employeeId = emp.employee_id || "";
+
     const matchesSearch =
-      emp.firstName.toLowerCase().includes(search.toLowerCase()) ||
-      emp.lastName.toLowerCase().includes(search.toLowerCase()) ||
-      emp.email.toLowerCase().includes(search.toLowerCase()) ||
-      emp.employeeId.toLowerCase().includes(search.toLowerCase());
+      firstName.toLowerCase().includes(search.toLowerCase()) ||
+      lastName.toLowerCase().includes(search.toLowerCase()) ||
+      email.toLowerCase().includes(search.toLowerCase()) ||
+      employeeId.toLowerCase().includes(search.toLowerCase());
 
     const matchesDepartment =
-      departmentFilter === "all" || emp.department.id === departmentFilter;
+      departmentFilter === "all" || emp.department?.id === departmentFilter;
 
     const matchesStatus = statusFilter === "all" || emp.status === statusFilter;
 
@@ -77,19 +85,52 @@ export default function EmployeeList() {
     setPageSize,
   } = usePagination({ data: filteredEmployees, defaultPageSize: 10 });
 
-  const handleDeleteClick = (employee: Employee) => {
+  const handleDeleteClick = (employee: EmployeeWithDetails) => {
     setEmployeeToDelete(employee);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = () => {
     if (employeeToDelete) {
-      setEmployeeList((prev) => prev.filter((emp) => emp.id !== employeeToDelete.id));
-      toast.success(`${employeeToDelete.firstName} ${employeeToDelete.lastName} deleted successfully`);
+      deleteEmployee.mutate(employeeToDelete.id);
       setEmployeeToDelete(null);
     }
     setDeleteDialogOpen(false);
   };
+
+  const getInitials = (employee: EmployeeWithDetails) => {
+    const first = employee.profile?.first_name?.[0] || "";
+    const last = employee.profile?.last_name?.[0] || "";
+    return (first + last).toUpperCase() || "??";
+  };
+
+  const getFullName = (employee: EmployeeWithDetails) => {
+    const first = employee.profile?.first_name || "";
+    const last = employee.profile?.last_name || "";
+    return `${first} ${last}`.trim() || "Unknown";
+  };
+
+  if (loadingEmployees || loadingDepartments) {
+    return (
+      <PageContainer>
+        <PageHeader title="Employees" description="Manage your organization's employees" />
+        <Card className="p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -165,31 +206,28 @@ export default function EmployeeList() {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={employee.avatar} />
-                      <AvatarFallback>
-                        {employee.firstName[0]}
-                        {employee.lastName[0]}
-                      </AvatarFallback>
+                      <AvatarImage src={employee.profile?.avatar_url || undefined} />
+                      <AvatarFallback>{getInitials(employee)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">
-                        {employee.firstName} {employee.lastName}
-                      </p>
+                      <p className="font-medium">{getFullName(employee)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {employee.email}
+                        {employee.profile?.email || "No email"}
                       </p>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="font-mono text-sm">
-                  {employee.employeeId}
+                  {employee.employee_id}
                 </TableCell>
-                <TableCell>{employee.department.name}</TableCell>
-                <TableCell>{employee.designation.name}</TableCell>
+                <TableCell>{employee.department?.name || "—"}</TableCell>
+                <TableCell>{employee.designation?.name || "—"}</TableCell>
                 <TableCell>
-                  <StatusBadge status={employee.status} />
+                  <StatusBadge status={employee.status as "active" | "inactive" | "on-leave" | "terminated"} />
                 </TableCell>
-                <TableCell>{employee.dateOfJoining}</TableCell>
+                <TableCell>
+                  {format(new Date(employee.date_of_joining), "MMM dd, yyyy")}
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -245,7 +283,7 @@ export default function EmployeeList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Employee</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {employeeToDelete?.firstName} {employeeToDelete?.lastName}?
+              Are you sure you want to delete {employeeToDelete ? getFullName(employeeToDelete) : ""}?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
