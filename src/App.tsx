@@ -81,6 +81,7 @@ const App = () => (
               <Route path="employees/new" element={<AddEmployee />} />
               <Route path="employees/:id" element={<EmployeeDetails />} />
               <Route path="attendance" element={<AttendanceManagement />} />
+              <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
               <Route path="leaves" element={<LeaveManagement />} />
               <Route path="leaves/policy" element={<LeavePolicy />} />
               <Route path="payroll/structure" element={<SalaryStructure />} />
@@ -103,7 +104,6 @@ const App = () => (
               <Route path="settings/designations" element={<DesignationsPage />} />
               <Route path="settings/roles" element={<RolesPage />} />
               <Route path="settings/company" element={<CompanySettingsPage />} />
-              <Route path="settings/attendance" element={<AttendanceSettingsPage />} />
               <Route path="settings/notifications" element={<NotificationSettingsPage />} />
               <Route path="settings/system" element={<SystemSettingsPage />} />
               <Route path="settings/appearance" element={<AppearancePage />} />

@@ -77,7 +77,7 @@ const adminNavItems: NavItem[] = [
     icon: CalendarDays,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: Eye },
-      { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardCheck },
+      { title: "Settings", href: "/admin/attendance/settings", icon: Settings2 },
     ],
   },
   {
@@ -128,7 +128,6 @@ const adminNavItems: NavItem[] = [
       { title: "Designations", href: "/admin/settings/designations", icon: BadgeCheck },
       { title: "Roles", href: "/admin/settings/roles", icon: Shield },
       { title: "Company", href: "/admin/settings/company", icon: Building2 },
-      { title: "Attendance", href: "/admin/settings/attendance", icon: Clock },
       { title: "Notifications", href: "/admin/settings/notifications", icon: Bell },
       { title: "System", href: "/admin/settings/system", icon: Settings2 },
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
