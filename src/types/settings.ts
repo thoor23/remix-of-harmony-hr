@@ -103,3 +103,28 @@ export interface ShiftRotation {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface ShiftExchangeRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterShiftId: string;
+  requesterShiftName: string;
+  requesterShiftColor: string;
+  requestDate: string;
+  
+  targetEmployeeId: string;
+  targetEmployeeName: string;
+  targetShiftId: string;
+  targetShiftName: string;
+  targetShiftColor: string;
+  
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  respondedBy?: string;
+  respondedAt?: string;
+  responseNote?: string;
+  
+  createdAt: string;
+  updatedAt: string;
+}
