@@ -203,7 +203,7 @@ export default function ShiftRotations() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
