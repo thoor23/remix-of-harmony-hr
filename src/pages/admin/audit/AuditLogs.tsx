@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,8 +46,6 @@ export default function AuditLogs() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Audit Logs" }]} />
-
       <PageHeader
         title="Audit Logs"
         description="Track all system activities and changes"

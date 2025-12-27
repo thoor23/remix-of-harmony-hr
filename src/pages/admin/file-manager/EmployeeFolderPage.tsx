@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,12 +130,6 @@ export default function EmployeeFolderPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: "File Manager", href: "/admin/file-manager" },
-          { label: fullName },
-        ]}
-      />
 
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate("/admin/file-manager")}>
