@@ -19,14 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock employees with department
 const mockEmployees = [
@@ -311,9 +309,9 @@ export default function ShiftCalendar() {
                 <span className="text-sm text-muted-foreground">
                   {shift.isFlexible ? "Flexible" : `${shift.startTime} - ${shift.endTime}`}
                 </span>
-                <Badge variant="secondary" className="text-xs">
+                <span className="text-xs bg-muted px-2 py-0.5 rounded">
                   {shiftCounts[shift.id] || 0} employees
-                </Badge>
+                </span>
               </div>
             ))}
           </div>
@@ -322,7 +320,7 @@ export default function ShiftCalendar() {
 
       {/* Day Detail Dialog */}
       <Dialog open={selectedDay !== null} onOpenChange={(open) => !open && setSelectedDay(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-primary" />
@@ -330,14 +328,14 @@ export default function ShiftCalendar() {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="py-2">
+          <div className="flex-1 overflow-hidden py-2">
             {selectedDayAssignments.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No shifts scheduled for this day</p>
               </div>
             ) : (
-              <ScrollArea className="max-h-[400px]">
+              <div className="h-full max-h-[50vh] overflow-y-auto pr-2">
                 <div className="space-y-4">
                   {Object.entries(groupedByShift).map(([shiftId, shiftAssignments]) => {
                     const shift = getShiftById(shiftId);
@@ -367,9 +365,9 @@ export default function ShiftCalendar() {
                                 <p className="font-medium text-sm">{assignment.employeeName}</p>
                                 <p className="text-xs text-muted-foreground">{assignment.department}</p>
                               </div>
-                              <Badge variant="outline" className="text-xs">
+                              <span className="text-xs border rounded px-2 py-0.5">
                                 {assignment.employeeCode}
-                              </Badge>
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -377,7 +375,7 @@ export default function ShiftCalendar() {
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             )}
           </div>
 
