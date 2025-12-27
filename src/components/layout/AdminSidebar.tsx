@@ -62,8 +62,20 @@ import {
   TrendingUp,
   LayoutTemplate,
 } from "lucide-react";
-import { useCompanyBranding } from "@/hooks/useCompanyBranding";
+import { useCompanyBranding, SizeOption } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const logoSizeClasses: Record<SizeOption, string> = {
+  small: "h-6 w-6",
+  medium: "h-8 w-8",
+  large: "h-10 w-10",
+};
+
+const nameSizeClasses: Record<SizeOption, string> = {
+  small: "text-sm",
+  medium: "text-lg",
+  large: "text-xl",
+};
 
 interface NavItem {
   title: string;
@@ -202,14 +214,16 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
     >
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b">
-        <Avatar className="h-8 w-8 rounded-lg flex-shrink-0">
+        <Avatar className={cn("rounded-lg flex-shrink-0", logoSizeClasses[branding?.logoSize || "medium"])}>
           <AvatarImage src={branding?.companyLogo || undefined} alt={branding?.companyName || "Company"} />
           <AvatarFallback className="rounded-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
+            <Building2 className="h-1/2 w-1/2 text-primary-foreground" />
           </AvatarFallback>
         </Avatar>
         {!collapsed && (
-          <span className="font-semibold text-lg truncate">{branding?.companyName || "HRMS Admin"}</span>
+          <span className={cn("font-semibold truncate", nameSizeClasses[branding?.nameSize || "medium"])}>
+            {branding?.companyName || "HRMS Admin"}
+          </span>
         )}
       </div>
 

@@ -22,26 +22,48 @@ import {
   useUpdateCompanyBranding, 
   useUploadCompanyLogo,
   useDeleteCompanyLogo,
-  CompanyBranding 
+  useUploadFavicon,
+  useDeleteFavicon,
+  CompanyBranding,
+  SizeOption 
 } from "@/hooks/useCompanyBranding";
-import { Loader2, Upload, X, Building2 } from "lucide-react";
+import { Loader2, Upload, X, Building2, Image } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+const logoSizeClasses = {
+  small: "h-6 w-6",
+  medium: "h-8 w-8",
+  large: "h-10 w-10",
+};
+
+const nameSizeClasses = {
+  small: "text-sm",
+  medium: "text-lg",
+  large: "text-xl",
+};
 
 export default function CompanySettingsPage() {
   const { data: branding, isLoading } = useCompanyBranding();
   const updateBranding = useUpdateCompanyBranding();
   const uploadLogo = useUploadCompanyLogo();
   const deleteLogo = useDeleteCompanyLogo();
+  const uploadFavicon = useUploadFavicon();
+  const deleteFavicon = useDeleteFavicon();
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<CompanyBranding>({
     companyName: "",
     companyLogo: null,
+    companyFavicon: null,
     companyEmail: "",
     companyPhone: "",
     companyAddress: "",
     companyWebsite: "",
+    logoSize: "medium",
+    nameSize: "medium",
   });
 
   const [regionalSettings, setRegionalSettings] = useState({
@@ -62,16 +84,9 @@ export default function CompanySettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      return;
-    }
+    if (!validTypes.includes(file.type)) return;
+    if (file.size > 2 * 1024 * 1024) return;
 
     try {
       const logoUrl = await uploadLogo.mutateAsync(file);
@@ -90,6 +105,39 @@ export default function CompanySettingsPage() {
     } catch (error) {
       // Error handled by mutation
     }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/x-icon", "image/svg+xml", "image/ico"];
+    if (!validTypes.includes(file.type) && !file.name.endsWith('.ico')) return;
+    if (file.size > 1 * 1024 * 1024) return;
+
+    try {
+      const faviconUrl = await uploadFavicon.mutateAsync(file);
+      await updateBranding.mutateAsync({ companyFavicon: faviconUrl });
+      setFormData(prev => ({ ...prev, companyFavicon: faviconUrl }));
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    try {
+      await deleteFavicon.mutateAsync();
+      await updateBranding.mutateAsync({ companyFavicon: null });
+      setFormData(prev => ({ ...prev, companyFavicon: null }));
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleSizeChange = async (type: "logoSize" | "nameSize", value: SizeOption) => {
+    if (!value) return;
+    setFormData(prev => ({ ...prev, [type]: value }));
+    await updateBranding.mutateAsync({ [type]: value });
   };
 
   const saveCompanySettings = async () => {
@@ -148,14 +196,14 @@ export default function CompanySettingsPage() {
             <div className="space-y-2">
               <input
                 type="file"
-                ref={fileInputRef}
+                ref={logoInputRef}
                 onChange={handleLogoUpload}
                 accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
                 className="hidden"
               />
               <Button
                 variant="outline"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => logoInputRef.current?.click()}
                 disabled={uploadLogo.isPending}
               >
                 {uploadLogo.isPending ? (
@@ -173,6 +221,120 @@ export default function CompanySettingsPage() {
               <p className="text-xs text-muted-foreground">
                 PNG, JPG, SVG or WebP. Max 2MB.
               </p>
+            </div>
+          </div>
+        </SettingsCard>
+
+        {/* Favicon Upload Section */}
+        <SettingsCard
+          title="Favicon"
+          description="Upload a favicon for browser tabs (recommended: 32x32 or 64x64 pixels)"
+        >
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className="h-16 w-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+                {formData.companyFavicon ? (
+                  <img 
+                    src={formData.companyFavicon} 
+                    alt="Favicon" 
+                    className="h-8 w-8 object-contain"
+                  />
+                ) : (
+                  <Image className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              {formData.companyFavicon && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={handleRemoveFavicon}
+                  disabled={deleteFavicon.isPending}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                type="file"
+                ref={faviconInputRef}
+                onChange={handleFaviconUpload}
+                accept="image/png,image/x-icon,image/svg+xml,.ico"
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => faviconInputRef.current?.click()}
+                disabled={uploadFavicon.isPending}
+              >
+                {uploadFavicon.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Favicon
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                PNG, ICO or SVG. Max 1MB.
+              </p>
+            </div>
+          </div>
+        </SettingsCard>
+
+        {/* Display Size Settings */}
+        <SettingsCard
+          title="Sidebar Display Settings"
+          description="Customize how the logo and company name appear in the sidebar"
+        >
+          <div className="space-y-6">
+            {/* Preview */}
+            <div className="p-4 rounded-lg border bg-sidebar">
+              <div className="flex items-center gap-2">
+                <Avatar className={`rounded-lg flex-shrink-0 ${logoSizeClasses[formData.logoSize]}`}>
+                  <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
+                  <AvatarFallback className="rounded-lg bg-primary">
+                    <Building2 className="h-1/2 w-1/2 text-primary-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className={`font-semibold truncate ${nameSizeClasses[formData.nameSize]}`}>
+                  {formData.companyName || "Company Name"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Logo Size</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={formData.logoSize}
+                  onValueChange={(value) => value && handleSizeChange("logoSize", value as SizeOption)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="small" aria-label="Small">Small</ToggleGroupItem>
+                  <ToggleGroupItem value="medium" aria-label="Medium">Medium</ToggleGroupItem>
+                  <ToggleGroupItem value="large" aria-label="Large">Large</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="space-y-2">
+                <Label>Company Name Size</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={formData.nameSize}
+                  onValueChange={(value) => value && handleSizeChange("nameSize", value as SizeOption)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="small" aria-label="Small">Small</ToggleGroupItem>
+                  <ToggleGroupItem value="medium" aria-label="Medium">Medium</ToggleGroupItem>
+                  <ToggleGroupItem value="large" aria-label="Large">Large</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
           </div>
         </SettingsCard>
