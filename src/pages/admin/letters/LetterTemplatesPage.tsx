@@ -42,6 +42,7 @@ import {
   DEFAULT_TEMPLATES,
   type LetterType,
 } from "@/hooks/useLetterTemplates";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import { toast } from "sonner";
 
@@ -62,6 +63,7 @@ interface TemplateForm {
 
 export default function LetterTemplatesPage() {
   const { data: templates = [], isLoading } = useLetterTemplates();
+  const { data: branding } = useCompanyBranding();
   const createTemplate = useCreateLetterTemplate();
   const updateTemplate = useUpdateLetterTemplate();
   const deleteTemplate = useDeleteLetterTemplate();
@@ -148,7 +150,17 @@ export default function LetterTemplatesPage() {
   };
 
   const handlePreview = (content: string) => {
-    setPreviewContent(content);
+    // Replace placeholders with sample data including company logo
+    const logoHtml = branding?.companyLogo 
+      ? `<img src="${branding.companyLogo}" alt="Company Logo" style="max-height: 60px; margin-bottom: 10px;" />`
+      : '';
+    
+    let previewHtml = content
+      .replace(/\{\{company_logo\}\}/g, logoHtml)
+      .replace(/\{\{company_name\}\}/g, branding?.companyName || "Company Name")
+      .replace(/\{\{company_address\}\}/g, branding?.companyAddress || "123 Business Street, City");
+    
+    setPreviewContent(previewHtml);
     setPreviewOpen(true);
   };
 

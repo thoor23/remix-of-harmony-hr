@@ -58,9 +58,11 @@ import {
   PAYSLIP_PLACEHOLDERS,
   type PayslipTemplate,
 } from "@/hooks/usePayslipTemplates";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 
 const DEFAULT_TEMPLATE_CONTENT = `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; border-bottom: 3px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
+    {{company_logo}}
     <h1 style="margin: 0; font-size: 24px; color: #333;">{{company_name}}</h1>
     <p style="margin: 5px 0 0; color: #666; font-size: 14px;">{{company_address}}</p>
   </div>
@@ -118,6 +120,7 @@ export default function PayslipTemplatesPage() {
   });
 
   const { data: templates = [], isLoading } = usePayslipTemplates();
+  const { data: branding } = useCompanyBranding();
   const createMutation = useCreatePayslipTemplate();
   const updateMutation = useUpdatePayslipTemplate();
   const deleteMutation = useDeletePayslipTemplate();
@@ -187,6 +190,10 @@ export default function PayslipTemplatesPage() {
   };
 
   const getPreviewHtml = (template: PayslipTemplate) => {
+    const logoHtml = branding?.companyLogo 
+      ? `<img src="${branding.companyLogo}" alt="Company Logo" style="max-height: 60px; margin-bottom: 10px;" />`
+      : '';
+    
     const sampleData: Record<string, string> = {
       "{{employee_name}}": "John Smith",
       "{{employee_id}}": "EMP001",
@@ -205,8 +212,9 @@ export default function PayslipTemplatesPage() {
       "{{other_deductions}}": "₹1,000.00",
       "{{total_deductions}}": "₹15,000.00",
       "{{net_pay}}": "₹65,000.00",
-      "{{company_name}}": template.company_name || "Company Name Inc.",
-      "{{company_address}}": template.company_address || "123 Business Street, City",
+      "{{company_logo}}": logoHtml,
+      "{{company_name}}": template.company_name || branding?.companyName || "Company Name Inc.",
+      "{{company_address}}": template.company_address || branding?.companyAddress || "123 Business Street, City",
       "{{footer_text}}": template.footer_text || "This is a computer-generated document.",
       "{{current_date}}": format(new Date(), "dd MMM yyyy"),
     };

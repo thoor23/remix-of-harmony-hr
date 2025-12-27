@@ -37,6 +37,7 @@ export const PAYSLIP_PLACEHOLDERS = [
   { key: "{{other_deductions}}", label: "Other Deductions", category: "Deductions" },
   { key: "{{total_deductions}}", label: "Total Deductions", category: "Deductions" },
   { key: "{{net_pay}}", label: "Net Pay", category: "Totals" },
+  { key: "{{company_logo}}", label: "Company Logo", category: "Company" },
   { key: "{{company_name}}", label: "Company Name", category: "Company" },
   { key: "{{company_address}}", label: "Company Address", category: "Company" },
   { key: "{{footer_text}}", label: "Footer Text", category: "Company" },
