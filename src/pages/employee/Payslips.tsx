@@ -25,54 +25,79 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Eye, FileText, Wallet, TrendingUp } from "lucide-react";
-import { payslips } from "@/data/mockData";
-import { Payslip } from "@/types/hrms";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+import { useMyPayslips } from "@/hooks/usePayroll";
+import { format } from "date-fns";
 import { toast } from "sonner";
 
-export default function EmployeePayslips() {
-  const [selectedYear, setSelectedYear] = useState("2024");
-  const [previewPayslip, setPreviewPayslip] = useState<Payslip | null>(null);
+interface PayslipDetail {
+  id: string;
+  pay_period: string;
+  pay_date: string;
+  basic_salary: number;
+  gross_earnings: number;
+  total_deductions: number;
+  net_pay: number;
+  status: string;
+  created_at: string;
+}
 
-  // Generate mock payslips for the year
-  const myPayslips: Payslip[] = Array.from({ length: 12 }, (_, i) => {
-    const month = 12 - i;
-    const existing = payslips.find((p) => p.employeeId === "emp-3" && p.month === month);
-    return existing || {
-      id: `ps-${month}`,
-      employeeId: "emp-3",
-      employeeName: "Michael Chen",
-      month,
-      year: 2024,
-      payPeriod: new Date(2024, month - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      basic: 50000,
-      hra: 20000,
-      conveyance: 3000,
-      medicalAllowance: 2500,
-      specialAllowance: 10000,
-      otherAllowances: 2000,
-      grossEarnings: 87500,
-      pf: 6000,
-      esi: 1313,
-      professionalTax: 200,
-      incomeTax: 8750,
-      otherDeductions: 0,
-      totalDeductions: 16263,
-      netPay: 71237,
-      paidDays: 30,
-      lopDays: 0,
-      status: month <= 11 ? "paid" : "generated",
-      generatedOn: new Date(2024, month - 1, 28).toISOString(),
-      paidOn: month <= 11 ? new Date(2024, month - 1, 30).toISOString() : undefined,
-    };
+export default function EmployeePayslips() {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [previewPayslip, setPreviewPayslip] = useState<PayslipDetail | null>(null);
+
+  const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: payslips = [], isLoading: payslipsLoading } = useMyPayslips(currentEmployee?.id || "");
+
+  const isLoading = employeeLoading || payslipsLoading;
+
+  // Filter payslips by selected year
+  const filteredPayslips = payslips.filter((p) => {
+    const year = p.pay_period.split("-")[0];
+    return year === selectedYear;
   });
 
-  const totalEarnings = myPayslips.reduce((sum, p) => sum + p.netPay, 0);
-  const avgSalary = totalEarnings / myPayslips.length;
+  const totalEarnings = filteredPayslips.reduce((sum, p) => sum + p.net_pay, 0);
+  const avgSalary = filteredPayslips.length > 0 ? totalEarnings / filteredPayslips.length : 0;
 
-  const handleDownload = (payslip: Payslip) => {
-    toast.success(`Downloading payslip for ${payslip.payPeriod}`);
+  const handleDownload = (payslip: PayslipDetail) => {
+    toast.success(`Downloading payslip for ${payslip.pay_period}`);
   };
+
+  const formatPayPeriod = (period: string) => {
+    try {
+      const [year, month] = period.split("-");
+      return format(new Date(parseInt(year), parseInt(month) - 1), "MMMM yyyy");
+    } catch {
+      return period;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="My Payslips" description="View and download your monthly payslips" />
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <div className="p-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -86,7 +111,7 @@ export default function EmployeePayslips() {
               <Wallet className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">${avgSalary.toLocaleString()}</p>
+              <p className="text-2xl font-semibold">${avgSalary.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
               <p className="text-sm text-muted-foreground">Average Monthly</p>
             </div>
           </CardContent>
@@ -97,7 +122,7 @@ export default function EmployeePayslips() {
               <TrendingUp className="h-5 w-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">${totalEarnings.toLocaleString()}</p>
+              <p className="text-2xl font-semibold">${totalEarnings.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
               <p className="text-sm text-muted-foreground">YTD Earnings</p>
             </div>
           </CardContent>
@@ -108,7 +133,7 @@ export default function EmployeePayslips() {
               <FileText className="h-5 w-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{myPayslips.length}</p>
+              <p className="text-2xl font-semibold">{filteredPayslips.length}</p>
               <p className="text-sm text-muted-foreground">Payslips Available</p>
             </div>
           </CardContent>
@@ -122,9 +147,9 @@ export default function EmployeePayslips() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2024">2024</SelectItem>
-            <SelectItem value="2023">2023</SelectItem>
-            <SelectItem value="2022">2022</SelectItem>
+            <SelectItem value={new Date().getFullYear().toString()}>{new Date().getFullYear()}</SelectItem>
+            <SelectItem value={(new Date().getFullYear() - 1).toString()}>{new Date().getFullYear() - 1}</SelectItem>
+            <SelectItem value={(new Date().getFullYear() - 2).toString()}>{new Date().getFullYear() - 2}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -142,27 +167,29 @@ export default function EmployeePayslips() {
                 <TableHead className="text-right">Gross Earnings</TableHead>
                 <TableHead className="text-right">Deductions</TableHead>
                 <TableHead className="text-right">Net Pay</TableHead>
-                <TableHead className="text-center">Paid Days</TableHead>
+                <TableHead>Pay Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {myPayslips.map((payslip) => (
+              {filteredPayslips.map((payslip) => (
                 <TableRow key={payslip.id}>
-                  <TableCell className="font-medium">{payslip.payPeriod}</TableCell>
+                  <TableCell className="font-medium">{formatPayPeriod(payslip.pay_period)}</TableCell>
                   <TableCell className="text-right">
-                    ${payslip.grossEarnings.toLocaleString()}
+                    ${payslip.gross_earnings.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    ${payslip.totalDeductions.toLocaleString()}
+                    ${payslip.total_deductions.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right font-semibold text-primary">
-                    ${payslip.netPay.toLocaleString()}
+                    ${payslip.net_pay.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-center">{payslip.paidDays}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(payslip.pay_date), "MMM dd, yyyy")}
+                  </TableCell>
                   <TableCell>
-                    <StatusBadge status={payslip.status} />
+                    <StatusBadge status={payslip.status as "paid" | "generated" | "pending"} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -184,6 +211,13 @@ export default function EmployeePayslips() {
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredPayslips.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No payslips found for {selectedYear}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -193,7 +227,7 @@ export default function EmployeePayslips() {
       <Dialog open={!!previewPayslip} onOpenChange={() => setPreviewPayslip(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Payslip - {previewPayslip?.payPeriod}</DialogTitle>
+            <DialogTitle>Payslip - {previewPayslip && formatPayPeriod(previewPayslip.pay_period)}</DialogTitle>
           </DialogHeader>
 
           {previewPayslip && (
@@ -207,18 +241,20 @@ export default function EmployeePayslips() {
                 </div>
                 <div className="text-right">
                   <p className="font-medium">Payslip</p>
-                  <p className="text-sm text-muted-foreground">{previewPayslip.payPeriod}</p>
+                  <p className="text-sm text-muted-foreground">{formatPayPeriod(previewPayslip.pay_period)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Employee Name</p>
-                  <p className="font-medium">{previewPayslip.employeeName}</p>
+                  <p className="font-medium">
+                    {currentEmployee?.profile?.first_name} {currentEmployee?.profile?.last_name}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Paid Days</p>
-                  <p className="font-medium">{previewPayslip.paidDays}</p>
+                  <p className="text-muted-foreground">Pay Date</p>
+                  <p className="font-medium">{format(new Date(previewPayslip.pay_date), "MMM dd, yyyy")}</p>
                 </div>
               </div>
 
@@ -228,27 +264,15 @@ export default function EmployeePayslips() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Basic Salary</span>
-                      <span>${previewPayslip.basic.toLocaleString()}</span>
+                      <span>${previewPayslip.basic_salary.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>HRA</span>
-                      <span>${previewPayslip.hra.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Conveyance</span>
-                      <span>${previewPayslip.conveyance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Medical Allowance</span>
-                      <span>${previewPayslip.medicalAllowance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Special Allowance</span>
-                      <span>${previewPayslip.specialAllowance.toLocaleString()}</span>
+                      <span>Allowances</span>
+                      <span>${(previewPayslip.gross_earnings - previewPayslip.basic_salary).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-medium pt-2 border-t">
                       <span>Gross Earnings</span>
-                      <span>${previewPayslip.grossEarnings.toLocaleString()}</span>
+                      <span>${previewPayslip.gross_earnings.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -257,24 +281,12 @@ export default function EmployeePayslips() {
                   <h4 className="font-medium mb-3 text-destructive">Deductions</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>Provident Fund</span>
-                      <span>${previewPayslip.pf.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ESI</span>
-                      <span>${previewPayslip.esi.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Professional Tax</span>
-                      <span>${previewPayslip.professionalTax.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Income Tax</span>
-                      <span>${previewPayslip.incomeTax.toLocaleString()}</span>
+                      <span>Total Deductions</span>
+                      <span>${previewPayslip.total_deductions.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-medium pt-2 border-t">
                       <span>Total Deductions</span>
-                      <span>${previewPayslip.totalDeductions.toLocaleString()}</span>
+                      <span>${previewPayslip.total_deductions.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -284,7 +296,7 @@ export default function EmployeePayslips() {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Net Pay</span>
                   <span className="text-2xl font-bold text-primary">
-                    ${previewPayslip.netPay.toLocaleString()}
+                    ${previewPayslip.net_pay.toLocaleString()}
                   </span>
                 </div>
               </div>
