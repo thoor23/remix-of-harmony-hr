@@ -2,8 +2,18 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Shield, Building2, ArrowRight, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user, role } = useAuth();
+
+  // Determine where to redirect logged-in users
+  const getDashboardLink = () => {
+    if (!user) return "/auth";
+    if (role === "admin" || role === "hr" || role === "manager") return "/admin";
+    return "/employee";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -16,12 +26,18 @@ const Index = () => {
             <span className="font-semibold text-xl">HRMS</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link to="/employee/login">Employee Login</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/admin/login">Admin Login</Link>
-            </Button>
+            {user ? (
+              <Button asChild>
+                <Link to={getDashboardLink()}>
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -40,15 +56,26 @@ const Index = () => {
             Complete human resource management solution for modern businesses. Manage employees, attendance, leaves, payroll, and more.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild>
-              <Link to="/admin/login">
-                Access Admin Portal
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/employee/login">Employee Self-Service</Link>
-            </Button>
+            {user ? (
+              <Button size="lg" asChild>
+                <Link to={getDashboardLink()}>
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" asChild>
+                  <Link to="/auth">
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -94,7 +121,11 @@ const Index = () => {
                   </li>
                 </ul>
                 <Button className="w-full mt-6" asChild>
-                  <Link to="/admin/login">Go to Admin Portal</Link>
+                  <Link to={user ? "/admin" : "/auth"}>
+                    {user && (role === "admin" || role === "hr" || role === "manager")
+                      ? "Go to Admin Portal"
+                      : "Sign In as Admin"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -129,7 +160,9 @@ const Index = () => {
                   </li>
                 </ul>
                 <Button className="w-full mt-6" variant="outline" asChild>
-                  <Link to="/employee/login">Go to Employee Portal</Link>
+                  <Link to={user ? "/employee" : "/auth"}>
+                    {user ? "Go to Employee Portal" : "Sign In as Employee"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

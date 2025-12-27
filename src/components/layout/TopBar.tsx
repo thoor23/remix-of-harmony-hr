@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   Palette,
 } from "lucide-react";
-import { adminUser, currentUser } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface TopBarProps {
   isAdmin?: boolean;
@@ -67,7 +68,20 @@ const routeLabels: Record<string, string> = {
 
 export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
-  const user = isAdmin ? adminUser : currentUser;
+  const navigate = useNavigate();
+  const { user, role, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.first_name && user?.user_metadata?.last_name
+    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+    : user?.email?.split("@")[0] || "User";
+
+  const displayEmail = user?.email || "";
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/auth");
+  };
 
   // Generate breadcrumbs from current path
   const generateBreadcrumbs = () => {
@@ -196,18 +210,18 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-accent">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>
-                  {user.name
+                  {displayName
                     .split(" ")
                     .map((n) => n[0])
-                    .join("")}
+                    .join("")
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium">{user.name}</p>
+                <p className="text-sm font-medium">{displayName}</p>
                 <p className="text-xs text-muted-foreground capitalize">
-                  {user.role}
+                  {role || "employee"}
                 </p>
               </div>
             </Button>
@@ -216,14 +230,13 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
             {/* User info header */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-2">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>
-                  {user.name.split(" ").map((n) => n[0]).join("")}
+                  {displayName.split(" ").map((n) => n[0]).join("").toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{user.name}</p>
-                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                <p className="font-semibold truncate">{displayName}</p>
+                <p className="text-sm text-muted-foreground truncate">{displayEmail}</p>
               </div>
             </div>
             
@@ -252,11 +265,12 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
             
             <DropdownMenuSeparator className="my-2" />
             
-            <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md text-destructive focus:text-destructive focus:bg-destructive/10">
-              <Link to="/" className="flex items-center gap-3">
-                <LogOut className="h-4 w-4" />
-                <span>Log out</span>
-              </Link>
+            <DropdownMenuItem 
+              onClick={handleSignOut}
+              className="cursor-pointer py-2.5 px-3 rounded-md text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
