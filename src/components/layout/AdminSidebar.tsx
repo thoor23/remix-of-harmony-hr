@@ -34,9 +34,6 @@ import {
   ClipboardList,
   BarChart3,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
   Clock,
   Eye,
   ClipboardCheck,
@@ -324,37 +321,6 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
         </TooltipProvider>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="border-t p-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-sidebar-foreground"
-          onClick={() => onCollapsedChange(!collapsed)}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5 mx-auto" />
-          ) : (
-            <>
-              <ChevronLeft className="h-5 w-5 mr-2" />
-              Collapse
-            </>
-          )}
-        </Button>
-        <Link to="/">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "w-full text-sidebar-foreground mt-1",
-              collapsed ? "justify-center" : "justify-start"
-            )}
-          >
-            <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-2">Logout</span>}
-          </Button>
-        </Link>
-      </div>
     </aside>
   );
 }
