@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +12,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,8 +31,21 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Megaphone } from "lucide-react";
-import { announcements } from "@/data/mockData";
+import { announcements as initialAnnouncements } from "@/data/mockData";
 import { toast } from "sonner";
+import { Announcement } from "@/types/hrms";
+import { z } from "zod";
+
+const announcementSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100),
+  content: z.string().min(1, "Content is required").max(1000),
+  type: z.string().min(1, "Type is required"),
+  priority: z.string().min(1, "Priority is required"),
+  targetAudience: z.string().min(1, "Target audience is required"),
+});
+
+type FormData = z.infer<typeof announcementSchema>;
+type FormErrors = Partial<Record<keyof FormData, string>>;
 
 const typeColors: Record<string, string> = {
   general: "bg-muted text-muted-foreground",
@@ -34,34 +56,136 @@ const typeColors: Record<string, string> = {
 };
 
 export default function AnnouncementsManagement() {
+  const [announcementList, setAnnouncementList] = useState<Announcement[]>(initialAnnouncements);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    content: "",
+    type: "general",
+    priority: "medium",
+    targetAudience: "all",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      content: "",
+      type: "general",
+      priority: "medium",
+      targetAudience: "all",
+    });
+    setErrors({});
+    setEditingId(null);
+  };
 
   const handleCreate = () => {
-    setEditingId(null);
+    resetForm();
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (id: string) => {
-    setEditingId(id);
+  const handleEdit = (announcement: Announcement) => {
+    setEditingId(announcement.id);
+    setFormData({
+      title: announcement.title,
+      content: announcement.content,
+      type: announcement.type,
+      priority: announcement.priority,
+      targetAudience: "all",
+    });
+    setErrors({});
     setIsDialogOpen(true);
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const result = announcementSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: FormErrors = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof FormErrors;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const handleSave = () => {
-    toast.success(
-      editingId ? "Announcement updated successfully" : "Announcement created successfully"
-    );
+    if (!validateForm()) {
+      return;
+    }
+
+    if (editingId) {
+      // Update existing announcement
+      setAnnouncementList((prev) =>
+        prev.map((ann) =>
+          ann.id === editingId
+            ? {
+                ...ann,
+                title: formData.title,
+                content: formData.content,
+                type: formData.type as Announcement["type"],
+                priority: formData.priority as Announcement["priority"],
+              }
+            : ann
+        )
+      );
+      toast.success("Announcement updated successfully");
+    } else {
+      // Create new announcement
+      const newAnnouncement: Announcement = {
+        id: `ann-${Date.now()}`,
+        title: formData.title,
+        content: formData.content,
+        type: formData.type as Announcement["type"],
+        priority: formData.priority as Announcement["priority"],
+        publishedAt: new Date().toISOString(),
+        isActive: true,
+        targetAudience: formData.targetAudience === "all" ? "all" : "department",
+        createdBy: "admin",
+      };
+      setAnnouncementList((prev) => [newAnnouncement, ...prev]);
+      toast.success("Announcement created successfully");
+    }
     setIsDialogOpen(false);
+    resetForm();
   };
 
-  const handleDelete = (id: string) => {
-    toast.success("Announcement deleted successfully");
+  const handleDeleteClick = (announcement: Announcement) => {
+    setAnnouncementToDelete(announcement);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (announcementToDelete) {
+      setAnnouncementList((prev) => prev.filter((ann) => ann.id !== announcementToDelete.id));
+      toast.success("Announcement deleted successfully");
+      setAnnouncementToDelete(null);
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  const renderError = (field: keyof FormErrors) => {
+    if (errors[field]) {
+      return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
+    }
+    return null;
   };
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Announcements" }]} />
-
       <PageHeader
         title="Announcements"
         description="Create and manage company announcements"
@@ -73,55 +197,66 @@ export default function AnnouncementsManagement() {
       </PageHeader>
 
       <div className="space-y-4">
-        {announcements.map((announcement) => (
-          <Card key={announcement.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Megaphone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">{announcement.title}</h3>
-                      <Badge className={typeColors[announcement.type]}>
-                        {announcement.type.replace("-", " ")}
-                      </Badge>
-                      {announcement.priority === "high" && (
-                        <Badge variant="destructive">High Priority</Badge>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground">{announcement.content}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Published on{" "}
-                      {new Date(announcement.publishedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(announcement.id)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(announcement.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+        {announcementList.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              No announcements yet. Create your first announcement!
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          announcementList.map((announcement) => (
+            <Card key={announcement.id}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Megaphone className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold">{announcement.title}</h3>
+                        <Badge className={typeColors[announcement.type]}>
+                          {announcement.type.replace("-", " ")}
+                        </Badge>
+                        {announcement.priority === "high" && (
+                          <Badge variant="destructive">High Priority</Badge>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground">{announcement.content}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Published on{" "}
+                        {new Date(announcement.publishedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(announcement)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteClick(announcement)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) resetForm();
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -131,15 +266,24 @@ export default function AnnouncementsManagement() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Title</Label>
-              <Input placeholder="Announcement title" />
+              <Label>Title *</Label>
+              <Input
+                placeholder="Announcement title"
+                value={formData.title}
+                onChange={(e) => handleInputChange("title", e.target.value)}
+                className={errors.title ? "border-destructive" : ""}
+              />
+              {renderError("title")}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Type</Label>
-                <Select defaultValue="general">
-                  <SelectTrigger>
+                <Label>Type *</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => handleInputChange("type", value)}
+                >
+                  <SelectTrigger className={errors.type ? "border-destructive" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -150,11 +294,15 @@ export default function AnnouncementsManagement() {
                     <SelectItem value="holiday">Holiday</SelectItem>
                   </SelectContent>
                 </Select>
+                {renderError("type")}
               </div>
               <div className="space-y-2">
-                <Label>Priority</Label>
-                <Select defaultValue="medium">
-                  <SelectTrigger>
+                <Label>Priority *</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => handleInputChange("priority", value)}
+                >
+                  <SelectTrigger className={errors.priority ? "border-destructive" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -163,20 +311,27 @@ export default function AnnouncementsManagement() {
                     <SelectItem value="high">High</SelectItem>
                   </SelectContent>
                 </Select>
+                {renderError("priority")}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Content</Label>
+              <Label>Content *</Label>
               <Textarea
                 placeholder="Write your announcement..."
-                className="min-h-32"
+                className={`min-h-32 ${errors.content ? "border-destructive" : ""}`}
+                value={formData.content}
+                onChange={(e) => handleInputChange("content", e.target.value)}
               />
+              {renderError("content")}
             </div>
 
             <div className="space-y-2">
               <Label>Target Audience</Label>
-              <Select defaultValue="all">
+              <Select
+                value={formData.targetAudience}
+                onValueChange={(value) => handleInputChange("targetAudience", value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -198,6 +353,28 @@ export default function AnnouncementsManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Announcement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{announcementToDelete?.title}"?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 }

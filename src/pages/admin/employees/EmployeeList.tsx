@@ -24,18 +24,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { Card } from "@/components/ui/card";
 import { Plus, Search, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { employees, departments } from "@/data/mockData";
+import { employees as initialEmployees, departments } from "@/data/mockData";
+import { usePagination } from "@/hooks/usePagination";
+import { toast } from "sonner";
+import { Employee } from "@/types/hrms";
 
 export default function EmployeeList() {
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [employeeList, setEmployeeList] = useState<Employee[]>(initialEmployees);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
-  const filteredEmployees = employees.filter((emp) => {
+  const filteredEmployees = employeeList.filter((emp) => {
     const matchesSearch =
       emp.firstName.toLowerCase().includes(search.toLowerCase()) ||
       emp.lastName.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,6 +66,30 @@ export default function EmployeeList() {
 
     return matchesSearch && matchesDepartment && matchesStatus;
   });
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: filteredEmployees, defaultPageSize: 10 });
+
+  const handleDeleteClick = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (employeeToDelete) {
+      setEmployeeList((prev) => prev.filter((emp) => emp.id !== employeeToDelete.id));
+      toast.success(`${employeeToDelete.firstName} ${employeeToDelete.lastName} deleted successfully`);
+      setEmployeeToDelete(null);
+    }
+    setDeleteDialogOpen(false);
+  };
 
   return (
     <PageContainer>
@@ -119,7 +160,7 @@ export default function EmployeeList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEmployees.map((employee) => (
+            {paginatedData.map((employee) => (
               <TableRow key={employee.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -169,7 +210,10 @@ export default function EmployeeList() {
                           Edit
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteClick(employee)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -185,7 +229,37 @@ export default function EmployeeList() {
             No employees found matching your criteria.
           </div>
         )}
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {employeeToDelete?.firstName} {employeeToDelete?.lastName}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 }

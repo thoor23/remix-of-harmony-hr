@@ -1,5 +1,4 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +24,6 @@ const categoryLabels: Record<string, string> = {
 export default function DocumentsManagement() {
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Documents & Policies" }]} />
-
       <PageHeader
         title="Documents & Policies"
         description="Manage company policies and document templates"
