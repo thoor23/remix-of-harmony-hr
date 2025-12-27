@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -14,18 +13,130 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, Phone, CreditCard } from "lucide-react";
-import { departments, designations } from "@/data/mockData";
-import { toast } from "sonner";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
+import { useDepartments, useDesignations, useEmployees, useCreateEmployee } from "@/hooks/useEmployees";
+import { z } from "zod";
+
+const employeeSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(50),
+  lastName: z.string().min(1, "Last name is required").max(50),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(10, "Phone number must be at least 10 characters"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  gender: z.string().optional(),
+  employeeId: z.string().min(1, "Employee ID is required"),
+  joiningDate: z.string().min(1, "Joining date is required"),
+  department: z.string().min(1, "Department is required"),
+  designation: z.string().min(1, "Designation is required"),
+  employmentType: z.string().min(1, "Employment type is required"),
+  reportingTo: z.string().optional(),
+  street: z.string().min(1, "Street address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zipCode: z.string().min(1, "Zip code is required"),
+  country: z.string().min(1, "Country is required"),
+  emergencyName: z.string().min(1, "Emergency contact name is required"),
+  emergencyRelation: z.string().min(1, "Relationship is required"),
+  emergencyPhone: z.string().min(10, "Emergency phone is required"),
+  bankName: z.string().min(1, "Bank name is required"),
+  accountHolder: z.string().min(1, "Account holder name is required"),
+  accountNumber: z.string().min(1, "Account number is required"),
+  routingNumber: z.string().min(1, "Routing number is required"),
+});
+
+type FormErrors = Partial<Record<keyof z.infer<typeof employeeSchema>, string>>;
 
 export default function AddEmployee() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("personal");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
+    employeeId: "",
+    joiningDate: "",
+    department: "",
+    designation: "",
+    employmentType: "",
+    reportingTo: "",
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
+    emergencyName: "",
+    emergencyRelation: "",
+    emergencyPhone: "",
+    bankName: "",
+    accountHolder: "",
+    accountNumber: "",
+    routingNumber: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { data: departments = [] } = useDepartments();
+  const { data: designations = [] } = useDesignations();
+  const { data: employees = [] } = useEmployees();
+  const createEmployee = useCreateEmployee();
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const result = employeeSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: FormErrors = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof FormErrors;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Employee added successfully!");
-    navigate("/admin/employees");
+    if (validateForm()) {
+      createEmployee.mutate({
+        employee_id: formData.employeeId,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        date_of_birth: formData.dateOfBirth || null,
+        date_of_joining: formData.joiningDate,
+        department_id: formData.department || null,
+        designation_id: formData.designation || null,
+        employment_type: formData.employmentType,
+        reporting_to: formData.reportingTo || null,
+        address_street: formData.street || null,
+        address_city: formData.city || null,
+        address_state: formData.state || null,
+        address_zip_code: formData.zipCode || null,
+        address_country: formData.country || null,
+        emergency_contact_name: formData.emergencyName || null,
+        emergency_contact_relationship: formData.emergencyRelation || null,
+        emergency_contact_phone: formData.emergencyPhone || null,
+        bank_name: formData.bankName || null,
+        bank_account_holder_name: formData.accountHolder || null,
+        bank_account_number: formData.accountNumber || null,
+        bank_ifsc_code: formData.routingNumber || null,
+      }, {
+        onSuccess: () => {
+          navigate("/admin/employees");
+        }
+      });
+    }
   };
 
   const handleNext = () => {
@@ -44,8 +155,29 @@ export default function AddEmployee() {
     }
   };
 
+  const renderError = (field: keyof FormErrors) => {
+    if (errors[field]) {
+      return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
+    }
+    return null;
+  };
+
+  // Get managers for reporting to dropdown
+  const managers = employees.filter(emp => 
+    emp.designation?.name?.toLowerCase().includes('manager') || 
+    emp.designation?.name?.toLowerCase().includes('director') ||
+    emp.designation?.name?.toLowerCase().includes('head')
+  );
+
   return (
     <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/employees")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Employees
+        </Button>
+      </div>
+
       <PageHeader
         title="Add New Employee"
         description="Fill in the details to create a new employee record"
@@ -82,27 +214,66 @@ export default function AddEmployee() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
-                    <Input id="firstName" placeholder="John" required />
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      className={errors.firstName ? "border-destructive" : ""}
+                    />
+                    {renderError("firstName")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name *</Label>
-                    <Input id="lastName" placeholder="Smith" required />
+                    <Input
+                      id="lastName"
+                      placeholder="Smith"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
+                      className={errors.lastName ? "border-destructive" : ""}
+                    />
+                    {renderError("lastName")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
-                    <Input id="email" type="email" placeholder="john.smith@company.com" required />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="john.smith@company.com"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      className={errors.email ? "border-destructive" : ""}
+                    />
+                    {renderError("email")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number *</Label>
-                    <Input id="phone" placeholder="+1 (555) 123-4567" required />
+                    <Input
+                      id="phone"
+                      placeholder="+1 (555) 123-4567"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      className={errors.phone ? "border-destructive" : ""}
+                    />
+                    {renderError("phone")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth *</Label>
-                    <Input id="dob" type="date" required />
+                    <Input
+                      id="dob"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                      className={errors.dateOfBirth ? "border-destructive" : ""}
+                    />
+                    {renderError("dateOfBirth")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => handleInputChange("gender", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -135,16 +306,33 @@ export default function AddEmployee() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee ID *</Label>
-                    <Input id="employeeId" placeholder="EMP011" required />
+                    <Input
+                      id="employeeId"
+                      placeholder="EMP011"
+                      value={formData.employeeId}
+                      onChange={(e) => handleInputChange("employeeId", e.target.value)}
+                      className={errors.employeeId ? "border-destructive" : ""}
+                    />
+                    {renderError("employeeId")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="joiningDate">Joining Date *</Label>
-                    <Input id="joiningDate" type="date" required />
+                    <Input
+                      id="joiningDate"
+                      type="date"
+                      value={formData.joiningDate}
+                      onChange={(e) => handleInputChange("joiningDate", e.target.value)}
+                      className={errors.joiningDate ? "border-destructive" : ""}
+                    />
+                    {renderError("joiningDate")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="department">Department *</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select
+                      value={formData.department}
+                      onValueChange={(value) => handleInputChange("department", value)}
+                    >
+                      <SelectTrigger className={errors.department ? "border-destructive" : ""}>
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                       <SelectContent>
@@ -155,11 +343,15 @@ export default function AddEmployee() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {renderError("department")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="designation">Designation *</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select
+                      value={formData.designation}
+                      onValueChange={(value) => handleInputChange("designation", value)}
+                    >
+                      <SelectTrigger className={errors.designation ? "border-destructive" : ""}>
                         <SelectValue placeholder="Select designation" />
                       </SelectTrigger>
                       <SelectContent>
@@ -170,11 +362,15 @@ export default function AddEmployee() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {renderError("designation")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="employmentType">Employment Type *</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select
+                      value={formData.employmentType}
+                      onValueChange={(value) => handleInputChange("employmentType", value)}
+                    >
+                      <SelectTrigger className={errors.employmentType ? "border-destructive" : ""}>
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -184,17 +380,23 @@ export default function AddEmployee() {
                         <SelectItem value="intern">Intern</SelectItem>
                       </SelectContent>
                     </Select>
+                    {renderError("employmentType")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reportingTo">Reporting To</Label>
-                    <Select>
+                    <Select
+                      value={formData.reportingTo}
+                      onValueChange={(value) => handleInputChange("reportingTo", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select manager" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="emp-1">John Smith (Engineering Manager)</SelectItem>
-                        <SelectItem value="emp-2">Sarah Johnson (HR Manager)</SelectItem>
-                        <SelectItem value="emp-5">David Wilson (Finance Manager)</SelectItem>
+                        {managers.map((emp) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.profile?.first_name} {emp.profile?.last_name} ({emp.designation?.name})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -224,23 +426,58 @@ export default function AddEmployee() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="street">Street Address *</Label>
-                      <Input id="street" placeholder="123 Main Street" required />
+                      <Input
+                        id="street"
+                        placeholder="123 Main Street"
+                        value={formData.street}
+                        onChange={(e) => handleInputChange("street", e.target.value)}
+                        className={errors.street ? "border-destructive" : ""}
+                      />
+                      {renderError("street")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="city">City *</Label>
-                      <Input id="city" placeholder="San Francisco" required />
+                      <Input
+                        id="city"
+                        placeholder="San Francisco"
+                        value={formData.city}
+                        onChange={(e) => handleInputChange("city", e.target.value)}
+                        className={errors.city ? "border-destructive" : ""}
+                      />
+                      {renderError("city")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="state">State *</Label>
-                      <Input id="state" placeholder="California" required />
+                      <Input
+                        id="state"
+                        placeholder="California"
+                        value={formData.state}
+                        onChange={(e) => handleInputChange("state", e.target.value)}
+                        className={errors.state ? "border-destructive" : ""}
+                      />
+                      {renderError("state")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zipCode">Zip Code *</Label>
-                      <Input id="zipCode" placeholder="94102" required />
+                      <Input
+                        id="zipCode"
+                        placeholder="94102"
+                        value={formData.zipCode}
+                        onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                        className={errors.zipCode ? "border-destructive" : ""}
+                      />
+                      {renderError("zipCode")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="country">Country *</Label>
-                      <Input id="country" placeholder="USA" required />
+                      <Input
+                        id="country"
+                        placeholder="USA"
+                        value={formData.country}
+                        onChange={(e) => handleInputChange("country", e.target.value)}
+                        className={errors.country ? "border-destructive" : ""}
+                      />
+                      {renderError("country")}
                     </div>
                   </div>
                 </div>
@@ -250,15 +487,36 @@ export default function AddEmployee() {
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="emergencyName">Name *</Label>
-                      <Input id="emergencyName" placeholder="Jane Doe" required />
+                      <Input
+                        id="emergencyName"
+                        placeholder="Jane Doe"
+                        value={formData.emergencyName}
+                        onChange={(e) => handleInputChange("emergencyName", e.target.value)}
+                        className={errors.emergencyName ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyName")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="emergencyRelation">Relationship *</Label>
-                      <Input id="emergencyRelation" placeholder="Spouse" required />
+                      <Input
+                        id="emergencyRelation"
+                        placeholder="Spouse"
+                        value={formData.emergencyRelation}
+                        onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
+                        className={errors.emergencyRelation ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyRelation")}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="emergencyPhone">Phone *</Label>
-                      <Input id="emergencyPhone" placeholder="+1 (555) 987-6543" required />
+                      <Input
+                        id="emergencyPhone"
+                        placeholder="+1 (555) 987-6543"
+                        value={formData.emergencyPhone}
+                        onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
+                        className={errors.emergencyPhone ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyPhone")}
                     </div>
                   </div>
                 </div>
@@ -285,19 +543,47 @@ export default function AddEmployee() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="bankName">Bank Name *</Label>
-                    <Input id="bankName" placeholder="Chase Bank" required />
+                    <Input
+                      id="bankName"
+                      placeholder="Chase Bank"
+                      value={formData.bankName}
+                      onChange={(e) => handleInputChange("bankName", e.target.value)}
+                      className={errors.bankName ? "border-destructive" : ""}
+                    />
+                    {renderError("bankName")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="accountHolder">Account Holder Name *</Label>
-                    <Input id="accountHolder" placeholder="John Smith" required />
+                    <Input
+                      id="accountHolder"
+                      placeholder="John Smith"
+                      value={formData.accountHolder}
+                      onChange={(e) => handleInputChange("accountHolder", e.target.value)}
+                      className={errors.accountHolder ? "border-destructive" : ""}
+                    />
+                    {renderError("accountHolder")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="accountNumber">Account Number *</Label>
-                    <Input id="accountNumber" placeholder="1234567890" required />
+                    <Input
+                      id="accountNumber"
+                      placeholder="1234567890"
+                      value={formData.accountNumber}
+                      onChange={(e) => handleInputChange("accountNumber", e.target.value)}
+                      className={errors.accountNumber ? "border-destructive" : ""}
+                    />
+                    {renderError("accountNumber")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="routingNumber">Routing Number / IFSC *</Label>
-                    <Input id="routingNumber" placeholder="CHASE001" required />
+                    <Input
+                      id="routingNumber"
+                      placeholder="CHASE001"
+                      value={formData.routingNumber}
+                      onChange={(e) => handleInputChange("routingNumber", e.target.value)}
+                      className={errors.routingNumber ? "border-destructive" : ""}
+                    />
+                    {renderError("routingNumber")}
                   </div>
                 </div>
 
@@ -305,7 +591,8 @@ export default function AddEmployee() {
                   <Button type="button" variant="outline" onClick={handlePrevious}>
                     Previous
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={createEmployee.isPending}>
+                    {createEmployee.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Employee
                   </Button>
                 </div>
