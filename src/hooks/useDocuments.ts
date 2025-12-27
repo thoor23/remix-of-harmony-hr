@@ -29,21 +29,44 @@ export function useAllDocuments() {
   return useQuery({
     queryKey: ["all-documents"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch documents with employee info
+      const { data: documents, error } = await supabase
         .from("documents")
         .select(`
           *,
           employee:employees(
             id,
             employee_id,
-            user_id,
-            profile:profiles!employees_user_id_fkey(first_name, last_name)
+            user_id
           )
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Get unique user_ids to fetch profiles
+      const userIds = [...new Set(documents
+        .filter(d => d.employee?.user_id)
+        .map(d => d.employee!.user_id)
+      )];
+
+      if (userIds.length === 0) {
+        return documents.map(d => ({ ...d, profile: null }));
+      }
+
+      // Fetch profiles separately
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", userIds);
+
+      // Map profiles to documents
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      
+      return documents.map(doc => ({
+        ...doc,
+        profile: doc.employee?.user_id ? profileMap.get(doc.employee.user_id) : null
+      }));
     },
   });
 }
