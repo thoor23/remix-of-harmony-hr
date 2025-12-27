@@ -115,6 +115,7 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "Salary Structure", href: "/admin/payroll/structure", icon: Banknote },
       { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
+      { title: "Payslip Templates", href: "/admin/payroll/templates", icon: LayoutTemplate },
     ],
   },
   {

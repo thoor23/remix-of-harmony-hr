@@ -27,12 +27,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, Download, Eye, Send, Calendar } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { FileText, Download, Eye, Send, Calendar, LayoutTemplate } from "lucide-react";
 import { usePayslips } from "@/hooks/usePayroll";
 import { useEmployees } from "@/hooks/useEmployees";
+import { usePayslipTemplates, useDefaultPayslipTemplate } from "@/hooks/usePayslipTemplates";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { downloadPayslipPDF } from "@/lib/pdfGenerator";
+import { downloadPayslipPDF, downloadPayslipFromTemplate } from "@/lib/pdfGenerator";
 
 export default function PayslipsList() {
   const currentDate = new Date();
@@ -40,9 +42,12 @@ export default function PayslipsList() {
     `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
   );
   const [previewPayslip, setPreviewPayslip] = useState<any>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
 
   const { data: payslips = [], isLoading: payslipsLoading } = usePayslips();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: templates = [] } = usePayslipTemplates();
+  const { data: defaultTemplate } = useDefaultPayslipTemplate();
 
   const isLoading = payslipsLoading || employeesLoading;
 
@@ -118,23 +123,40 @@ export default function PayslipsList() {
 
       {/* Filters */}
       <Card className="p-4 mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Pay Period:</span>
+            <Label className="text-sm font-medium">Pay Period:</Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {getMonthOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {getMonthOptions().map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Template:</Label>
+            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select template" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default Template</SelectItem>
+                {templates.filter(t => t.is_active).map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name} {template.is_default && "(Default)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Card>
 
@@ -206,20 +228,43 @@ export default function PayslipsList() {
                           variant="ghost" 
                           size="icon"
                           onClick={() => {
-                            downloadPayslipPDF({
-                              employeeName,
-                              employeeId: emp?.employee_id || "",
-                              department: emp?.department?.name || "N/A",
-                              designation: emp?.designation?.name || "N/A",
-                              payPeriod: payslip.pay_period,
-                              payDate: payslip.pay_date || new Date().toISOString(),
-                              basicSalary: payslip.basic_salary || 0,
-                              grossEarnings: payslip.gross_earnings || 0,
-                              totalDeductions: payslip.total_deductions || 0,
-                              netPay: payslip.net_pay || 0,
-                              companyName: "Company Name Inc.",
-                              companyAddress: "123 Business Street, San Francisco, CA 94102",
-                            });
+                            const selectedTemplate = selectedTemplateId !== "default" 
+                              ? templates.find(t => t.id === selectedTemplateId) 
+                              : defaultTemplate;
+                            
+                            if (selectedTemplate) {
+                              downloadPayslipFromTemplate({
+                                employeeName,
+                                employeeId: emp?.employee_id || "",
+                                department: emp?.department?.name || "N/A",
+                                designation: emp?.designation?.name || "N/A",
+                                payPeriod: payslip.pay_period,
+                                payDate: payslip.pay_date || new Date().toISOString(),
+                                basicSalary: payslip.basic_salary || 0,
+                                grossEarnings: payslip.gross_earnings || 0,
+                                totalDeductions: payslip.total_deductions || 0,
+                                netPay: payslip.net_pay || 0,
+                                companyName: selectedTemplate.company_name || "Company Name Inc.",
+                                companyAddress: selectedTemplate.company_address || "123 Business Street",
+                                templateContent: selectedTemplate.content,
+                                footerText: selectedTemplate.footer_text || undefined,
+                              });
+                            } else {
+                              downloadPayslipPDF({
+                                employeeName,
+                                employeeId: emp?.employee_id || "",
+                                department: emp?.department?.name || "N/A",
+                                designation: emp?.designation?.name || "N/A",
+                                payPeriod: payslip.pay_period,
+                                payDate: payslip.pay_date || new Date().toISOString(),
+                                basicSalary: payslip.basic_salary || 0,
+                                grossEarnings: payslip.gross_earnings || 0,
+                                totalDeductions: payslip.total_deductions || 0,
+                                netPay: payslip.net_pay || 0,
+                                companyName: "Company Name Inc.",
+                                companyAddress: "123 Business Street, San Francisco, CA 94102",
+                              });
+                            }
                             toast.success("Payslip PDF downloaded");
                           }}
                         >

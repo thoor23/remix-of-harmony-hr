@@ -730,6 +730,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payslip_templates: {
+        Row: {
+          company_address: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          footer_text: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          layout_config: Json | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_address?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          footer_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          layout_config?: Json | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_address?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          footer_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          layout_config?: Json | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payslips: {
         Row: {
           basic_salary: number
