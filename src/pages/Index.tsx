@@ -3,9 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Shield, Building2, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Index = () => {
   const { user, role } = useAuth();
+  const { data: branding } = useCompanyBranding();
+
+  const companyName = branding?.companyName || "HRMS";
 
   // Determine where to redirect logged-in users
   const getDashboardLink = () => {
@@ -20,10 +25,13 @@ const Index = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-xl">HRMS</span>
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-lg bg-primary">
+                <Building2 className="h-5 w-5 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-semibold text-xl">{companyName}</span>
           </div>
           <div className="flex items-center gap-3">
             {user ? (
@@ -173,7 +181,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2024 HRMS. Built with React, Tailwind CSS, and shadcn/ui.</p>
+          <p>© 2024 {companyName}. Built with React, Tailwind CSS, and shadcn/ui.</p>
         </div>
       </footer>
     </div>

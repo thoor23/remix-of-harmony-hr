@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Building2, Loader2, ArrowLeft } from "lucide-react";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -49,12 +51,15 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, signUp, user } = useAuth();
+  const { data: branding } = useCompanyBranding();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [view, setView] = useState<AuthView>("login");
   const [resetEmail, setResetEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
+  const companyName = branding?.companyName || "HRMS Portal";
 
   const [loginData, setLoginData] = useState<LoginFormData>({
     email: "",
@@ -227,11 +232,14 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-              <Building2 className="h-7 w-7 text-primary-foreground" />
-            </div>
+            <Avatar className="h-12 w-12 rounded-xl">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-xl bg-primary">
+                <Building2 className="h-7 w-7 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <h1 className="text-2xl font-bold">HRMS Portal</h1>
+              <h1 className="text-2xl font-bold">{companyName}</h1>
               <p className="text-sm text-muted-foreground">Human Resource Management</p>
             </div>
           </div>
@@ -294,11 +302,14 @@ export default function AuthPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-              <Building2 className="h-7 w-7 text-primary-foreground" />
-            </div>
+            <Avatar className="h-12 w-12 rounded-xl">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-xl bg-primary">
+                <Building2 className="h-7 w-7 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <h1 className="text-2xl font-bold">HRMS Portal</h1>
+              <h1 className="text-2xl font-bold">{companyName}</h1>
               <p className="text-sm text-muted-foreground">Human Resource Management</p>
             </div>
           </div>
@@ -365,11 +376,14 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-            <Building2 className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <Avatar className="h-12 w-12 rounded-xl">
+            <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+            <AvatarFallback className="rounded-xl bg-primary">
+              <Building2 className="h-7 w-7 text-primary-foreground" />
+            </AvatarFallback>
+          </Avatar>
           <div>
-            <h1 className="text-2xl font-bold">HRMS Portal</h1>
+            <h1 className="text-2xl font-bold">{companyName}</h1>
             <p className="text-sm text-muted-foreground">Human Resource Management</p>
           </div>
         </div>
