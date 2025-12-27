@@ -53,6 +53,9 @@ import {
   Building,
   BadgeCheck,
   Shield,
+  Settings2,
+  Bell,
+  Palette,
 } from "lucide-react";
 
 interface NavItem {
@@ -127,6 +130,11 @@ const adminNavItems: NavItem[] = [
       { title: "Departments", href: "/admin/settings/departments", icon: Building },
       { title: "Designations", href: "/admin/settings/designations", icon: BadgeCheck },
       { title: "Roles", href: "/admin/settings/roles", icon: Shield },
+      { title: "Company", href: "/admin/settings/company", icon: Building2 },
+      { title: "Attendance", href: "/admin/settings/attendance", icon: Clock },
+      { title: "Notifications", href: "/admin/settings/notifications", icon: Bell },
+      { title: "System", href: "/admin/settings/system", icon: Settings2 },
+      { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
     ],
   },
   { title: "Audit Logs", href: "/admin/audit-logs", icon: ClipboardList },

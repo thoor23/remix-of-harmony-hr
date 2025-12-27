@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -24,7 +25,6 @@ import PayslipsList from "./pages/admin/payroll/PayslipsList";
 import DocumentsManagement from "./pages/admin/documents/DocumentsManagement";
 import AnnouncementsManagement from "./pages/admin/announcements/AnnouncementsManagement";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
-import SettingsPage from "./pages/admin/settings/SettingsPage";
 import ReportsOverview from "./pages/admin/reports/ReportsOverview";
 import EmployeeReports from "./pages/admin/reports/EmployeeReports";
 import AttendanceReports from "./pages/admin/reports/AttendanceReports";
@@ -35,6 +35,16 @@ import ShiftAssignments from "./pages/admin/shifts/ShiftAssignments";
 import ShiftRotations from "./pages/admin/shifts/ShiftRotations";
 import ShiftCalendar from "./pages/admin/shifts/ShiftCalendar";
 import ShiftExchange from "./pages/admin/shifts/ShiftExchange";
+
+// Settings Pages
+import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
+import DesignationsPage from "./pages/admin/settings/DesignationsPage";
+import RolesPage from "./pages/admin/settings/RolesPage";
+import CompanySettingsPage from "./pages/admin/settings/CompanySettingsPage";
+import AttendanceSettingsPage from "./pages/admin/settings/AttendanceSettingsPage";
+import NotificationSettingsPage from "./pages/admin/settings/NotificationSettingsPage";
+import SystemSettingsPage from "./pages/admin/settings/SystemSettingsPage";
+import AppearancePage from "./pages/admin/settings/AppearancePage";
 
 // Employee Pages
 import EmployeeLogin from "./pages/employee/Login";
@@ -51,61 +61,71 @@ import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="employees" element={<EmployeeList />} />
-            <Route path="employees/new" element={<AddEmployee />} />
-            <Route path="employees/:id" element={<EmployeeDetails />} />
-            <Route path="attendance" element={<AttendanceManagement />} />
-            <Route path="leaves" element={<LeaveManagement />} />
-            <Route path="leaves/policy" element={<LeavePolicy />} />
-            <Route path="payroll/structure" element={<SalaryStructure />} />
-            <Route path="payroll/payslips" element={<PayslipsList />} />
-            <Route path="documents" element={<DocumentsManagement />} />
-            <Route path="announcements" element={<AnnouncementsManagement />} />
-            <Route path="audit-logs" element={<AuditLogs />} />
-            <Route path="reports" element={<ReportsOverview />} />
-            <Route path="reports/employee" element={<EmployeeReports />} />
-            <Route path="reports/attendance" element={<AttendanceReports />} />
-            <Route path="reports/leave" element={<LeaveReports />} />
-            <Route path="reports/payroll" element={<PayrollReports />} />
-            <Route path="shifts" element={<ShiftList />} />
-            <Route path="shifts/assignments" element={<ShiftAssignments />} />
-            <Route path="shifts/rotations" element={<ShiftRotations />} />
-            <Route path="shifts/exchange" element={<ShiftExchange />} />
-            <Route path="shifts/calendar" element={<ShiftCalendar />} />
-            <Route path="settings/*" element={<SettingsPage />} />
-          </Route>
+  <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="employees" element={<EmployeeList />} />
+              <Route path="employees/new" element={<AddEmployee />} />
+              <Route path="employees/:id" element={<EmployeeDetails />} />
+              <Route path="attendance" element={<AttendanceManagement />} />
+              <Route path="leaves" element={<LeaveManagement />} />
+              <Route path="leaves/policy" element={<LeavePolicy />} />
+              <Route path="payroll/structure" element={<SalaryStructure />} />
+              <Route path="payroll/payslips" element={<PayslipsList />} />
+              <Route path="documents" element={<DocumentsManagement />} />
+              <Route path="announcements" element={<AnnouncementsManagement />} />
+              <Route path="audit-logs" element={<AuditLogs />} />
+              <Route path="reports" element={<ReportsOverview />} />
+              <Route path="reports/employee" element={<EmployeeReports />} />
+              <Route path="reports/attendance" element={<AttendanceReports />} />
+              <Route path="reports/leave" element={<LeaveReports />} />
+              <Route path="reports/payroll" element={<PayrollReports />} />
+              <Route path="shifts" element={<ShiftList />} />
+              <Route path="shifts/assignments" element={<ShiftAssignments />} />
+              <Route path="shifts/rotations" element={<ShiftRotations />} />
+              <Route path="shifts/exchange" element={<ShiftExchange />} />
+              <Route path="shifts/calendar" element={<ShiftCalendar />} />
+              {/* Settings Routes */}
+              <Route path="settings/departments" element={<DepartmentsPage />} />
+              <Route path="settings/designations" element={<DesignationsPage />} />
+              <Route path="settings/roles" element={<RolesPage />} />
+              <Route path="settings/company" element={<CompanySettingsPage />} />
+              <Route path="settings/attendance" element={<AttendanceSettingsPage />} />
+              <Route path="settings/notifications" element={<NotificationSettingsPage />} />
+              <Route path="settings/system" element={<SystemSettingsPage />} />
+              <Route path="settings/appearance" element={<AppearancePage />} />
+            </Route>
 
-          {/* Employee Routes */}
-          <Route path="/employee/login" element={<EmployeeLogin />} />
-          <Route path="/employee" element={<EmployeeLayout />}>
-            <Route index element={<EmployeeDashboard />} />
-            <Route path="profile" element={<EmployeeProfile />} />
-            <Route path="attendance" element={<EmployeeAttendance />} />
-            <Route path="leaves" element={<EmployeeLeaves />} />
-            <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
-            <Route path="payslips" element={<EmployeePayslips />} />
-            <Route path="documents" element={<EmployeeDocuments />} />
-            <Route path="holidays" element={<HolidayCalendar />} />
-            <Route path="helpdesk" element={<EmployeeHelpdesk />} />
-          </Route>
+            {/* Employee Routes */}
+            <Route path="/employee/login" element={<EmployeeLogin />} />
+            <Route path="/employee" element={<EmployeeLayout />}>
+              <Route index element={<EmployeeDashboard />} />
+              <Route path="profile" element={<EmployeeProfile />} />
+              <Route path="attendance" element={<EmployeeAttendance />} />
+              <Route path="leaves" element={<EmployeeLeaves />} />
+              <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
+              <Route path="payslips" element={<EmployeePayslips />} />
+              <Route path="documents" element={<EmployeeDocuments />} />
+              <Route path="holidays" element={<HolidayCalendar />} />
+              <Route path="helpdesk" element={<EmployeeHelpdesk />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
