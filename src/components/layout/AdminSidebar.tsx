@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
@@ -63,6 +62,8 @@ import {
   TrendingUp,
   LayoutTemplate,
 } from "lucide-react";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface NavItem {
   title: string;
@@ -173,6 +174,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>(["Employees", "Leave Management"]);
+  const { data: branding } = useCompanyBranding();
 
   // Close all open items when sidebar is collapsed
   useEffect(() => {
@@ -200,11 +202,14 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
     >
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b">
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <Building2 className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <Avatar className="h-8 w-8 rounded-lg flex-shrink-0">
+          <AvatarImage src={branding?.companyLogo || undefined} alt={branding?.companyName || "Company"} />
+          <AvatarFallback className="rounded-lg bg-primary">
+            <Building2 className="h-5 w-5 text-primary-foreground" />
+          </AvatarFallback>
+        </Avatar>
         {!collapsed && (
-          <span className="font-semibold text-lg">HRMS Admin</span>
+          <span className="font-semibold text-lg truncate">{branding?.companyName || "HRMS Admin"}</span>
         )}
       </div>
 
