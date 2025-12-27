@@ -170,12 +170,15 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
 
                 <div className="space-y-2">
                   <Label>Template</Label>
-                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <Select 
+                    value={selectedTemplate || "default"} 
+                    onValueChange={(val) => setSelectedTemplate(val === "default" ? "" : val)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Use default template" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Default Template</SelectItem>
+                      <SelectItem value="default">Default Template</SelectItem>
                       {templates.map((t) => (
                         <SelectItem key={t.id} value={t.id}>
                           {t.name} {t.is_default && "(Default)"}
