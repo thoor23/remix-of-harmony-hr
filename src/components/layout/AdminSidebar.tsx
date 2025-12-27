@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Clock,
 } from "lucide-react";
 
 interface NavItem {
@@ -57,6 +58,16 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "Leave Requests", href: "/admin/leaves" },
       { title: "Leave Policy", href: "/admin/leaves/policy" },
+    ],
+  },
+  {
+    title: "Shift Management",
+    icon: Clock,
+    children: [
+      { title: "All Shifts", href: "/admin/shifts" },
+      { title: "Assignments", href: "/admin/shifts/assignments" },
+      { title: "Rotations", href: "/admin/shifts/rotations" },
+      { title: "Calendar", href: "/admin/shifts/calendar" },
     ],
   },
   {
