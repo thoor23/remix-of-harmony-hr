@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  ArrowLeftRight,
 } from "lucide-react";
 
 interface NavItem {
@@ -29,6 +30,7 @@ const employeeNavItems: NavItem[] = [
   { title: "My Profile", href: "/employee/profile", icon: User },
   { title: "My Attendance", href: "/employee/attendance", icon: CalendarDays },
   { title: "My Leaves", href: "/employee/leaves", icon: CalendarCheck },
+  { title: "Shift Exchange", href: "/employee/shift-exchange", icon: ArrowLeftRight },
   { title: "My Payslips", href: "/employee/payslips", icon: Wallet },
   { title: "My Documents", href: "/employee/documents", icon: FileText },
   { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
