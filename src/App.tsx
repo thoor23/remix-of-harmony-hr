@@ -26,7 +26,16 @@ import LeaveManagement from "./pages/admin/leaves/LeaveManagement";
 import LeavePolicy from "./pages/admin/leaves/LeavePolicy";
 import SalaryStructure from "./pages/admin/payroll/SalaryStructure";
 import PayslipsList from "./pages/admin/payroll/PayslipsList";
-import DocumentsManagement from "./pages/admin/documents/DocumentsManagement";
+// File Manager Pages
+import EmployeeDocumentsPage from "./pages/admin/file-manager/EmployeeDocumentsPage";
+import EmployeeFolderPage from "./pages/admin/file-manager/EmployeeFolderPage";
+import DocumentPoliciesPage from "./pages/admin/file-manager/DocumentPoliciesPage";
+// Letter Pages
+import OfferLetterPage from "./pages/admin/letters/OfferLetterPage";
+import ExperienceLetterPage from "./pages/admin/letters/ExperienceLetterPage";
+import RelievingLetterPage from "./pages/admin/letters/RelievingLetterPage";
+import IncrementLetterPage from "./pages/admin/letters/IncrementLetterPage";
+import LetterTemplatesPage from "./pages/admin/letters/LetterTemplatesPage";
 import AnnouncementsManagement from "./pages/admin/announcements/AnnouncementsManagement";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
 import ReportsOverview from "./pages/admin/reports/ReportsOverview";
@@ -98,7 +107,16 @@ const App = () => (
                 <Route path="leaves/policy" element={<LeavePolicy />} />
                 <Route path="payroll/structure" element={<SalaryStructure />} />
                 <Route path="payroll/payslips" element={<PayslipsList />} />
-                <Route path="documents" element={<DocumentsManagement />} />
+                {/* File Manager Routes */}
+                <Route path="file-manager" element={<EmployeeDocumentsPage />} />
+                <Route path="file-manager/:employeeId" element={<EmployeeFolderPage />} />
+                <Route path="file-manager/policies" element={<DocumentPoliciesPage />} />
+                {/* Letter Generation Routes */}
+                <Route path="letters/offer" element={<OfferLetterPage />} />
+                <Route path="letters/experience" element={<ExperienceLetterPage />} />
+                <Route path="letters/relieving" element={<RelievingLetterPage />} />
+                <Route path="letters/increment" element={<IncrementLetterPage />} />
+                <Route path="letters/templates" element={<LetterTemplatesPage />} />
                 <Route path="announcements" element={<AnnouncementsManagement />} />
                 <Route path="audit-logs" element={<AuditLogs />} />
                 <Route path="reports" element={<ReportsOverview />} />
