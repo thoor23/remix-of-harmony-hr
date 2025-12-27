@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +18,6 @@ export default function AttendanceSettingsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[
-        { label: "Settings", href: "/admin/settings/departments" },
-        { label: "Attendance" }
-      ]} />
-
       <PageHeader
         title="Attendance Settings"
         description="Configure working hours, grace periods, and overtime settings"

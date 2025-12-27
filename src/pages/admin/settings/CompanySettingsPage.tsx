@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,11 +30,6 @@ export default function CompanySettingsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[
-        { label: "Settings", href: "/admin/settings/departments" },
-        { label: "Company" }
-      ]} />
-
       <PageHeader
         title="Company Settings"
         description="Manage company information and regional settings"

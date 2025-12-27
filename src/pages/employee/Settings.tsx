@@ -1,5 +1,4 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -80,8 +79,6 @@ export default function EmployeeSettingsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: "Settings" }]} />
-
       <PageHeader
         title="Settings"
         description="Customize your experience"

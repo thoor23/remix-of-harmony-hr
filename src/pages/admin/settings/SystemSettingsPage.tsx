@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,11 +25,6 @@ export default function SystemSettingsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[
-        { label: "Settings", href: "/admin/settings/departments" },
-        { label: "System" }
-      ]} />
-
       <PageHeader
         title="System Settings"
         description="Configure language and security settings"
