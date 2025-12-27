@@ -30,6 +30,7 @@ export const LETTER_PLACEHOLDERS = {
     { key: "{{email}}", label: "Email" },
   ],
   company: [
+    { key: "{{company_logo}}", label: "Company Logo" },
     { key: "{{company_name}}", label: "Company Name" },
     { key: "{{company_address}}", label: "Company Address" },
     { key: "{{hr_name}}", label: "HR Name" },
@@ -246,6 +247,7 @@ export const DEFAULT_TEMPLATES: Record<LetterType, string> = {
   offer: `
 <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; margin-bottom: 40px;">
+    {{company_logo}}
     <h1 style="color: #1a365d; margin-bottom: 5px;">{{company_name}}</h1>
     <p style="color: #666;">{{company_address}}</p>
   </div>
@@ -279,6 +281,7 @@ export const DEFAULT_TEMPLATES: Record<LetterType, string> = {
   experience: `
 <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; margin-bottom: 40px;">
+    {{company_logo}}
     <h1 style="color: #1a365d; margin-bottom: 5px;">{{company_name}}</h1>
     <p style="color: #666;">{{company_address}}</p>
   </div>
@@ -306,6 +309,7 @@ export const DEFAULT_TEMPLATES: Record<LetterType, string> = {
   relieving: `
 <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; margin-bottom: 40px;">
+    {{company_logo}}
     <h1 style="color: #1a365d; margin-bottom: 5px;">{{company_name}}</h1>
     <p style="color: #666;">{{company_address}}</p>
   </div>
@@ -333,6 +337,7 @@ export const DEFAULT_TEMPLATES: Record<LetterType, string> = {
   increment: `
 <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; margin-bottom: 40px;">
+    {{company_logo}}
     <h1 style="color: #1a365d; margin-bottom: 5px;">{{company_name}}</h1>
     <p style="color: #666;">{{company_address}}</p>
   </div>
