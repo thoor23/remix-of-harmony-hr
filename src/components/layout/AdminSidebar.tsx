@@ -10,6 +10,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -164,10 +169,9 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
 
               if (collapsed) {
                 return (
-                  <Tooltip key={item.title}>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.children[0].href}
+                  <Popover key={item.title}>
+                    <PopoverTrigger asChild>
+                      <button
                         className={cn(
                           "flex items-center justify-center h-10 w-full rounded-md transition-colors",
                           hasActiveChild
@@ -176,12 +180,30 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
                         )}
                       >
                         <item.icon className="h-5 w-5" />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{item.title}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" align="start" className="w-48 p-2">
+                      <div className="font-medium text-sm mb-2 px-2 text-muted-foreground">
+                        {item.title}
+                      </div>
+                      <div className="space-y-1">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            to={child.href}
+                            className={cn(
+                              "block py-2 px-2 rounded-md text-sm transition-colors",
+                              isActive(child.href)
+                                ? "bg-accent text-accent-foreground font-medium"
+                                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                          >
+                            {child.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 );
               }
 
