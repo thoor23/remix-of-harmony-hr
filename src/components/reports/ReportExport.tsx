@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, FileSpreadsheet, Printer, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ExportData {
   headers: string[];
@@ -20,6 +22,10 @@ interface ReportExportProps {
 }
 
 export function ReportExport({ data, title = "Report" }: ReportExportProps) {
+  const getFilename = () => {
+    return `${data.filename || title.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}`;
+  };
+
   const exportToCSV = () => {
     const csvContent = [
       data.headers.join(","),
@@ -32,7 +38,7 @@ export function ReportExport({ data, title = "Report" }: ReportExportProps) {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `${data.filename || title.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `${getFilename()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -43,37 +49,95 @@ export function ReportExport({ data, title = "Report" }: ReportExportProps) {
     });
   };
 
-  const handlePrint = () => {
-    window.print();
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Add table
+    autoTable(doc, {
+      head: [data.headers],
+      body: data.rows.map(row => row.map(cell => String(cell))),
+      startY: 38,
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [22, 163, 74], // Primary green color
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245],
+      },
+    });
+    
+    doc.save(`${getFilename()}.pdf`);
+    
     toast({
-      title: "Print dialog opened",
-      description: "Select your printer to continue.",
+      title: "Export successful",
+      description: "Your PDF file has been downloaded.",
     });
   };
 
-  const exportToJSON = () => {
-    const jsonData = data.rows.map((row) => {
-      const obj: Record<string, string | number> = {};
-      data.headers.forEach((header, index) => {
-        obj[header] = row[index];
-      });
-      return obj;
-    });
-
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
-      type: "application/json",
-    });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${data.filename || title.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+  const handlePrint = () => {
+    // Create a printable content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
+            h1 { font-size: 24px; margin-bottom: 8px; }
+            .date { color: #666; font-size: 12px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+            th { background-color: #16a34a; color: white; font-weight: 600; }
+            tr:nth-child(even) { background-color: #f5f5f5; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <p class="date">Generated on: ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead>
+              <tr>${data.headers.map(h => `<th>${h}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${data.rows.map(row => 
+                `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`
+              ).join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+      };
+    }
+    
     toast({
-      title: "Export successful",
-      description: "Your JSON file has been downloaded.",
+      title: "Print dialog opened",
+      description: "Select your printer to continue.",
     });
   };
 
@@ -90,9 +154,9 @@ export function ReportExport({ data, title = "Report" }: ReportExportProps) {
           <FileSpreadsheet className="h-4 w-4 mr-2" />
           Export as CSV
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportToJSON}>
+        <DropdownMenuItem onClick={exportToPDF}>
           <FileText className="h-4 w-4 mr-2" />
-          Export as JSON
+          Export as PDF
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" />
