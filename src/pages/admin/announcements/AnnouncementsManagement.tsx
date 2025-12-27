@@ -124,7 +124,13 @@ export default function AnnouncementsManagement() {
         target_audience: formData.target_audience,
       });
     } else {
-      createAnnouncement.mutate(formData);
+      createAnnouncement.mutate({
+        title: formData.title,
+        content: formData.content,
+        type: formData.type,
+        priority: formData.priority,
+        target_audience: formData.target_audience,
+      });
     }
     setIsDialogOpen(false);
     resetForm();
