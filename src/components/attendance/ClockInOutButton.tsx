@@ -109,17 +109,25 @@ export const ClockInOutButton = () => {
     setLoading(false);
 
     if (error) {
-      if (error.code === '23505') {
-        // Duplicate - record already exists, just refresh state
-        toast.info("Already clocked in for today");
-        // Refetch the record
+      if (error.code === "23505") {
+        // Duplicate - record already exists: fetch it and show a helpful message.
         const { data } = await supabase
           .from("attendance_records")
           .select("id, check_in, check_out, status, date")
           .eq("employee_id", employeeId)
           .eq("date", today)
           .maybeSingle();
-        if (data) setTodayRecord(data);
+
+        if (data) {
+          setTodayRecord(data);
+          toast.info(
+            data.check_out
+              ? "Already clocked out for today"
+              : "Already clocked in for today"
+          );
+        } else {
+          toast.info("Attendance already exists for today");
+        }
       } else {
         toast.error("Failed to clock in");
         console.error(error);
@@ -136,11 +144,12 @@ export const ClockInOutButton = () => {
     const currentTime = format(new Date(), "HH:mm:ss");
 
     // Calculate work hours if check_in exists
-    let workHours = null;
+    let workHours: number | null = null;
     if (todayRecord.check_in) {
       const checkInTime = new Date(`2000-01-01T${todayRecord.check_in}`);
       const checkOutTime = new Date(`2000-01-01T${currentTime}`);
-      workHours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+      workHours =
+        (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
     }
 
     const { error } = await supabase
