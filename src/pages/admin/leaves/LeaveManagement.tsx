@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,21 +22,25 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Check, X, CalendarCheck, Clock, CalendarX } from "lucide-react";
-import { leaveRequests, employees, leaveTypes } from "@/data/mockData";
-import { LeaveRequest } from "@/types/hrms";
-import { toast } from "sonner";
+import { useLeaveRequests, useLeaveTypes, useUpdateLeaveRequest, LeaveRequestWithDetails } from "@/hooks/useLeaves";
+import { format } from "date-fns";
 
 export default function LeaveManagement() {
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequestWithDetails | null>(null);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
+
+  const { data: leaveRequests = [], isLoading } = useLeaveRequests();
+  const { data: leaveTypes = [] } = useLeaveTypes();
+  const updateLeaveRequest = useUpdateLeaveRequest();
 
   const pendingRequests = leaveRequests.filter((r) => r.status === "pending");
   const approvedRequests = leaveRequests.filter((r) => r.status === "approved");
   const rejectedRequests = leaveRequests.filter((r) => r.status === "rejected");
 
-  const handleAction = (request: LeaveRequest, action: "approve" | "reject") => {
+  const handleAction = (request: LeaveRequestWithDetails, action: "approve" | "reject") => {
     setSelectedRequest(request);
     setActionType(action);
     setComments("");
@@ -44,15 +48,29 @@ export default function LeaveManagement() {
 
   const confirmAction = () => {
     if (selectedRequest && actionType) {
-      toast.success(
-        `Leave request ${actionType === "approve" ? "approved" : "rejected"} successfully`
-      );
+      updateLeaveRequest.mutate({
+        id: selectedRequest.id,
+        status: actionType === "approve" ? "approved" : "rejected",
+        comments: comments || undefined,
+      });
       setSelectedRequest(null);
       setActionType(null);
     }
   };
 
-  const renderRequestTable = (requests: LeaveRequest[], showActions = false) => (
+  const getEmployeeName = (request: LeaveRequestWithDetails) => {
+    const profile = request.employee?.profile;
+    if (!profile) return "Unknown";
+    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+  };
+
+  const getEmployeeInitials = (request: LeaveRequestWithDetails) => {
+    const profile = request.employee?.profile;
+    if (!profile) return "??";
+    return `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase() || "??";
+  };
+
+  const renderRequestTable = (requests: LeaveRequestWithDetails[], showActions = false) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -67,75 +85,63 @@ export default function LeaveManagement() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {requests.map((request) => {
-          const employee = employees.find((e) => e.id === request.employeeId);
-          return (
-            <TableRow key={request.id}>
+        {requests.map((request) => (
+          <TableRow key={request.id}>
+            <TableCell>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={request.employee?.profile?.avatar_url || undefined} />
+                  <AvatarFallback>{getEmployeeInitials(request)}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium">{getEmployeeName(request)}</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: request.leave_type?.color || "#888" }}
+                />
+                {request.leave_type?.name || "Unknown"}
+              </span>
+            </TableCell>
+            <TableCell>
+              <div className="text-sm">
+                <p>{format(new Date(request.start_date), "MMM dd, yyyy")}</p>
+                <p className="text-muted-foreground">to {format(new Date(request.end_date), "MMM dd, yyyy")}</p>
+              </div>
+            </TableCell>
+            <TableCell>{request.days}</TableCell>
+            <TableCell className="max-w-xs truncate">{request.reason || "—"}</TableCell>
+            <TableCell className="text-muted-foreground">
+              {format(new Date(request.created_at), "MMM dd, yyyy")}
+            </TableCell>
+            <TableCell>
+              <StatusBadge status={request.status as "pending" | "approved" | "rejected"} />
+            </TableCell>
+            {showActions && (
               <TableCell>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={employee?.avatar} />
-                    <AvatarFallback>
-                      {request.employeeName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium">{request.employeeName}</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleAction(request, "reject")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleAction(request, "approve")}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
                 </div>
               </TableCell>
-              <TableCell>
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{
-                      backgroundColor:
-                        leaveTypes.find((t) => t.id === request.leaveTypeId)?.color ||
-                        "#888",
-                    }}
-                  />
-                  {request.leaveTypeName}
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  <p>{request.startDate}</p>
-                  <p className="text-muted-foreground">to {request.endDate}</p>
-                </div>
-              </TableCell>
-              <TableCell>{request.days}</TableCell>
-              <TableCell className="max-w-xs truncate">{request.reason}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {new Date(request.appliedOn).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={request.status} />
-              </TableCell>
-              {showActions && (
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleAction(request, "reject")}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleAction(request, "approve")}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              )}
-            </TableRow>
-          );
-        })}
+            )}
+          </TableRow>
+        ))}
         {requests.length === 0 && (
           <TableRow>
             <TableCell
@@ -149,6 +155,30 @@ export default function LeaveManagement() {
       </TableBody>
     </Table>
   );
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Leave Management" description="Review and manage employee leave requests" />
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <div className="p-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -250,17 +280,13 @@ export default function LeaveManagement() {
             <div className="py-4 space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarFallback>
-                    {selectedRequest.employeeName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
+                  <AvatarImage src={selectedRequest.employee?.profile?.avatar_url || undefined} />
+                  <AvatarFallback>{getEmployeeInitials(selectedRequest)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{selectedRequest.employeeName}</p>
+                  <p className="font-medium">{getEmployeeName(selectedRequest)}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedRequest.leaveTypeName} • {selectedRequest.days} days
+                    {selectedRequest.leave_type?.name || "Leave"} • {selectedRequest.days} days
                   </p>
                 </div>
               </div>
@@ -268,17 +294,17 @@ export default function LeaveManagement() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">From</p>
-                  <p className="font-medium">{selectedRequest.startDate}</p>
+                  <p className="font-medium">{format(new Date(selectedRequest.start_date), "MMM dd, yyyy")}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">To</p>
-                  <p className="font-medium">{selectedRequest.endDate}</p>
+                  <p className="font-medium">{format(new Date(selectedRequest.end_date), "MMM dd, yyyy")}</p>
                 </div>
               </div>
 
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Reason</p>
-                <p className="text-sm">{selectedRequest.reason}</p>
+                <p className="text-sm">{selectedRequest.reason || "No reason provided"}</p>
               </div>
 
               <div>
@@ -307,7 +333,7 @@ export default function LeaveManagement() {
             <Button
               variant={actionType === "reject" ? "destructive" : "default"}
               onClick={confirmAction}
-              disabled={actionType === "reject" && !comments}
+              disabled={actionType === "reject" && !comments || updateLeaveRequest.isPending}
             >
               {actionType === "approve" ? "Approve" : "Reject"}
             </Button>
