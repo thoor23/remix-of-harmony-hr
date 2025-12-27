@@ -25,6 +25,11 @@ import DocumentsManagement from "./pages/admin/documents/DocumentsManagement";
 import AnnouncementsManagement from "./pages/admin/announcements/AnnouncementsManagement";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
 import SettingsPage from "./pages/admin/settings/SettingsPage";
+import ReportsOverview from "./pages/admin/reports/ReportsOverview";
+import EmployeeReports from "./pages/admin/reports/EmployeeReports";
+import AttendanceReports from "./pages/admin/reports/AttendanceReports";
+import LeaveReports from "./pages/admin/reports/LeaveReports";
+import PayrollReports from "./pages/admin/reports/PayrollReports";
 
 // Employee Pages
 import EmployeeLogin from "./pages/employee/Login";
@@ -63,6 +68,11 @@ const App = () => (
             <Route path="documents" element={<DocumentsManagement />} />
             <Route path="announcements" element={<AnnouncementsManagement />} />
             <Route path="audit-logs" element={<AuditLogs />} />
+            <Route path="reports" element={<ReportsOverview />} />
+            <Route path="reports/employee" element={<EmployeeReports />} />
+            <Route path="reports/attendance" element={<AttendanceReports />} />
+            <Route path="reports/leave" element={<LeaveReports />} />
+            <Route path="reports/payroll" element={<PayrollReports />} />
             <Route path="settings/*" element={<SettingsPage />} />
           </Route>
 
