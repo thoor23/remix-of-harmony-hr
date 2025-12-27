@@ -33,6 +33,7 @@ interface TopBarProps {
 
 // Route label mappings
 const routeLabels: Record<string, string> = {
+  // Main sections
   admin: "Dashboard",
   employee: "Dashboard",
   employees: "Employees",
@@ -44,19 +45,41 @@ const routeLabels: Record<string, string> = {
   announcements: "Announcements",
   settings: "Settings",
   reports: "Reports",
-  audit: "Audit Logs",
+  
+  // File Manager
+  "file-manager": "File Manager",
+  "employee-documents": "Employee Documents",
+  "document-policies": "Document Policies",
+  
+  // Letters
+  letters: "Letters",
+  templates: "Templates",
+  offer: "Offer Letter",
+  experience: "Experience Letter",
+  relieving: "Relieving Letter",
+  increment: "Increment Letter",
+  
+  // Shifts
   exchange: "Exchange Requests",
+  "shift-exchange": "Shift Exchange",
   list: "Shift List",
   rotations: "Rotations",
   calendar: "Calendar",
   assignments: "Assignments",
+  
+  // Payroll
   structure: "Salary Structure",
   payslips: "Payslips",
+  
+  // Leaves
   policy: "Leave Policy",
+  
+  // Employees
   add: "Add Employee",
-  profile: "Profile",
-  helpdesk: "Helpdesk",
-  holidays: "Holidays",
+  new: "Add New",
+  edit: "Edit",
+  
+  // Settings
   departments: "Departments",
   designations: "Designations",
   roles: "Roles",
@@ -64,6 +87,28 @@ const routeLabels: Record<string, string> = {
   notifications: "Notifications",
   system: "System",
   appearance: "Appearance",
+  
+  // Other
+  profile: "Profile",
+  helpdesk: "Helpdesk",
+  holidays: "Holidays",
+  "audit-logs": "Audit Logs",
+  audit: "Audit",
+  
+  // Reports
+  overview: "Overview",
+};
+
+// UUID regex pattern
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Get contextual label for UUID based on parent path
+const getUUIDLabel = (parentSegments: string[]): string => {
+  const parentPath = parentSegments.join("/");
+  if (parentPath.includes("file-manager")) return "Employee Documents";
+  if (parentPath.includes("employees") && parentPath.includes("edit")) return "Edit Employee";
+  if (parentPath.includes("employees")) return "Employee Details";
+  return "Details";
 };
 
 export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggleSidebar }: TopBarProps) {
@@ -91,7 +136,15 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
 
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
-      const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+      
+      let label: string;
+      
+      // Check if segment is a UUID
+      if (UUID_PATTERN.test(segment)) {
+        label = getUUIDLabel(pathSegments.slice(0, index));
+      } else {
+        label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+      }
       
       // Don't add href to the last item (current page)
       if (index < pathSegments.length - 1) {
