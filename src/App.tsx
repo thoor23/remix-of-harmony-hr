@@ -30,6 +30,10 @@ import EmployeeReports from "./pages/admin/reports/EmployeeReports";
 import AttendanceReports from "./pages/admin/reports/AttendanceReports";
 import LeaveReports from "./pages/admin/reports/LeaveReports";
 import PayrollReports from "./pages/admin/reports/PayrollReports";
+import ShiftList from "./pages/admin/shifts/ShiftList";
+import ShiftAssignments from "./pages/admin/shifts/ShiftAssignments";
+import ShiftRotations from "./pages/admin/shifts/ShiftRotations";
+import ShiftCalendar from "./pages/admin/shifts/ShiftCalendar";
 
 // Employee Pages
 import EmployeeLogin from "./pages/employee/Login";
@@ -73,6 +77,10 @@ const App = () => (
             <Route path="reports/attendance" element={<AttendanceReports />} />
             <Route path="reports/leave" element={<LeaveReports />} />
             <Route path="reports/payroll" element={<PayrollReports />} />
+            <Route path="shifts" element={<ShiftList />} />
+            <Route path="shifts/assignments" element={<ShiftAssignments />} />
+            <Route path="shifts/rotations" element={<ShiftRotations />} />
+            <Route path="shifts/calendar" element={<ShiftCalendar />} />
             <Route path="settings/*" element={<SettingsPage />} />
           </Route>
 

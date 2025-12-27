@@ -58,3 +58,48 @@ export interface Role {
   permissions: RolePermission[];
   isSystem?: boolean;
 }
+
+// Shift Management Types
+export interface Shift {
+  id: string;
+  name: string;
+  code: string;
+  startTime: string;
+  endTime: string;
+  breakDuration: number;
+  gracePeriod: number;
+  isNightShift: boolean;
+  isFlexible: boolean;
+  color: string;
+  isDefault: boolean;
+  isActive: boolean;
+  employeeCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShiftAssignment {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  department: string;
+  shiftId: string;
+  shiftName: string;
+  shiftColor: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  isActive: boolean;
+}
+
+export interface ShiftRotation {
+  id: string;
+  name: string;
+  description: string;
+  rotationPattern: string[];
+  rotationFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  employeeIds: string[];
+  employeeCount: number;
+  isActive: boolean;
+  createdAt: string;
+}
