@@ -46,6 +46,7 @@ import EmployeePayslips from "./pages/employee/Payslips";
 import EmployeeDocuments from "./pages/employee/Documents";
 import HolidayCalendar from "./pages/employee/Holidays";
 import EmployeeHelpdesk from "./pages/employee/Helpdesk";
+import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ const App = () => (
             <Route path="profile" element={<EmployeeProfile />} />
             <Route path="attendance" element={<EmployeeAttendance />} />
             <Route path="leaves" element={<EmployeeLeaves />} />
+            <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
             <Route path="payslips" element={<EmployeePayslips />} />
             <Route path="documents" element={<EmployeeDocuments />} />
             <Route path="holidays" element={<HolidayCalendar />} />
