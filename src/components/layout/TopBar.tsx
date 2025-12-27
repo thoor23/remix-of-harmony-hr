@@ -16,7 +16,8 @@ import {
   LogOut,
   Home,
   ChevronRight,
-  ChevronLeft,
+  PanelLeft,
+  PanelLeftClose,
   Palette,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -183,9 +184,9 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
             onClick={onToggleSidebar}
           >
             {sidebarCollapsed ? (
-              <ChevronRight className="h-5 w-5" />
+              <PanelLeft className="h-5 w-5" />
             ) : (
-              <ChevronLeft className="h-5 w-5" />
+              <PanelLeftClose className="h-5 w-5" />
             )}
           </Button>
         )}
