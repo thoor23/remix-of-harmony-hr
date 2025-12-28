@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { 
   Bell, 
@@ -18,6 +18,7 @@ import {
   Clock,
   Save,
   FileText,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +71,7 @@ import {
   useDeleteAnnouncementTemplate,
   AnnouncementTemplate 
 } from "@/hooks/useAnnouncementTemplates";
+import { useBannerTemplates, DEFAULT_BANNER_HTML } from "@/hooks/useBannerTemplates";
 
 const typeColors: Record<string, string> = {
   general: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
@@ -97,6 +99,79 @@ const getTypeIcon = (type: string) => {
   }
 };
 
+// Helper function for banner preview
+const getBannerTypeIcon = (type: string): string => {
+  switch (type) {
+    case "event": return "📅";
+    case "policy": return "🛡️";
+    case "urgent": return "⚠️";
+    default: return "📢";
+  }
+};
+
+const getPriorityColorsForBanner = (priority: string) => {
+  switch (priority) {
+    case "high":
+      return { color: "#DC2626", bg: "rgba(220, 38, 38, 0.1)", border: "rgba(220, 38, 38, 0.3)" };
+    case "medium":
+      return { color: "#CA8A04", bg: "rgba(202, 138, 4, 0.1)", border: "rgba(202, 138, 4, 0.3)" };
+    default:
+      return { color: "#2563EB", bg: "rgba(37, 99, 235, 0.1)", border: "rgba(37, 99, 235, 0.3)" };
+  }
+};
+
+interface BannerPreviewProps {
+  templateId: string;
+  bannerTemplates: Array<{
+    id: string;
+    name: string;
+    html_content: string;
+  }>;
+  title: string;
+  content: string;
+  priority: string;
+  type: string;
+}
+
+function BannerPreview({ templateId, bannerTemplates, title, content, priority, type }: BannerPreviewProps) {
+  const template = bannerTemplates.find(t => t.id === templateId);
+  
+  if (!template?.html_content) {
+    return null;
+  }
+
+  const priorityColors = getPriorityColorsForBanner(priority);
+
+  const placeholders: Record<string, string> = {
+    "{{title}}": title,
+    "{{content}}": content,
+    "{{priority}}": priority.charAt(0).toUpperCase() + priority.slice(1),
+    "{{type}}": type.charAt(0).toUpperCase() + type.slice(1),
+    "{{type_icon}}": getBannerTypeIcon(type),
+    "{{time_remaining}}": "",
+    "{{expires_at}}": "",
+    "{{published_at}}": "Now",
+    "{{priority_color}}": priorityColors.color,
+    "{{priority_bg}}": priorityColors.bg,
+    "{{priority_border}}": priorityColors.border,
+  };
+
+  let html = template.html_content;
+  Object.entries(placeholders).forEach(([key, value]) => {
+    html = html.replace(new RegExp(key.replace(/[{}]/g, "\\$&"), "g"), value);
+  });
+
+  return (
+    <div className="mt-2 p-2 rounded border bg-muted/50">
+      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+      <div 
+        className="transform scale-90 origin-top-left"
+        dangerouslySetInnerHTML={{ __html: html }} 
+      />
+    </div>
+  );
+}
+
 export default function NotificationCentre() {
   // Announcement state
   const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
@@ -110,6 +185,7 @@ export default function NotificationCentre() {
     target_audience: "all",
     scheduled_at: null as Date | null,
     expires_at: null as Date | null,
+    banner_template_id: null as string | null,
   });
 
   // Template state
@@ -139,6 +215,8 @@ export default function NotificationCentre() {
   const { data: templates } = useAnnouncementTemplates();
   const createTemplate = useCreateAnnouncementTemplate();
   const deleteTemplate = useDeleteAnnouncementTemplate();
+  
+  const { data: bannerTemplates } = useBannerTemplates();
 
   const { data: targetedNotifications, isLoading: notificationsLoading } = useTargetedNotifications();
   const sendNotification = useSendTargetedNotification();
@@ -164,6 +242,7 @@ export default function NotificationCentre() {
       target_audience: "all",
       scheduled_at: null,
       expires_at: null,
+      banner_template_id: null,
     });
     setAnnouncementDialogOpen(true);
   };
@@ -178,6 +257,7 @@ export default function NotificationCentre() {
       target_audience: announcement.target_audience,
       scheduled_at: announcement.scheduled_at ? new Date(announcement.scheduled_at) : null,
       expires_at: announcement.expires_at ? new Date(announcement.expires_at) : null,
+      banner_template_id: announcement.banner_template_id || null,
     });
     setAnnouncementDialogOpen(true);
   };
@@ -191,6 +271,7 @@ export default function NotificationCentre() {
       target_audience: announcementForm.target_audience,
       scheduled_at: announcementForm.scheduled_at?.toISOString() || null,
       expires_at: announcementForm.expires_at?.toISOString() || null,
+      banner_template_id: announcementForm.banner_template_id,
     };
     
     if (editingAnnouncement) {
@@ -232,6 +313,7 @@ export default function NotificationCentre() {
       target_audience: template.target_audience,
       scheduled_at: null,
       expires_at: null,
+      banner_template_id: announcementForm.banner_template_id,
     });
   };
 
@@ -648,6 +730,48 @@ export default function NotificationCentre() {
                   <SelectItem value="hr">HR Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Banner Template Selector */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Banner Template
+              </Label>
+              <Select
+                value={announcementForm.banner_template_id || "default"}
+                onValueChange={(value) => setAnnouncementForm({ 
+                  ...announcementForm, 
+                  banner_template_id: value === "default" ? null : value 
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Use default template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Use Default Template</SelectItem>
+                  {bannerTemplates?.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{template.name}</span>
+                        {template.is_default && (
+                          <Badge variant="secondary" className="text-xs">Default</Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {announcementForm.banner_template_id && bannerTemplates && (
+                <BannerPreview 
+                  templateId={announcementForm.banner_template_id} 
+                  bannerTemplates={bannerTemplates}
+                  title={announcementForm.title || "Sample Title"}
+                  content={announcementForm.content || "Sample content..."}
+                  priority={announcementForm.priority}
+                  type={announcementForm.type}
+                />
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">

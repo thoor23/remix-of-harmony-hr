@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { useDefaultBannerTemplate } from "@/hooks/useBannerTemplates";
+import { useBannerTemplates } from "@/hooks/useBannerTemplates";
 
 interface Announcement {
   id: string;
@@ -12,6 +12,7 @@ interface Announcement {
   type?: string;
   published_at: string;
   expires_at?: string | null;
+  banner_template_id?: string | null;
 }
 
 interface AnnouncementBannerProps {
@@ -76,7 +77,8 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
   const [expiredIds, setExpiredIds] = useState<string[]>([]);
   const [, setTick] = useState(0);
   
-  const { data: defaultTemplate } = useDefaultBannerTemplate();
+  // Fetch all banner templates
+  const { data: bannerTemplates } = useBannerTemplates();
 
   useEffect(() => {
     const stored = localStorage.getItem("dismissed-announcements");
@@ -132,9 +134,33 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
     ), [announcements, dismissedIds, expiredIds]
   );
 
+  // Get template for a specific announcement
+  const getTemplateForAnnouncement = useCallback((announcement: Announcement) => {
+    if (!bannerTemplates) return null;
+    
+    // First, try to find the specific template assigned to this announcement
+    if (announcement.banner_template_id) {
+      const specificTemplate = bannerTemplates.find(t => t.id === announcement.banner_template_id);
+      if (specificTemplate) return specificTemplate;
+    }
+    
+    // Fallback to default template for this priority
+    const priorityDefault = bannerTemplates.find(
+      t => t.is_default && t.priority_type === announcement.priority
+    );
+    if (priorityDefault) return priorityDefault;
+    
+    // Fallback to general default template
+    const generalDefault = bannerTemplates.find(
+      t => t.is_default && t.priority_type === "all"
+    );
+    return generalDefault || null;
+  }, [bannerTemplates]);
+
   // Generate HTML from template with placeholders replaced
   const renderBannerHtml = useCallback((announcement: Announcement) => {
-    if (!defaultTemplate?.html_content) return null;
+    const template = getTemplateForAnnouncement(announcement);
+    if (!template?.html_content) return null;
 
     const priorityColors = getPriorityColors(announcement.priority);
     const timeRemaining = announcement.expires_at ? getTimeRemaining(announcement.expires_at) : "";
@@ -153,13 +179,13 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
       "{{priority_border}}": priorityColors.border,
     };
 
-    let html = defaultTemplate.html_content;
+    let html = template.html_content;
     Object.entries(placeholders).forEach(([key, value]) => {
       html = html.replace(new RegExp(key.replace(/[{}]/g, "\\$&"), "g"), value);
     });
 
     return html;
-  }, [defaultTemplate]);
+  }, [getTemplateForAnnouncement]);
 
   if (isLoading) return null;
   if (visibleAnnouncements.length === 0) return null;

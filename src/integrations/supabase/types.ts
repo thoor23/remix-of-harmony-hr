@@ -97,6 +97,7 @@ export type Database = {
       }
       announcements: {
         Row: {
+          banner_template_id: string | null
           content: string
           created_at: string
           created_by: string
@@ -111,6 +112,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          banner_template_id?: string | null
           content: string
           created_at?: string
           created_by: string
@@ -125,6 +127,7 @@ export type Database = {
           type?: string
         }
         Update: {
+          banner_template_id?: string | null
           content?: string
           created_at?: string
           created_by?: string
@@ -138,7 +141,15 @@ export type Database = {
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "announcements_banner_template_id_fkey"
+            columns: ["banner_template_id"]
+            isOneToOne: false
+            referencedRelation: "announcement_banner_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       attendance_records: {
         Row: {

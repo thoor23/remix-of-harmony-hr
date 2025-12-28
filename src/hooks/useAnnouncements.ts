@@ -16,6 +16,7 @@ export interface Announcement {
   created_at: string;
   scheduled_at: string | null;
   expires_at: string | null;
+  banner_template_id: string | null;
 }
 
 export function useAnnouncements() {
@@ -41,6 +42,7 @@ interface CreateAnnouncementData {
   target_audience: string;
   scheduled_at?: string | null;
   expires_at?: string | null;
+  banner_template_id?: string | null;
 }
 
 export function useCreateAnnouncement() {
@@ -86,6 +88,7 @@ export function useUpdateAnnouncement() {
       priority?: string;
       target_audience?: string;
       is_active?: boolean;
+      banner_template_id?: string | null;
     }) => {
       const { error } = await supabase
         .from("announcements")
