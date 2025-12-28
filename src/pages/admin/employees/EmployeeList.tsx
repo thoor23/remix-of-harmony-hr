@@ -257,14 +257,7 @@ export default function EmployeeList() {
       <PageHeader
         title="Employees"
         description="Manage your organization's employees"
-      >
-        <Button asChild>
-          <Link to="/admin/employees/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Employee
-          </Link>
-        </Button>
-      </PageHeader>
+      />
 
       <Card>
         {/* Toolbar */}
@@ -277,7 +270,7 @@ export default function EmployeeList() {
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
-          addRowLabel="Add Row"
+          addRowLabel="Add Employee"
         />
 
         {/* Filters */}
