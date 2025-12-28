@@ -5,39 +5,6 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Helper to fetch profiles and merge into documents
-async function mergeProfilesIntoDocuments(supabase: any, documents: any[]) {
-  if (!documents || documents.length === 0) return documents;
-
-  const userIds = documents
-    .map((d: any) => d?.employee?.user_id)
-    .filter(Boolean);
-
-  if (userIds.length === 0) return documents;
-
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('user_id, first_name, last_name, email, phone, avatar_url')
-    .in('user_id', userIds);
-
-  if (profilesError) throw profilesError;
-
-  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-    acc[p.user_id] = p;
-    return acc;
-  }, {});
-
-  return documents.map((d: any) => {
-    const userId = d?.employee?.user_id;
-    return {
-      ...d,
-      employee: d.employee
-        ? { ...d.employee, profile: userId ? profilesMap[userId] || null : null }
-        : null,
-    };
-  });
-}
-
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -64,7 +31,7 @@ Deno.serve(async (req) => {
         .from('documents')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id)
+          employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
@@ -76,8 +43,7 @@ Deno.serve(async (req) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      const result = await mergeProfilesIntoDocuments(supabase, data || []);
-      return jsonResponse(result);
+      return jsonResponse(data || []);
     }
 
     // GET /my - Get current user's documents
@@ -88,10 +54,7 @@ Deno.serve(async (req) => {
         .eq('user_id', auth.userId)
         .maybeSingle();
 
-      let query = supabase
-        .from('documents')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('documents').select('*').order('created_at', { ascending: false });
 
       if (employee) {
         query = query.or(`employee_id.eq.${employee.id},is_company_document.eq.true`);
@@ -106,98 +69,59 @@ Deno.serve(async (req) => {
 
     // GET /folders - Get unique folder paths
     if (req.method === 'GET' && subPath[0] === 'folders') {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('folder_path')
-        .not('folder_path', 'is', null);
-
+      const { data, error } = await supabase.from('documents').select('folder_path').not('folder_path', 'is', null);
       if (error) throw error;
-      
       const uniqueFolders = [...new Set(data?.map(d => d.folder_path).filter(Boolean) || [])];
       return jsonResponse(uniqueFolders);
     }
 
-    // GET /category/:category - Get documents by category
+    // GET /category/:category
     if (req.method === 'GET' && subPath[0] === 'category' && subPath.length === 2) {
       const category = subPath[1];
       const { data, error } = await supabase
         .from('documents')
-        .select(`
-          *,
-          employee:employees(id, employee_id, user_id)
-        `)
+        .select(`*, employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)`)
         .eq('document_category', category)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      const result = await mergeProfilesIntoDocuments(supabase, data || []);
-      return jsonResponse(result);
+      return jsonResponse(data || []);
     }
 
-    // GET /:id - Get single document
+    // GET /:id
     if (req.method === 'GET' && subPath.length === 1 && subPath[0] !== 'my' && subPath[0] !== 'folders') {
       const id = subPath[0];
       const { data, error } = await supabase
         .from('documents')
-        .select(`
-          *,
-          employee:employees(id, employee_id, user_id)
-        `)
+        .select(`*, employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)`)
         .eq('id', id)
         .single();
-
       if (error) throw error;
-
-      const result = await mergeProfilesIntoDocuments(supabase, [data]);
-      return jsonResponse(result[0]);
+      return jsonResponse(data);
     }
 
-    // GET /:id/download - Get download URL
+    // GET /:id/download
     if (req.method === 'GET' && subPath.length === 2 && subPath[1] === 'download') {
       const id = subPath[0];
-      const { data: doc, error } = await supabase
-        .from('documents')
-        .select('file_url, name')
-        .eq('id', id)
-        .single();
-
+      const { data: doc, error } = await supabase.from('documents').select('file_url, name').eq('id', id).single();
       if (error) throw error;
-      
-      if (!doc?.file_url) {
-        return errorResponse('File not found', 404);
-      }
-
-      // If file is in Supabase storage, generate signed URL
+      if (!doc?.file_url) return errorResponse('File not found', 404);
       if (doc.file_url.startsWith('documents/')) {
-        const { data: signedUrl, error: signError } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(doc.file_url.replace('documents/', ''), 3600);
-
+        const { data: signedUrl, error: signError } = await supabase.storage.from('documents').createSignedUrl(doc.file_url.replace('documents/', ''), 3600);
         if (signError) throw signError;
         return jsonResponse({ url: signedUrl?.signedUrl, name: doc.name });
       }
-
       return jsonResponse({ url: doc.file_url, name: doc.name });
     }
 
-    // POST / - Create document record (upload happens separately to storage)
+    // POST /
     if (req.method === 'POST' && subPath.length === 0) {
       const body = await req.json();
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({
-          ...body,
-          uploaded_by: auth.userId
-        })
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('documents').insert({ ...body, uploaded_by: auth.userId }).select().single();
       if (error) throw error;
       return jsonResponse(data, 201);
     }
 
-    // POST /upload - Handle file upload to storage
+    // POST /upload
     if (req.method === 'POST' && subPath[0] === 'upload') {
       const formData = await req.formData();
       const file = formData.get('file') as File;
@@ -205,82 +129,31 @@ Deno.serve(async (req) => {
       const folderPath = formData.get('folder_path') as string;
       const documentCategory = formData.get('document_category') as string;
       const isCompanyDocument = formData.get('is_company_document') === 'true';
-
-      if (!file) {
-        return errorResponse('No file provided', 400);
-      }
-
+      if (!file) return errorResponse('No file provided', 400);
       const fileName = `${Date.now()}_${file.name}`;
       const storagePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-
-      // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(storagePath, file, {
-          contentType: file.type,
-          upsert: false
-        });
-
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('documents').upload(storagePath, file, { contentType: file.type, upsert: false });
       if (uploadError) throw uploadError;
-
-      // Create document record
-      const { data: doc, error: docError } = await supabase
-        .from('documents')
-        .insert({
-          name: file.name,
-          type: file.type,
-          file_url: `documents/${uploadData.path}`,
-          file_size: file.size,
-          employee_id: employeeId || null,
-          folder_path: folderPath || null,
-          document_category: documentCategory || 'employee_doc',
-          is_company_document: isCompanyDocument,
-          uploaded_by: auth.userId
-        })
-        .select()
-        .single();
-
+      const { data: doc, error: docError } = await supabase.from('documents').insert({ name: file.name, type: file.type, file_url: `documents/${uploadData.path}`, file_size: file.size, employee_id: employeeId || null, folder_path: folderPath || null, document_category: documentCategory || 'employee_doc', is_company_document: isCompanyDocument, uploaded_by: auth.userId }).select().single();
       if (docError) throw docError;
       return jsonResponse(doc, 201);
     }
 
-    // PUT /:id - Update document
+    // PUT /:id
     if (req.method === 'PUT' && subPath.length === 1) {
       const id = subPath[0];
       const body = await req.json();
-      const { data, error } = await supabase
-        .from('documents')
-        .update(body)
-        .eq('id', id)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('documents').update(body).eq('id', id).select().single();
       if (error) throw error;
       return jsonResponse(data);
     }
 
-    // DELETE /:id - Delete document
+    // DELETE /:id
     if (req.method === 'DELETE' && subPath.length === 1) {
       const id = subPath[0];
-      
-      // Get document to delete file from storage
-      const { data: doc } = await supabase
-        .from('documents')
-        .select('file_url')
-        .eq('id', id)
-        .single();
-
-      if (doc?.file_url?.startsWith('documents/')) {
-        await supabase.storage
-          .from('documents')
-          .remove([doc.file_url.replace('documents/', '')]);
-      }
-
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', id);
-
+      const { data: doc } = await supabase.from('documents').select('file_url').eq('id', id).single();
+      if (doc?.file_url?.startsWith('documents/')) await supabase.storage.from('documents').remove([doc.file_url.replace('documents/', '')]);
+      const { error } = await supabase.from('documents').delete().eq('id', id);
       if (error) throw error;
       return jsonResponse({ success: true });
     }

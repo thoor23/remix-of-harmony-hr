@@ -185,7 +185,7 @@ export async function authenticateRequest(req: Request): Promise<{ userId: strin
   };
 }
 
-// Get user info including employee details
+// Get user info including employee details (no longer fetches profiles)
 export async function getUserInfo(userId: string) {
   const supabase = getSupabaseClient();
   
@@ -198,13 +198,6 @@ export async function getUserInfo(userId: string) {
   
   if (userError || !user) return null;
   
-  // Get profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-  
   // Get role
   const { data: roleData } = await supabase
     .from('user_roles')
@@ -212,7 +205,7 @@ export async function getUserInfo(userId: string) {
     .eq('user_id', userId)
     .single();
   
-  // Get employee
+  // Get employee (which now has profile data merged)
   const { data: employee } = await supabase
     .from('employees')
     .select('*')
@@ -221,7 +214,6 @@ export async function getUserInfo(userId: string) {
   
   return {
     user,
-    profile,
     role: roleData?.role || 'employee',
     employee,
   };

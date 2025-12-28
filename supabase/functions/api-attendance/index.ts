@@ -43,7 +43,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id)
+          employee:employees(id, employee_id, user_id, first_name, last_name)
         `)
         .order('date', { ascending: false });
 
@@ -55,32 +55,7 @@ serve(async (req) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch profiles separately and merge
-      const userIds = [...new Set(data?.map((r: any) => r.employee?.user_id).filter(Boolean))];
-      let profilesMap: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name')
-          .in('user_id', userIds);
-        
-        profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-          acc[p.user_id] = p;
-          return acc;
-        }, {});
-      }
-
-      // Merge profile data into employee
-      const result = data?.map((record: any) => ({
-        ...record,
-        employee: record.employee ? {
-          ...record.employee,
-          profile: profilesMap[record.employee.user_id] || null
-        } : null
-      }));
-
-      return jsonResponse(result);
+      return jsonResponse(data);
     }
 
     // GET /today - Get today's attendance for current user
