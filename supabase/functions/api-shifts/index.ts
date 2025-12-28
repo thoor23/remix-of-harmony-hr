@@ -227,8 +227,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
-    // GET /shifts/exchange - List exchange requests
-    if (req.method === 'GET' && subPath[0] === 'exchange' && subPath.length === 1) {
+    // GET /shifts/exchange or /shifts/exchange-requests - List exchange requests
+    if (req.method === 'GET' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 1) {
       const { data, error } = await supabase
         .from('shift_exchange_requests')
         .select(`
@@ -246,8 +246,8 @@ Deno.serve(async (req) => {
       return jsonResponse(result);
     }
 
-    // POST /shifts/exchange - Create exchange request
-    if (req.method === 'POST' && subPath[0] === 'exchange' && subPath.length === 1) {
+    // POST /shifts/exchange or /shifts/exchange-requests - Create exchange request
+    if (req.method === 'POST' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 1) {
       const body = await req.json();
       const { data, error } = await supabase
         .from('shift_exchange_requests')
@@ -259,8 +259,8 @@ Deno.serve(async (req) => {
       return jsonResponse(data, 201);
     }
 
-    // PATCH /shifts/exchange/:id - Update exchange request status
-    if (req.method === 'PATCH' && subPath[0] === 'exchange' && subPath.length === 2) {
+    // PATCH /shifts/exchange/:id or /shifts/exchange-requests/:id - Update exchange request status
+    if (req.method === 'PATCH' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 2) {
       const id = subPath[1];
       const body = await req.json();
       const { data, error } = await supabase
