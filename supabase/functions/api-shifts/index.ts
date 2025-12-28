@@ -5,6 +5,80 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Helper to fetch profiles and merge into assignments
+async function mergeProfilesIntoAssignments(supabase: any, assignments: any[]) {
+  if (!assignments || assignments.length === 0) return assignments;
+
+  const userIds = assignments
+    .map((a: any) => a?.employee?.user_id)
+    .filter(Boolean);
+
+  if (userIds.length === 0) return assignments;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', userIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return assignments.map((a: any) => {
+    const userId = a?.employee?.user_id;
+    return {
+      ...a,
+      employee: a.employee
+        ? { ...a.employee, profile: userId ? profilesMap[userId] || null : null }
+        : null,
+    };
+  });
+}
+
+// Helper to fetch profiles and merge into exchange requests
+async function mergeProfilesIntoExchangeRequests(supabase: any, requests: any[]) {
+  if (!requests || requests.length === 0) return requests;
+
+  // Collect all user IDs from requester and target
+  const userIds: string[] = [];
+  requests.forEach((r: any) => {
+    if (r?.requester?.user_id) userIds.push(r.requester.user_id);
+    if (r?.target?.user_id) userIds.push(r.target.user_id);
+  });
+
+  const uniqueUserIds = [...new Set(userIds)];
+  if (uniqueUserIds.length === 0) return requests;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', uniqueUserIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return requests.map((r: any) => {
+    const requesterUserId = r?.requester?.user_id;
+    const targetUserId = r?.target?.user_id;
+    return {
+      ...r,
+      requester: r.requester
+        ? { ...r.requester, profile: requesterUserId ? profilesMap[requesterUserId] || null : null }
+        : null,
+      target: r.target
+        ? { ...r.target, profile: targetUserId ? profilesMap[targetUserId] || null : null }
+        : null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -78,13 +152,15 @@ Deno.serve(async (req) => {
         .from('shift_assignments')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name)),
+          employee:employees(id, employee_id, user_id),
           shift:shifts(*)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoAssignments(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /shifts/assignments/my - Get current user's assignment
@@ -157,15 +233,17 @@ Deno.serve(async (req) => {
         .from('shift_exchange_requests')
         .select(`
           *,
-          requester:employees!requester_id(id, employee_id, profiles:user_id(first_name, last_name)),
-          target:employees!target_employee_id(id, employee_id, profiles:user_id(first_name, last_name)),
-          requester_shift:shifts!requester_shift_id(*),
-          target_shift:shifts!target_shift_id(*)
+          requester:employees!shift_exchange_requests_requester_id_fkey(id, employee_id, user_id),
+          target:employees!shift_exchange_requests_target_employee_id_fkey(id, employee_id, user_id),
+          requester_shift:shifts!shift_exchange_requests_requester_shift_id_fkey(*),
+          target_shift:shifts!shift_exchange_requests_target_shift_id_fkey(*)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoExchangeRequests(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // POST /shifts/exchange - Create exchange request

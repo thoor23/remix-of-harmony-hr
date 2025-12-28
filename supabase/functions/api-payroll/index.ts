@@ -5,6 +5,39 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Helper to fetch profiles and merge into records
+async function mergeProfilesIntoRecords(supabase: any, records: any[]) {
+  if (!records || records.length === 0) return records;
+
+  const userIds = records
+    .map((r: any) => r?.employee?.user_id)
+    .filter(Boolean);
+
+  if (userIds.length === 0) return records;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', userIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return records.map((r: any) => {
+    const userId = r?.employee?.user_id;
+    return {
+      ...r,
+      employee: r.employee
+        ? { ...r.employee, profile: userId ? profilesMap[userId] || null : null }
+        : null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -27,7 +60,7 @@ Deno.serve(async (req) => {
         .from('payslips')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name))
+          employee:employees(id, employee_id, user_id)
         `)
         .order('pay_date', { ascending: false });
 
@@ -37,7 +70,9 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoRecords(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /payslips/my - Get current user's payslips
@@ -94,12 +129,14 @@ Deno.serve(async (req) => {
         .from('salary_structures')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name))
+          employee:employees(id, employee_id, user_id)
         `)
         .order('effective_from', { ascending: false });
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoRecords(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /salary-structures/employee/:id - Get employee salary structure

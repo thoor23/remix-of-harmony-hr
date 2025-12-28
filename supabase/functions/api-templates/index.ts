@@ -5,6 +5,39 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Helper to fetch profiles and merge into generated letters
+async function mergeProfilesIntoLetters(supabase: any, letters: any[]) {
+  if (!letters || letters.length === 0) return letters;
+
+  const userIds = letters
+    .map((l: any) => l?.employee?.user_id)
+    .filter(Boolean);
+
+  if (userIds.length === 0) return letters;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', userIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return letters.map((l: any) => {
+    const userId = l?.employee?.user_id;
+    return {
+      ...l,
+      employee: l.employee
+        ? { ...l.employee, profile: userId ? profilesMap[userId] || null : null }
+        : null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -33,12 +66,12 @@ Deno.serve(async (req) => {
     };
 
     const tableName = tableMap[templateType];
-    if (!tableName) {
+    if (!tableName && templateType !== 'generated-letters') {
       return errorResponse('Invalid template type', 400);
     }
 
     // GET /type - List templates
-    if (req.method === 'GET' && !templateId) {
+    if (req.method === 'GET' && !templateId && tableName) {
       const type = url.searchParams.get('type');
       let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
       
@@ -52,7 +85,7 @@ Deno.serve(async (req) => {
     }
 
     // GET /type/:id - Get single template
-    if (req.method === 'GET' && templateId) {
+    if (req.method === 'GET' && templateId && tableName) {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -64,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     // POST /type - Create template
-    if (req.method === 'POST' && !templateId) {
+    if (req.method === 'POST' && !templateId && tableName) {
       const body = await req.json();
       const { data, error } = await supabase
         .from(tableName)
@@ -80,7 +113,7 @@ Deno.serve(async (req) => {
     }
 
     // PUT /type/:id - Update template
-    if (req.method === 'PUT' && templateId) {
+    if (req.method === 'PUT' && templateId && tableName) {
       const body = await req.json();
       const { data, error } = await supabase
         .from(tableName)
@@ -94,7 +127,7 @@ Deno.serve(async (req) => {
     }
 
     // DELETE /type/:id - Delete template
-    if (req.method === 'DELETE' && templateId) {
+    if (req.method === 'DELETE' && templateId && tableName) {
       const { error } = await supabase
         .from(tableName)
         .delete()
@@ -105,7 +138,7 @@ Deno.serve(async (req) => {
     }
 
     // POST /type/:id/set-default - Set template as default
-    if (req.method === 'POST' && subPath[2] === 'set-default') {
+    if (req.method === 'POST' && subPath[2] === 'set-default' && tableName) {
       // First, unset all defaults for this type
       const { data: template } = await supabase
         .from(tableName)
@@ -133,7 +166,7 @@ Deno.serve(async (req) => {
     }
 
     // GET /type/default/:letterType - Get default template by type
-    if (req.method === 'GET' && subPath[1] === 'default' && subPath[2]) {
+    if (req.method === 'GET' && subPath[1] === 'default' && subPath[2] && tableName) {
       const letterType = subPath[2];
       const { data, error } = await supabase
         .from(tableName)
@@ -171,7 +204,7 @@ Deno.serve(async (req) => {
         .from('generated_letters')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name)),
+          employee:employees(id, employee_id, user_id),
           template:letter_templates(id, name)
         `)
         .order('generated_at', { ascending: false });
@@ -181,7 +214,9 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoLetters(supabase, data || []);
+      return jsonResponse(result);
     }
 
     return errorResponse('Not found', 404);
