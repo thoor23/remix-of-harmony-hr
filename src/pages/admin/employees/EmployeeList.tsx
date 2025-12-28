@@ -40,7 +40,7 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Eye, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useEmployees, useDepartments, useDeleteEmployee, EmployeeWithDetails } from "@/hooks/useEmployees";
 import { usePagination } from "@/hooks/usePagination";
 import { format } from "date-fns";
@@ -92,6 +92,8 @@ export default function EmployeeList() {
   const [showFilter, setShowFilter] = useState(true);
   const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const { data: employees = [], isLoading: loadingEmployees, refetch, isFetching } = useEmployees();
   const { data: departments = [], isLoading: loadingDepartments } = useDepartments();
@@ -119,6 +121,31 @@ export default function EmployeeList() {
     });
   }, [employees, search, departmentFilter, statusFilter]);
 
+  const sortedEmployees = useMemo(() => {
+    if (!sortColumn) return filteredEmployees;
+    
+    return [...filteredEmployees].sort((a, b) => {
+      const column = columns.find(c => c.id === sortColumn);
+      if (!column) return 0;
+      
+      const aValue = getNestedValue(a, column.accessor as string);
+      const bValue = getNestedValue(b, column.accessor as string);
+      
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      
+      return sortDirection === 'asc' 
+        ? (aValue > bValue ? 1 : -1) 
+        : (aValue < bValue ? 1 : -1);
+    });
+  }, [filteredEmployees, sortColumn, sortDirection, columns]);
+
   const {
     currentPage,
     pageSize,
@@ -127,7 +154,7 @@ export default function EmployeeList() {
     paginatedData,
     setCurrentPage,
     setPageSize,
-  } = usePagination({ data: filteredEmployees, defaultPageSize: 50 });
+  } = usePagination({ data: sortedEmployees, defaultPageSize: 50 });
 
   const visibleColumns = useMemo(() => 
     columns.filter(col => col.visible !== false), 
@@ -198,6 +225,15 @@ export default function EmployeeList() {
 
   const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
+  };
+
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnId);
+      setSortDirection('asc');
+    }
   };
 
   const renderCellValue = (employee: EmployeeWithDetails, column: ColumnDef) => {
@@ -328,8 +364,21 @@ export default function EmployeeList() {
                   />
                 </TableHead>
                 {visibleColumns.map((column) => (
-                  <TableHead key={column.id} className="whitespace-nowrap">
-                    {column.header}
+                  <TableHead 
+                    key={column.id} 
+                    className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => handleSort(column.id)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {column.header}
+                      {sortColumn === column.id ? (
+                        sortDirection === 'asc' 
+                          ? <ArrowUp className="h-4 w-4" /> 
+                          : <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-30" />
+                      )}
+                    </div>
                   </TableHead>
                 ))}
                 <TableHead className="w-12"></TableHead>
