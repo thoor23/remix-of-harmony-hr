@@ -8,7 +8,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, FileImage, File, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const UPLOADS_BASE_URL = API_URL.replace("/api", "") + "/uploads/documents";
 
 interface DocumentPreviewProps {
   open: boolean;
@@ -41,35 +44,24 @@ export function DocumentPreview({ open, onOpenChange, document, onDownload }: Do
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
-  // Generate signed URL when document changes
+  // Generate document URL when document changes
   useEffect(() => {
-    async function getSignedUrl() {
-      if (!document?.file_url) {
-        setSignedUrl(null);
-        return;
-      }
-
-      setLoading(true);
-      setError(false);
-
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(document.file_url, 3600); // 1 hour expiry
-
-      if (error || !data?.signedUrl) {
-        console.error("Failed to generate signed URL:", error);
-        setError(true);
-        setLoading(false);
-      } else {
-        setSignedUrl(data.signedUrl);
-      }
+    if (!document?.file_url) {
+      setDocumentUrl(null);
+      return;
     }
 
-    if (open && document) {
-      getSignedUrl();
-    }
+    setLoading(true);
+    setError(false);
+
+    // Construct the URL for the document
+    // The file_url might be a full path or just a filename
+    const fileName = document.file_url.split("/").pop() || document.file_url;
+    const url = `${UPLOADS_BASE_URL}/${fileName}`;
+    setDocumentUrl(url);
+    setLoading(false);
   }, [document?.file_url, open]);
 
   if (!document) return null;
@@ -81,13 +73,13 @@ export function DocumentPreview({ open, onOpenChange, document, onDownload }: Do
   const handleZoomOut = () => setZoom((z) => Math.max(z - 0.25, 0.5));
 
   const handleOpenInNewTab = () => {
-    if (signedUrl) {
-      window.open(signedUrl, "_blank");
+    if (documentUrl) {
+      window.open(documentUrl, "_blank");
     }
   };
 
-  // Show loading state while fetching signed URL
-  if (!signedUrl && loading) {
+  // Show loading state
+  if (loading && !documentUrl) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col">
@@ -106,7 +98,7 @@ export function DocumentPreview({ open, onOpenChange, document, onDownload }: Do
   }
 
   const renderPreview = () => {
-    if (error || !signedUrl) {
+    if (error || !documentUrl) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center gap-6 py-12 bg-muted/50 rounded-lg min-h-[300px]">
           <FileIcon className="h-24 w-24 text-muted-foreground" />
@@ -130,7 +122,7 @@ export function DocumentPreview({ open, onOpenChange, document, onDownload }: Do
       return (
         <div className="relative flex-1 overflow-auto bg-muted/50 rounded-lg flex items-center justify-center min-h-[400px]">
           <img
-            src={signedUrl}
+            src={documentUrl}
             alt={document.name}
             className="max-w-full max-h-[70vh] object-contain transition-transform duration-200"
             style={{ transform: `scale(${zoom})` }}
@@ -148,7 +140,7 @@ export function DocumentPreview({ open, onOpenChange, document, onDownload }: Do
       return (
         <div className="relative flex-1 min-h-[500px] bg-muted/50 rounded-lg overflow-hidden">
           <iframe
-            src={`${signedUrl}#toolbar=1&navpanes=0`}
+            src={`${documentUrl}#toolbar=1&navpanes=0`}
             className="w-full h-[70vh] border-0 rounded-lg"
             title={document.name}
             onLoad={() => setLoading(false)}
