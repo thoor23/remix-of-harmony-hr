@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.api-attendance-regularization]
 verify_jwt = false
+
+[functions.seed-database]
+verify_jwt = false
