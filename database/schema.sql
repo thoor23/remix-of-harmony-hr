@@ -31,7 +31,10 @@ CREATE TABLE IF NOT EXISTS users (
     last_sign_in_at TIMESTAMP NULL,
     raw_user_meta_data JSON DEFAULT NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    INDEX idx_users_email (email)
+    reset_token VARCHAR(255) NULL,
+    reset_token_expires TIMESTAMP NULL,
+    INDEX idx_users_email (email),
+    INDEX idx_users_reset_token (reset_token)
 );
 
 -- User profiles
