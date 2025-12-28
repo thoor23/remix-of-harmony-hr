@@ -38,7 +38,7 @@ import ExperienceLetterPage from "./pages/admin/letters/ExperienceLetterPage";
 import RelievingLetterPage from "./pages/admin/letters/RelievingLetterPage";
 import IncrementLetterPage from "./pages/admin/letters/IncrementLetterPage";
 import LetterTemplatesPage from "./pages/admin/letters/LetterTemplatesPage";
-import AnnouncementsManagement from "./pages/admin/announcements/AnnouncementsManagement";
+import NotificationCentre from "./pages/admin/notification-centre/NotificationCentre";
 import NotificationsPage from "./pages/admin/notifications/NotificationsPage";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
 import ReportsOverview from "./pages/admin/reports/ReportsOverview";
@@ -122,7 +122,7 @@ const App = () => (
                 <Route path="letters/relieving" element={<RelievingLetterPage />} />
                 <Route path="letters/increment" element={<IncrementLetterPage />} />
                 <Route path="letters/templates" element={<LetterTemplatesPage />} />
-                <Route path="announcements" element={<AnnouncementsManagement />} />
+                <Route path="notification-centre" element={<NotificationCentre />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="audit-logs" element={<AuditLogs />} />
                 <Route path="reports" element={<ReportsOverview />} />

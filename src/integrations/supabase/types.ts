@@ -1108,6 +1108,45 @@ export type Database = {
         }
         Relationships: []
       }
+      targeted_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          priority: string
+          sent_at: string
+          sent_by: string
+          target_ids: Json | null
+          target_type: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string
+          sent_at?: string
+          sent_by: string
+          target_ids?: Json | null
+          target_type?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string
+          sent_at?: string
+          sent_by?: string
+          target_ids?: Json | null
+          target_type?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1136,6 +1175,18 @@ export type Database = {
     Functions: {
       get_admin_user_ids: {
         Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_department_employee_user_ids: {
+        Args: { department_ids: string[] }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_employee_user_ids: {
+        Args: { employee_ids: string[] }
         Returns: {
           user_id: string
         }[]
