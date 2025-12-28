@@ -120,10 +120,10 @@ export default function EditEmployee() {
     if (employee) {
       setFormData((prev) => ({
         ...prev,
-        firstName: employee.profile?.first_name || "",
-        lastName: employee.profile?.last_name || "",
-        email: employee.profile?.email || "",
-        phone: employee.profile?.phone || "",
+        firstName: employee.first_name || "",
+        lastName: employee.last_name || "",
+        email: employee.email || "",
+        phone: employee.phone || "",
         dateOfBirth: employee.date_of_birth || "",
         gender: "",
         employeeId: employee.employee_id,
@@ -217,12 +217,10 @@ export default function EditEmployee() {
             updateEmployeeAccount.mutate({
               employee_id: id,
               user_id: employee.user_id,
-              profile: {
-                first_name: formData.firstName,
-                last_name: formData.lastName,
-                email: formData.email,
-                phone: formData.phone,
-              },
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
               role: formData.role as "admin" | "hr" | "manager" | "employee",
               status: formData.status as "active" | "inactive",
               password: formData.newPassword || undefined,
@@ -542,7 +540,7 @@ export default function EditEmployee() {
                       <SelectContent>
                         {managers.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
-                            {emp.profile?.first_name} {emp.profile?.last_name} ({emp.designation?.name})
+                            {emp.first_name} {emp.last_name} ({emp.designation?.name})
                           </SelectItem>
                         ))}
                       </SelectContent>

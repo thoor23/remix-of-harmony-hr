@@ -90,10 +90,9 @@ export default function EmployeeProfile() {
 
   const getFieldCurrentValue = (fieldName: string) => {
     if (!employee) return "";
-    const profile = employee.profile;
     
     const fieldMap: Record<string, string> = {
-      phone: profile?.phone || "",
+      phone: employee.phone || "",
       address_street: employee.address_street || "",
       address_city: employee.address_city || "",
       address_state: employee.address_state || "",
@@ -155,7 +154,6 @@ export default function EmployeeProfile() {
     );
   }
 
-  const profile = employee.profile;
   const department = employee.department;
   const designation = employee.designation;
 
@@ -174,9 +172,9 @@ export default function EmployeeProfile() {
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="relative">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarImage src={employee.avatar_url || undefined} />
                 <AvatarFallback className="text-2xl">
-                  {profile?.first_name?.[0] || ""}{profile?.last_name?.[0] || ""}
+                  {employee.first_name?.[0] || ""}{employee.last_name?.[0] || ""}
                 </AvatarFallback>
               </Avatar>
               <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-8 w-8 rounded-full">
@@ -185,7 +183,7 @@ export default function EmployeeProfile() {
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-semibold mb-1">
-                {profile?.first_name} {profile?.last_name}
+                {employee.first_name} {employee.last_name}
               </h2>
               <p className="text-muted-foreground mb-3">
                 {designation?.name || "N/A"} • {department?.name || "N/A"}
@@ -199,11 +197,11 @@ export default function EmployeeProfile() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{profile?.email || "N/A"}</span>
+                <span>{employee.email || "N/A"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{profile?.phone || "N/A"}</span>
+                <span>{employee.phone || "N/A"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -240,19 +238,19 @@ export default function EmployeeProfile() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">First Name</p>
-                  <p className="font-medium">{profile?.first_name || "N/A"}</p>
+                  <p className="font-medium">{employee.first_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Last Name</p>
-                  <p className="font-medium">{profile?.last_name || "N/A"}</p>
+                  <p className="font-medium">{employee.last_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Email</p>
-                  <p className="font-medium">{profile?.email || "N/A"}</p>
+                  <p className="font-medium">{employee.email || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                  <p className="font-medium">{profile?.phone || "N/A"}</p>
+                  <p className="font-medium">{employee.phone || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>

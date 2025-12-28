@@ -17,7 +17,7 @@ export default function EmployeeDocumentsPage() {
   const [search, setSearch] = useState("");
 
   const filteredEmployees = employees.filter((emp) => {
-    const name = `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.toLowerCase();
+    const name = `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
     const id = emp.employee_id.toLowerCase();
     return name.includes(search.toLowerCase()) || id.includes(search.toLowerCase());
   });
@@ -71,7 +71,7 @@ export default function EmployeeDocumentsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredEmployees.map((emp) => {
-            const fullName = `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim() || "Unknown";
+            const fullName = `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Unknown";
             const initials = fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
             const docCount = docCountByEmployee[emp.id] || 0;
 
@@ -85,7 +85,7 @@ export default function EmployeeDocumentsPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={emp.profile?.avatar_url || undefined} />
+                        <AvatarImage src={emp.avatar_url || undefined} />
                         <AvatarFallback>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="absolute -bottom-1 -right-1 bg-primary rounded-full p-1">

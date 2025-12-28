@@ -150,15 +150,13 @@ export default function SalaryStructure() {
     : 0;
 
   const getEmployeeName = (emp: typeof employees[0]) => {
-    const profile = emp.profile;
-    if (!profile) return emp.employee_id;
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || emp.employee_id;
+    if (!emp.first_name && !emp.last_name) return emp.employee_id;
+    return `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || emp.employee_id;
   };
 
   const getEmployeeInitials = (emp: typeof employees[0]) => {
-    const profile = emp.profile;
-    if (!profile) return emp.employee_id.slice(0, 2).toUpperCase();
-    return `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase();
+    if (!emp.first_name && !emp.last_name) return emp.employee_id.slice(0, 2).toUpperCase();
+    return `${emp.first_name?.[0] || ""}${emp.last_name?.[0] || ""}`.toUpperCase();
   };
 
   if (isLoading) {
@@ -270,7 +268,7 @@ export default function SalaryStructure() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={emp.profile?.avatar_url || undefined} />
+                        <AvatarImage src={emp.avatar_url || undefined} />
                         <AvatarFallback>{getEmployeeInitials(emp)}</AvatarFallback>
                       </Avatar>
                       <div>

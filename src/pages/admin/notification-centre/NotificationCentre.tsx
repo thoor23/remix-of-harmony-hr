@@ -221,8 +221,7 @@ export default function NotificationCentre() {
   const { data: employees } = useEmployees();
 
   const filteredEmployees = employees?.filter(emp => {
-    const profile = emp.profile;
-    const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
+    const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
     return fullName.includes(employeeSearch.toLowerCase()) || emp.employee_id.toLowerCase().includes(employeeSearch.toLowerCase());
   });
 
@@ -1009,8 +1008,7 @@ export default function NotificationCentre() {
                 <ScrollArea className="h-[150px] border rounded-md p-3">
                   <div className="space-y-2">
                     {filteredEmployees?.map(emp => {
-                      const profile = emp.profile;
-                      const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || emp.employee_id;
+                      const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.employee_id;
                       return (
                         <div key={emp.id} className="flex items-center gap-2">
                           <Checkbox

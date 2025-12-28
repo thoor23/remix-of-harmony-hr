@@ -433,7 +433,7 @@ export default function AddEmployee() {
                       <SelectContent>
                         {managers.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
-                            {emp.profile?.first_name} {emp.profile?.last_name} ({emp.designation?.name})
+                            {emp.first_name} {emp.last_name} ({emp.designation?.name})
                           </SelectItem>
                         ))}
                       </SelectContent>
