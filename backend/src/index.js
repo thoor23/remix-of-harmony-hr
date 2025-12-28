@@ -43,9 +43,51 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (basic - no auth required)
+app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Detailed health check endpoint for monitoring
+app.get('/api/health', async (req, res) => {
+  const startTime = Date.now();
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: process.env.npm_package_version || '1.0.0',
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      unit: 'MB'
+    },
+    checks: {
+      database: { status: 'unknown', latency: null }
+    }
+  };
+
+  // Check database connectivity
+  try {
+    const pool = require('./config/database');
+    const dbStart = Date.now();
+    await pool.query('SELECT 1');
+    health.checks.database = {
+      status: 'ok',
+      latency: Date.now() - dbStart
+    };
+  } catch (error) {
+    health.status = 'degraded';
+    health.checks.database = {
+      status: 'error',
+      message: error.message
+    };
+  }
+
+  health.responseTime = Date.now() - startTime;
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // API Routes
