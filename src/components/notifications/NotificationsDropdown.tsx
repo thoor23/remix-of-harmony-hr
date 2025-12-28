@@ -402,7 +402,10 @@ export const NotificationsDropdown = () => {
             <Button
               variant="ghost"
               className="w-full h-8 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => navigate("/admin/notifications")}
+              onClick={() => {
+                // Close dropdown by clicking outside
+                navigate("/admin/notifications");
+              }}
             >
               View all notifications
             </Button>
