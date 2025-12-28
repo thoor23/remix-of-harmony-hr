@@ -1,115 +1,63 @@
-# HRMS Project - Complete Setup Guide
+# HRMS Project - Node.js Backend + MySQL Migration
 
-This project has been restructured to use a **separate Node.js Express backend** with **MySQL database**.
+## What's Been Created
 
-## Project Structure
+### 1. Database (`database/`)
+- **schema.sql** - Complete MySQL schema with 29 tables
+- **seed.sql** - Sample data with default users
+- **README.md** - Database setup instructions
 
-```
-hrms-project/
-├── frontend/          # React frontend (current Lovable code)
-├── backend/           # Node.js Express API
-│   ├── src/
-│   │   ├── config/    # Database configuration
-│   │   ├── middleware/# Auth & role middleware
-│   │   ├── routes/    # API route handlers
-│   │   └── utils/     # JWT & password utilities
-│   ├── package.json
-│   └── .env.example
-├── database/          # MySQL setup files
-│   ├── schema.sql     # Complete database schema
-│   ├── seed.sql       # Sample data
-│   └── README.md
-└── README.md          # This file
-```
+### 2. Backend (`backend/`)
+- **Express server** with CORS, error handling
+- **MySQL connection** pool configuration
+- **JWT authentication** with access/refresh tokens
+- **Role-based middleware** (admin, HR, manager, employee)
+- **15+ API route files** for all modules
 
-## Quick Start
+### 3. Frontend Updates (`src/`)
+- **src/lib/api.ts** - REST API client replacing Supabase
+- **src/contexts/AuthContext.tsx** - JWT-based authentication
+- **Updated hooks**: useEmployees, useAttendance, useLeaves, useDashboard, useNotifications, useAnnouncements, useHolidays, useShifts, usePayroll, useHelpdesk, useCurrentEmployee
 
-### 1. Setup MySQL Database
+## Setup Instructions
 
+### 1. Download Project
+Connect to GitHub and clone the repository.
+
+### 2. Setup MySQL
 ```bash
-# Login to MySQL
 mysql -u root -p
-
-# Create database
 CREATE DATABASE hrms;
 USE hrms;
-
-# Run schema
 SOURCE database/schema.sql;
-
-# (Optional) Run seed data
-SOURCE database/seed.sql;
+SOURCE database/seed.sql;  # Optional sample data
 ```
 
-### 2. Setup Backend
-
+### 3. Run Backend
 ```bash
 cd backend
-
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your MySQL credentials
-# DB_HOST=localhost
-# DB_USER=root
-# DB_PASSWORD=your_password
-# DB_NAME=hrms
-
-# Install dependencies
+cp .env.example .env  # Edit with your MySQL credentials
 npm install
-
-# Start server
-npm run dev
-# Server runs on http://localhost:3001
+npm run dev  # http://localhost:3001
 ```
 
-### 3. Setup Frontend
-
+### 4. Run Frontend
 ```bash
-cd frontend
-
-# Create .env file
+# Create .env in project root
 echo "VITE_API_URL=http://localhost:3001/api" > .env
-
-# Install dependencies
 npm install
-
-# Start dev server
-npm run dev
-# Frontend runs on http://localhost:5173
+npm run dev  # http://localhost:5173
 ```
 
-## Default Login Credentials
-
-After running seed.sql:
-
+## Default Login
 | Email | Password | Role |
 |-------|----------|------|
 | admin@hrms.com | Admin@123 | Admin |
-| hr@hrms.com | Admin@123 | HR |
-| employee@hrms.com | Admin@123 | Employee |
 
-## API Endpoints
+## Remaining Work
+Some hooks still need to be updated to use the REST API:
+- useDocuments, useAuditLogs, useShiftExchange
+- useLetterTemplates, useEmailTemplates, useBannerTemplates
+- useAnnouncementTemplates, usePayslipTemplates
 
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Current user
-- `GET /api/employees` - List employees
-- `GET /api/departments` - List departments
-- `GET /api/leaves/requests` - Leave requests
-- `GET /api/attendance` - Attendance records
-- ... and many more
-
-## Frontend Updates Required
-
-The frontend code still uses Supabase. You need to:
-
-1. Create `src/lib/api.ts` with fetch calls to the backend
-2. Update `AuthContext.tsx` to use JWT authentication
-3. Update all hooks in `src/hooks/` to use the new API
-
-## Technologies
-
-- **Frontend:** React, Vite, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend:** Node.js, Express.js
-- **Database:** MySQL 8.0+
-- **Auth:** JWT (JSON Web Tokens)
+The backend route stubs exist - you may need to expand controller logic as needed.

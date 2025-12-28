@@ -1,23 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
+
+export interface Holiday {
+  id: string;
+  name: string;
+  date: string;
+  type: string;
+  is_optional: boolean | null;
+  description: string | null;
+  created_at: string;
+}
 
 export function useHolidays(year?: number) {
   return useQuery({
     queryKey: ["holidays", year],
-    queryFn: async () => {
-      let query = supabase
-        .from("holidays")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (year) {
-        query = query.gte("date", `${year}-01-01`).lte("date", `${year}-12-31`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+    queryFn: async (): Promise<Holiday[]> => {
+      const params = year ? `?year=${year}` : '';
+      return api.get<Holiday[]>(`/holidays${params}`);
     },
   });
 }
@@ -33,11 +33,7 @@ export function useCreateHoliday() {
       is_optional?: boolean;
       description?: string;
     }) => {
-      const { error } = await supabase
-        .from("holidays")
-        .insert(holiday);
-
-      if (error) throw error;
+      await api.post('/holidays', holiday);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["holidays"] });
@@ -54,12 +50,7 @@ export function useDeleteHoliday() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("holidays")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/holidays/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["holidays"] });
