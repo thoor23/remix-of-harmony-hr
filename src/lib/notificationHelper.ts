@@ -42,32 +42,42 @@ export async function notifyAdmins(
   type: NotificationType = 'info',
   link?: string
 ): Promise<void> {
-  // Get all admin and HR user IDs
-  const { data: adminRoles, error: rolesError } = await supabase
-    .from("user_roles")
-    .select("user_id")
-    .in("role", ["admin", "hr"]);
+  try {
+    // Use the security definer function to get admin/HR user IDs
+    // This bypasses RLS so employees can notify admins
+    const { data: adminUserIds, error: rolesError } = await supabase
+      .rpc("get_admin_user_ids");
 
-  if (rolesError) {
-    console.error("Failed to fetch admin users:", rolesError);
-    return;
-  }
+    if (rolesError) {
+      console.error("Failed to fetch admin users:", rolesError);
+      return;
+    }
 
-  if (!adminRoles || adminRoles.length === 0) return;
+    if (!adminUserIds || adminUserIds.length === 0) {
+      console.log("No admin users found to notify");
+      return;
+    }
 
-  // Create notifications for all admins
-  const notifications = adminRoles.map((role) => ({
-    user_id: role.user_id,
-    title,
-    message,
-    type,
-    link,
-  }));
+    console.log("Creating notifications for admin users:", adminUserIds);
 
-  const { error } = await supabase.from("notifications").insert(notifications);
+    // Create notifications for all admins
+    const notifications = adminUserIds.map((row: { user_id: string }) => ({
+      user_id: row.user_id,
+      title,
+      message,
+      type,
+      link,
+    }));
 
-  if (error) {
-    console.error("Failed to create admin notifications:", error);
+    const { error } = await supabase.from("notifications").insert(notifications);
+
+    if (error) {
+      console.error("Failed to create admin notifications:", error);
+    } else {
+      console.log("Admin notifications created successfully");
+    }
+  } catch (err) {
+    console.error("Error in notifyAdmins:", err);
   }
 }
 
