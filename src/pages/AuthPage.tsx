@@ -6,27 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Building2, Loader2, ArrowLeft } from "lucide-react";
+import { Building2, Loader2, ArrowLeft, Shield, Users, Clock, BarChart3 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-const signupSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
 });
 
 const resetSchema = z.object({
@@ -42,15 +30,14 @@ const newPasswordSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-type SignupFormData = z.infer<typeof signupSchema>;
 type FormErrors = Partial<Record<string, string>>;
 
-type AuthView = "login" | "signup" | "forgot-password" | "reset-password";
+type AuthView = "login" | "forgot-password" | "reset-password";
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const { data: branding } = useCompanyBranding();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -64,14 +51,6 @@ export default function AuthPage() {
   const [loginData, setLoginData] = useState<LoginFormData>({
     email: "",
     password: "",
-  });
-
-  const [signupData, setSignupData] = useState<SignupFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
   });
 
   // Check if this is a password reset callback
@@ -122,42 +101,6 @@ export default function AuthPage() {
     toast.success("Welcome back!");
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/admin";
     navigate(from, { replace: true });
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    const result = signupSchema.safeParse(signupData);
-    if (!result.success) {
-      const fieldErrors: FormErrors = {};
-      result.error.errors.forEach((err) => {
-        fieldErrors[err.path[0] as string] = err.message;
-      });
-      setErrors(fieldErrors);
-      return;
-    }
-
-    setIsLoading(true);
-    const { error } = await signUp(
-      signupData.email,
-      signupData.password,
-      signupData.firstName,
-      signupData.lastName
-    );
-    setIsLoading(false);
-
-    if (error) {
-      if (error.message.includes("User already registered")) {
-        toast.error("An account with this email already exists");
-      } else {
-        toast.error(error.message);
-      }
-      return;
-    }
-
-    toast.success("Account created successfully!");
-    navigate("/admin", { replace: true });
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -215,7 +158,6 @@ export default function AuthPage() {
     }
 
     toast.success("Password updated successfully!");
-    // Clear the hash and redirect
     window.location.href = "/auth";
   };
 
@@ -226,221 +168,106 @@ export default function AuthPage() {
     return null;
   };
 
+  const features = [
+    {
+      icon: Users,
+      title: "Employee Management",
+      description: "Complete employee lifecycle management"
+    },
+    {
+      icon: Clock,
+      title: "Attendance Tracking",
+      description: "Real-time attendance and time management"
+    },
+    {
+      icon: BarChart3,
+      title: "Analytics & Reports",
+      description: "Comprehensive HR analytics and insights"
+    },
+    {
+      icon: Shield,
+      title: "Secure & Compliant",
+      description: "Enterprise-grade security for your data"
+    }
+  ];
+
   // Forgot Password View
   if (view === "forgot-password") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-        <div className="w-full max-w-md">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Avatar className="h-12 w-12 rounded-xl">
-              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary">
-                <Building2 className="h-7 w-7 text-primary-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold">{companyName}</h1>
-              <p className="text-sm text-muted-foreground">Human Resource Management</p>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-fit mb-2"
-                onClick={() => setView("login")}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
-              </Button>
-              <CardDescription className="text-center">
-                Enter your email address and we'll send you a link to reset your password.
-              </CardDescription>
-            </CardHeader>
-
-            <form onSubmit={handleForgotPassword}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email</Label>
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className={errors.email ? "border-destructive" : ""}
-                    disabled={isLoading}
-                  />
-                  {renderError("email")}
-                </div>
-              </CardContent>
-
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Reset Link"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Reset Password View (after clicking email link)
-  if (view === "reset-password") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-        <div className="w-full max-w-md">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Avatar className="h-12 w-12 rounded-xl">
-              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary">
-                <Building2 className="h-7 w-7 text-primary-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold">{companyName}</h1>
-              <p className="text-sm text-muted-foreground">Human Resource Management</p>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardDescription className="text-center">
-                Enter your new password below.
-              </CardDescription>
-            </CardHeader>
-
-            <form onSubmit={handleResetPassword}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className={errors.password ? "border-destructive" : ""}
-                    disabled={isLoading}
-                  />
-                  {renderError("password")}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-new-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-new-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className={errors.confirmPassword ? "border-destructive" : ""}
-                    disabled={isLoading}
-                  />
-                  {renderError("confirmPassword")}
-                </div>
-              </CardContent>
-
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // Main Login/Signup View
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <Avatar className="h-12 w-12 rounded-xl">
-            <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-            <AvatarFallback className="rounded-xl bg-primary">
-              <Building2 className="h-7 w-7 text-primary-foreground" />
-            </AvatarFallback>
-          </Avatar>
+      <div className="min-h-screen flex">
+        {/* Left Panel - Branding */}
+        <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{companyName}</h1>
-            <p className="text-sm text-muted-foreground">Human Resource Management</p>
+            <div className="flex items-center gap-3 mb-12">
+              <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-xl bg-primary-foreground/10">
+                  <Building2 className="h-7 w-7 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
+                <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
+              </div>
+            </div>
+            <div className="space-y-8">
+              <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
+                Reset Your<br />Password
+              </h2>
+              <p className="text-lg text-primary-foreground/80 max-w-md">
+                Enter your email address and we'll send you instructions to reset your password.
+              </p>
+            </div>
           </div>
+          <p className="text-sm text-primary-foreground/60">
+            © {new Date().getFullYear()} {companyName}. All rights reserved.
+          </p>
         </div>
 
-        <Card>
-          <Tabs defaultValue="login">
-            <CardHeader>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-            </CardHeader>
+        {/* Right Panel - Form */}
+        <div className="flex-1 flex items-center justify-center p-8 bg-background">
+          <div className="w-full max-w-md">
+            <div className="lg:hidden flex items-center gap-3 mb-8">
+              <Avatar className="h-10 w-10 rounded-xl">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-xl bg-primary">
+                  <Building2 className="h-6 w-6 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xl font-semibold">{companyName}</span>
+            </div>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin}>
+            <Card className="border-0 shadow-none lg:border lg:shadow-sm">
+              <CardHeader className="space-y-1 pb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit -ml-2 mb-2"
+                  onClick={() => setView("login")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to login
+                </Button>
+                <h2 className="text-2xl font-semibold tracking-tight">Forgot password?</h2>
+                <CardDescription>
+                  Enter your email address and we'll send you a link to reset your password.
+                </CardDescription>
+              </CardHeader>
+
+              <form onSubmit={handleForgotPassword}>
                 <CardContent className="space-y-4">
-                  <CardDescription className="text-center">
-                    Sign in to access your account
-                  </CardDescription>
-
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="reset-email">Email</Label>
                     <Input
-                      id="login-email"
+                      id="reset-email"
                       type="email"
                       placeholder="you@company.com"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
                       className={errors.email ? "border-destructive" : ""}
                       disabled={isLoading}
                     />
                     {renderError("email")}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password">Password</Label>
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="px-0 h-auto font-normal text-muted-foreground"
-                        onClick={() => setView("forgot-password")}
-                      >
-                        Forgot password?
-                      </Button>
-                    </div>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      className={errors.password ? "border-destructive" : ""}
-                      disabled={isLoading}
-                    />
-                    {renderError("password")}
                   </div>
                 </CardContent>
 
@@ -449,72 +276,85 @@ export default function AuthPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
+                        Sending...
                       </>
                     ) : (
-                      "Sign In"
+                      "Send Reset Link"
                     )}
                   </Button>
                 </CardFooter>
               </form>
-            </TabsContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup}>
+  // Reset Password View
+  if (view === "reset-password") {
+    return (
+      <div className="min-h-screen flex">
+        {/* Left Panel */}
+        <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-12">
+              <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-xl bg-primary-foreground/10">
+                  <Building2 className="h-7 w-7 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
+                <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
+              </div>
+            </div>
+            <div className="space-y-8">
+              <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
+                Create New<br />Password
+              </h2>
+              <p className="text-lg text-primary-foreground/80 max-w-md">
+                Choose a strong password to secure your account.
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-primary-foreground/60">
+            © {new Date().getFullYear()} {companyName}. All rights reserved.
+          </p>
+        </div>
+
+        {/* Right Panel */}
+        <div className="flex-1 flex items-center justify-center p-8 bg-background">
+          <div className="w-full max-w-md">
+            <div className="lg:hidden flex items-center gap-3 mb-8">
+              <Avatar className="h-10 w-10 rounded-xl">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-xl bg-primary">
+                  <Building2 className="h-6 w-6 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xl font-semibold">{companyName}</span>
+            </div>
+
+            <Card className="border-0 shadow-none lg:border lg:shadow-sm">
+              <CardHeader className="space-y-1 pb-4">
+                <h2 className="text-2xl font-semibold tracking-tight">Set new password</h2>
+                <CardDescription>
+                  Enter your new password below.
+                </CardDescription>
+              </CardHeader>
+
+              <form onSubmit={handleResetPassword}>
                 <CardContent className="space-y-4">
-                  <CardDescription className="text-center">
-                    Create a new account to get started
-                  </CardDescription>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="John"
-                        value={signupData.firstName}
-                        onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
-                        className={errors.firstName ? "border-destructive" : ""}
-                        disabled={isLoading}
-                      />
-                      {renderError("firstName")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Smith"
-                        value={signupData.lastName}
-                        onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
-                        className={errors.lastName ? "border-destructive" : ""}
-                        disabled={isLoading}
-                      />
-                      {renderError("lastName")}
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="new-password">New Password</Label>
                     <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                      className={errors.email ? "border-destructive" : ""}
-                      disabled={isLoading}
-                    />
-                    {renderError("email")}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
+                      id="new-password"
                       type="password"
                       placeholder="••••••••"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       className={errors.password ? "border-destructive" : ""}
                       disabled={isLoading}
                     />
@@ -522,13 +362,13 @@ export default function AuthPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Label htmlFor="confirm-new-password">Confirm New Password</Label>
                     <Input
-                      id="confirmPassword"
+                      id="confirm-new-password"
                       type="password"
                       placeholder="••••••••"
-                      value={signupData.confirmPassword}
-                      onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
                       className={errors.confirmPassword ? "border-destructive" : ""}
                       disabled={isLoading}
                     />
@@ -541,23 +381,148 @@ export default function AuthPage() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
+                        Updating...
                       </>
                     ) : (
-                      "Create Account"
+                      "Update Password"
                     )}
                   </Button>
                 </CardFooter>
               </form>
-            </TabsContent>
-          </Tabs>
-        </Card>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          New users are assigned the Employee role by default.
-          <br />
-          Contact an admin to change your role.
+  // Main Login View - Premium 2 Column Layout
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Panel - Branding & Features */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-12">
+            <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-xl bg-primary-foreground/10">
+                <Building2 className="h-7 w-7 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
+              <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
+              Welcome to your<br />HR Management<br />Platform
+            </h2>
+            <p className="text-lg text-primary-foreground/80 max-w-md">
+              Streamline your workforce management with our comprehensive HRMS solution.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mt-12">
+            {features.map((feature, index) => (
+              <div key={index} className="space-y-2">
+                <div className="h-10 w-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
+                  <feature.icon className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <h3 className="font-medium text-primary-foreground">{feature.title}</h3>
+                <p className="text-sm text-primary-foreground/70">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-sm text-primary-foreground/60">
+          © {new Date().getFullYear()} {companyName}. All rights reserved.
         </p>
+      </div>
+
+      {/* Right Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <Avatar className="h-10 w-10 rounded-xl">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-xl bg-primary">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xl font-semibold">{companyName}</span>
+          </div>
+
+          <Card className="border-0 shadow-none lg:border lg:shadow-sm">
+            <CardHeader className="space-y-1 pb-4">
+              <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
+              <CardDescription>
+                Enter your credentials to access your account
+              </CardDescription>
+            </CardHeader>
+
+            <form onSubmit={handleLogin}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                    className={errors.email ? "border-destructive" : ""}
+                    disabled={isLoading}
+                  />
+                  {renderError("email")}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password">Password</Label>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="px-0 h-auto font-normal text-muted-foreground hover:text-primary"
+                      onClick={() => setView("forgot-password")}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    className={errors.password ? "border-destructive" : ""}
+                    disabled={isLoading}
+                  />
+                  {renderError("password")}
+                </div>
+              </CardContent>
+
+              <CardFooter className="flex-col gap-4">
+                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  Contact your administrator if you need an account
+                </p>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   );
