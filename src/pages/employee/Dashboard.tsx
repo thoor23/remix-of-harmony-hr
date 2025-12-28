@@ -3,7 +3,8 @@ import { StatCard } from "@/components/shared/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarCheck, Clock, Wallet, FileText, Calendar, Megaphone } from "lucide-react";
+import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
+import { CalendarCheck, Clock, FileText, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCurrentEmployee, useLeaveBalances, useLeaveTypes } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
@@ -51,6 +52,9 @@ export default function EmployeeDashboard() {
   return (
     <PageContainer>
       <PageHeader title="My Dashboard" description={`Welcome back, ${firstName}!`} />
+
+      {/* Announcement Banner */}
+      <AnnouncementBanner announcements={activeAnnouncements} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <StatCard title="Days Present" value={presentCount} subtitle="This month" icon={CalendarCheck} />
@@ -107,19 +111,6 @@ export default function EmployeeDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-primary" />Announcements</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {activeAnnouncements.length > 0 ? activeAnnouncements.map((a) => (
-                <div key={a.id}>
-                  <p className="font-medium text-sm">{a.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{a.content}</p>
-                </div>
-              )) : (
-                <p className="text-sm text-muted-foreground">No announcements</p>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </PageContainer>
