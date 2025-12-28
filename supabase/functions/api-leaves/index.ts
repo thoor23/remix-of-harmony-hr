@@ -80,23 +80,57 @@ serve(async (req) => {
     // GET /requests/pending - Get pending leave requests (for dashboard)
     if (method === 'GET' && path === '/requests/pending') {
       const limit = parseInt(url.searchParams.get('limit') || '10');
-      
-      const { data, error } = await supabase
+
+      const { data: leaveRequests, error } = await supabase
         .from('leave_requests')
-        .select(`
+        .select(
+          `
           *,
           leave_type:leave_types(*),
-          employee:employees(
-            id, employee_id,
-            profile:profiles!employees_user_id_fkey(first_name, last_name)
+          employee:employees!leave_requests_employee_id_fkey(
+            id,
+            employee_id,
+            user_id
           )
-        `)
+        `
+        )
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      // Fetch profiles separately (profiles.user_id -> employees.user_id)
+      const userIds = (leaveRequests || [])
+        .map((r: any) => r?.employee?.user_id)
+        .filter(Boolean);
+
+      let profilesMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, email, phone, avatar_url')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+          acc[p.user_id] = p;
+          return acc;
+        }, {});
+      }
+
+      const result = (leaveRequests || []).map((r: any) => {
+        const userId = r?.employee?.user_id;
+        return {
+          ...r,
+          employee: r.employee
+            ? { ...r.employee, profile: userId ? profilesMap[userId] || null : null }
+            : null,
+        };
+      });
+
+      return jsonResponse(result);
     }
 
     // GET / - Get all leave requests (admin/hr only)
@@ -106,26 +140,60 @@ serve(async (req) => {
       }
 
       const status = url.searchParams.get('status');
-      
+
       let query = supabase
         .from('leave_requests')
-        .select(`
+        .select(
+          `
           *,
           leave_type:leave_types(*),
-          employee:employees(
-            id, employee_id,
-            profile:profiles!employees_user_id_fkey(first_name, last_name)
+          employee:employees!leave_requests_employee_id_fkey(
+            id,
+            employee_id,
+            user_id
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       if (status) {
         query = query.eq('status', status);
       }
 
-      const { data, error } = await query;
+      const { data: leaveRequests, error } = await query;
       if (error) throw error;
-      return jsonResponse(data);
+
+      // Fetch profiles separately (profiles.user_id -> employees.user_id)
+      const userIds = (leaveRequests || [])
+        .map((r: any) => r?.employee?.user_id)
+        .filter(Boolean);
+
+      let profilesMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, email, phone, avatar_url')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+          acc[p.user_id] = p;
+          return acc;
+        }, {});
+      }
+
+      const result = (leaveRequests || []).map((r: any) => {
+        const userId = r?.employee?.user_id;
+        return {
+          ...r,
+          employee: r.employee
+            ? { ...r.employee, profile: userId ? profilesMap[userId] || null : null }
+            : null,
+        };
+      });
+
+      return jsonResponse(result);
     }
 
     // POST / - Create leave request
