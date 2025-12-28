@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyAdmins, notifyEmployee } from "@/lib/notificationHelper";
 
 export interface LeaveRequestWithDetails {
   id: string;
@@ -138,12 +139,22 @@ export function useCreateLeaveRequest() {
         .insert(request);
 
       if (error) throw error;
+      
+      return request;
     },
-    onSuccess: () => {
+    onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
       toast.success("Leave request submitted successfully");
+      
+      // Notify admins about new leave request
+      await notifyAdmins(
+        "New Leave Request",
+        `An employee has submitted a leave request for ${request.days} day(s).`,
+        "info",
+        "/admin/leaves"
+      );
     },
     onError: (error: Error) => {
       toast.error(`Failed to submit leave request: ${error.message}`);
@@ -183,11 +194,13 @@ export function useUpdateLeaveRequest() {
       status,
       comments,
       approved_by,
+      employee_id,
     }: {
       id: string;
       status: string;
       comments?: string;
       approved_by?: string;
+      employee_id?: string;
     }) => {
       const { error } = await supabase
         .from("leave_requests")
@@ -200,11 +213,27 @@ export function useUpdateLeaveRequest() {
         .eq("id", id);
 
       if (error) throw error;
+      
+      return { id, status, employee_id };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
-      toast.success(`Leave request ${variables.status} successfully`);
+      toast.success(`Leave request ${result.status} successfully`);
+      
+      // Notify the employee about the status update
+      if (result.employee_id && (result.status === "approved" || result.status === "rejected")) {
+        const statusText = result.status === "approved" ? "approved" : "rejected";
+        const notificationType = result.status === "approved" ? "success" : "warning";
+        
+        await notifyEmployee(
+          result.employee_id,
+          `Leave Request ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
+          `Your leave request has been ${statusText}.`,
+          notificationType,
+          "/employee/leaves"
+        );
+      }
     },
     onError: (error: Error) => {
       toast.error(`Failed to update leave request: ${error.message}`);
