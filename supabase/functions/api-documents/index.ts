@@ -5,6 +5,39 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Helper to fetch profiles and merge into documents
+async function mergeProfilesIntoDocuments(supabase: any, documents: any[]) {
+  if (!documents || documents.length === 0) return documents;
+
+  const userIds = documents
+    .map((d: any) => d?.employee?.user_id)
+    .filter(Boolean);
+
+  if (userIds.length === 0) return documents;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', userIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return documents.map((d: any) => {
+    const userId = d?.employee?.user_id;
+    return {
+      ...d,
+      employee: d.employee
+        ? { ...d.employee, profile: userId ? profilesMap[userId] || null : null }
+        : null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -31,7 +64,7 @@ Deno.serve(async (req) => {
         .from('documents')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name))
+          employee:employees(id, employee_id, user_id)
         `)
         .order('created_at', { ascending: false });
 
@@ -42,7 +75,9 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoDocuments(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /my - Get current user's documents
@@ -89,13 +124,15 @@ Deno.serve(async (req) => {
         .from('documents')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name))
+          employee:employees(id, employee_id, user_id)
         `)
         .eq('document_category', category)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoDocuments(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /:id - Get single document
@@ -105,13 +142,15 @@ Deno.serve(async (req) => {
         .from('documents')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name))
+          employee:employees(id, employee_id, user_id)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoDocuments(supabase, [data]);
+      return jsonResponse(result[0]);
     }
 
     // GET /:id/download - Get download URL

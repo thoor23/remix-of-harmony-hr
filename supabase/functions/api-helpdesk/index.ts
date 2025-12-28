@@ -5,6 +5,47 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// Helper to fetch profiles and merge into tickets
+async function mergeProfilesIntoTickets(supabase: any, tickets: any[]) {
+  if (!tickets || tickets.length === 0) return tickets;
+
+  // Collect all user IDs from employee and assigned
+  const userIds: string[] = [];
+  tickets.forEach((t: any) => {
+    if (t?.employee?.user_id) userIds.push(t.employee.user_id);
+    if (t?.assigned?.user_id) userIds.push(t.assigned.user_id);
+  });
+
+  const uniqueUserIds = [...new Set(userIds)];
+  if (uniqueUserIds.length === 0) return tickets;
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name, email, phone, avatar_url')
+    .in('user_id', uniqueUserIds);
+
+  if (profilesError) throw profilesError;
+
+  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+    acc[p.user_id] = p;
+    return acc;
+  }, {});
+
+  return tickets.map((t: any) => {
+    const employeeUserId = t?.employee?.user_id;
+    const assignedUserId = t?.assigned?.user_id;
+    return {
+      ...t,
+      employee: t.employee
+        ? { ...t.employee, profile: employeeUserId ? profilesMap[employeeUserId] || null : null }
+        : null,
+      assigned: t.assigned
+        ? { ...t.assigned, profile: assignedUserId ? profilesMap[assignedUserId] || null : null }
+        : null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -28,8 +69,8 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name)),
-          assigned:employees!assigned_to(id, employee_id, profiles:user_id(first_name, last_name))
+          employee:employees!helpdesk_tickets_employee_id_fkey(id, employee_id, user_id),
+          assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id)
         `)
         .order('created_at', { ascending: false });
 
@@ -50,7 +91,9 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoTickets(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /employee/:id - Get employee's tickets
@@ -60,14 +103,16 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name)),
-          assigned:employees!assigned_to(id, employee_id, profiles:user_id(first_name, last_name))
+          employee:employees!helpdesk_tickets_employee_id_fkey(id, employee_id, user_id),
+          assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id)
         `)
         .eq('employee_id', employeeId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoTickets(supabase, data || []);
+      return jsonResponse(result);
     }
 
     // GET /:id - Get single ticket
@@ -77,14 +122,16 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .select(`
           *,
-          employee:employees(id, employee_id, user_id, profiles:user_id(first_name, last_name)),
-          assigned:employees!assigned_to(id, employee_id, profiles:user_id(first_name, last_name))
+          employee:employees!helpdesk_tickets_employee_id_fkey(id, employee_id, user_id),
+          assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      const result = await mergeProfilesIntoTickets(supabase, [data]);
+      return jsonResponse(result[0]);
     }
 
     // POST / - Create ticket
