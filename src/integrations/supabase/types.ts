@@ -195,6 +195,85 @@ export type Database = {
           },
         ]
       }
+      attendance_regularization_requests: {
+        Row: {
+          attendance_id: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          original_check_in: string | null
+          original_check_out: string | null
+          reason: string
+          request_date: string
+          request_type: string
+          requested_check_in: string | null
+          requested_check_out: string | null
+          review_comments: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_id?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          original_check_in?: string | null
+          original_check_out?: string | null
+          reason: string
+          request_date: string
+          request_type?: string
+          requested_check_in?: string | null
+          requested_check_out?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_id?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          original_check_in?: string | null
+          original_check_out?: string | null
+          reason?: string
+          request_date?: string
+          request_type?: string
+          requested_check_in?: string | null
+          requested_check_out?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_regularization_requests_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_regularization_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_regularization_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string

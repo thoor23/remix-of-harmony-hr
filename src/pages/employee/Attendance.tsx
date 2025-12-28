@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, CheckCircle, XCircle, AlertCircle, Timer } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
+import { AttendanceRegularizationWidget } from "@/components/attendance/AttendanceRegularizationWidget";
 
 export default function EmployeeAttendance() {
   const currentDate = new Date();
@@ -147,48 +148,64 @@ export default function EmployeeAttendance() {
         </Select>
       </div>
 
-      {/* Attendance List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Attendance Log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Check In</TableHead>
-                <TableHead>Check Out</TableHead>
-                <TableHead>Work Hours</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.date}</TableCell>
-                    <TableCell>{record.check_in || "-"}</TableCell>
-                    <TableCell>{record.check_out || "-"}</TableCell>
-                    <TableCell>
-                      {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={record.status as any} />
-                    </TableCell>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {/* Attendance List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Check In</TableHead>
+                    <TableHead>Check Out</TableHead>
+                    <TableHead>Work Hours</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No attendance records for this month
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredRecords.length > 0 ? (
+                    filteredRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.date}</TableCell>
+                        <TableCell>{record.check_in || "-"}</TableCell>
+                        <TableCell>{record.check_out || "-"}</TableCell>
+                        <TableCell>
+                          {record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={record.status as any} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No attendance records for this month
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <AttendanceRegularizationWidget
+            attendanceRecords={filteredRecords.map((r) => ({
+              id: r.id,
+              date: r.date,
+              check_in: r.check_in,
+              check_out: r.check_out,
+              status: r.status,
+            }))}
+          />
+        </div>
+      </div>
     </PageContainer>
   );
 }
