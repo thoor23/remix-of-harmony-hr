@@ -44,3 +44,24 @@ verify_jwt = false
 
 [functions.send-notification-email]
 verify_jwt = false
+
+[functions.api-shifts]
+verify_jwt = false
+
+[functions.api-payroll]
+verify_jwt = false
+
+[functions.api-notifications]
+verify_jwt = false
+
+[functions.api-helpdesk]
+verify_jwt = false
+
+[functions.api-audit]
+verify_jwt = false
+
+[functions.api-templates]
+verify_jwt = false
+
+[functions.api-documents]
+verify_jwt = false
