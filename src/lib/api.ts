@@ -165,8 +165,14 @@ export const authApi = {
   
   getMe: () => api.get<{
     user: { id: string; email: string; role: string };
-    profile: Record<string, unknown>;
-    employee: Record<string, unknown>;
+    profile: {
+      first_name: string | null;
+      last_name: string | null;
+      email: string | null;
+      phone: string | null;
+      avatar_url: string | null;
+    } | null;
+    employee: { id: string } | null;
   }>('/auth/me'),
   
   register: (email: string, password: string, firstName?: string, lastName?: string, role?: string) =>
