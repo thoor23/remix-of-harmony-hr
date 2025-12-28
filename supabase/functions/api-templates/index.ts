@@ -70,6 +70,20 @@ Deno.serve(async (req) => {
       return errorResponse('Invalid template type', 400);
     }
 
+    // GET /type/default/:letterType - Get default template by type (must be before /:id route)
+    if (req.method === 'GET' && subPath[1] === 'default' && subPath[2] && tableName) {
+      const letterType = subPath[2];
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('type', letterType)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
     // GET /type - List templates
     if (req.method === 'GET' && !templateId && tableName) {
       const type = url.searchParams.get('type');
@@ -84,8 +98,8 @@ Deno.serve(async (req) => {
       return jsonResponse(data);
     }
 
-    // GET /type/:id - Get single template
-    if (req.method === 'GET' && templateId && tableName) {
+    // GET /type/:id - Get single template (skip if templateId is 'default')
+    if (req.method === 'GET' && templateId && templateId !== 'default' && tableName) {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -160,20 +174,6 @@ Deno.serve(async (req) => {
         .eq('id', templateId)
         .select()
         .single();
-
-      if (error) throw error;
-      return jsonResponse(data);
-    }
-
-    // GET /type/default/:letterType - Get default template by type
-    if (req.method === 'GET' && subPath[1] === 'default' && subPath[2] && tableName) {
-      const letterType = subPath[2];
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('type', letterType)
-        .eq('is_default', true)
-        .maybeSingle();
 
       if (error) throw error;
       return jsonResponse(data);
