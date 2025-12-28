@@ -48,6 +48,7 @@ export const EMAIL_PLACEHOLDERS = {
     { key: "{{recipient_name}}", label: "Recipient Name" },
     { key: "{{recipient_email}}", label: "Recipient Email" },
     { key: "{{company_name}}", label: "Company Name" },
+    { key: "{{company_logo}}", label: "Company Logo (Image Tag)" },
     { key: "{{app_url}}", label: "Application URL" },
     { key: "{{current_date}}", label: "Current Date" },
   ],
