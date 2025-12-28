@@ -6,6 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// UTF-8 safe Base64 encoding using built-in functions
+function safeBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 interface EmailConfig {
   enabled: boolean;
   provider: "resend" | "smtp";
@@ -154,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
         ].join("\r\n");
 
         // Base64 encode for Gmail API (URL-safe base64)
-        const encodedEmail = btoa(emailContent)
+        const encodedEmail = safeBase64(emailContent)
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=+$/, '');
@@ -273,13 +283,13 @@ async function sendViaSMTP(
     }
 
     // Send username (base64)
-    response = await sendCommand(btoa(config.smtpUser));
+    response = await sendCommand(safeBase64(config.smtpUser));
     if (!response.startsWith("334")) {
       throw new Error("Username rejected: " + response);
     }
 
     // Send password (base64)
-    response = await sendCommand(btoa(config.smtpPassword));
+    response = await sendCommand(safeBase64(config.smtpPassword));
     if (!response.startsWith("235")) {
       throw new Error("Authentication failed: " + response);
     }
