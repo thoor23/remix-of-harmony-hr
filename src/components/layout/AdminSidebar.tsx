@@ -123,7 +123,6 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "Salary Structure", href: "/admin/payroll/structure", icon: Banknote },
       { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
-      { title: "Payslip Templates", href: "/admin/payroll/templates", icon: LayoutTemplate },
     ],
   },
   {
@@ -142,7 +141,6 @@ const adminNavItems: NavItem[] = [
       { title: "Experience Letter", href: "/admin/letters/experience", icon: Award },
       { title: "Relieving Letter", href: "/admin/letters/relieving", icon: FileOutput },
       { title: "Increment Letter", href: "/admin/letters/increment", icon: TrendingUp },
-      { title: "Letter Templates", href: "/admin/letters/templates", icon: LayoutTemplate },
     ],
   },
   {
@@ -150,8 +148,17 @@ const adminNavItems: NavItem[] = [
     icon: Megaphone,
     children: [
       { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
-      { title: "Announcement Templates", href: "/admin/announcements/templates", icon: LayoutTemplate },
+    ],
+  },
+  {
+    title: "Templates",
+    icon: LayoutTemplate,
+    children: [
+      { title: "Payslip Templates", href: "/admin/payroll/templates", icon: Receipt },
+      { title: "Letter Templates", href: "/admin/letters/templates", icon: FileText },
+      { title: "Announcement Templates", href: "/admin/announcements/templates", icon: Megaphone },
       { title: "Banner Templates", href: "/admin/announcements/banner-templates", icon: Palette },
+      { title: "Email Templates", href: "/admin/settings/email-templates", icon: Mail },
     ],
   },
   {
@@ -175,7 +182,6 @@ const adminNavItems: NavItem[] = [
       { title: "Company", href: "/admin/settings/company", icon: Building2 },
       { title: "Notifications", href: "/admin/settings/notifications", icon: Bell },
       { title: "Email", href: "/admin/settings/email", icon: Mail },
-      { title: "Email Templates", href: "/admin/settings/email-templates", icon: LayoutTemplate },
       { title: "System", href: "/admin/settings/system", icon: Settings2 },
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
     ],
