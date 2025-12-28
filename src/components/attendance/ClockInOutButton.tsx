@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, LogIn, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import api from "@/lib/api";
 import {
   Tooltip,
   TooltipContent,
@@ -21,73 +21,38 @@ interface TodayAttendance {
 }
 
 export const ClockInOutButton = () => {
-  const { user } = useAuth();
+  const { employeeId } = useAuth();
   const [todayRecord, setTodayRecord] = useState<TodayAttendance | null>(null);
   const [loading, setLoading] = useState(false);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
 
-  // Fetch employee ID for current user
-  useEffect(() => {
-    const fetchEmployeeId = async () => {
-      if (!user?.id) return;
+  const fetchTodayAttendance = useCallback(async () => {
+    if (!employeeId) return;
 
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!error && data) {
-        setEmployeeId(data.id);
-      }
-    };
-
-    fetchEmployeeId();
-  }, [user?.id]);
-
-  // Fetch today's attendance record
-  useEffect(() => {
-    const fetchTodayAttendance = async () => {
-      if (!employeeId) return;
-
+    try {
       const today = format(new Date(), "yyyy-MM-dd");
+      const records = await api.get<TodayAttendance[]>(
+        `/attendance?employee_id=${employeeId}&date=${today}`
+      );
       
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .select("id, check_in, check_out, status, date")
-        .eq("employee_id", employeeId)
-        .eq("date", today)
-        .maybeSingle();
-
-      if (!error && data) {
-        setTodayRecord(data);
+      if (records && records.length > 0) {
+        setTodayRecord(records[0]);
       } else {
         setTodayRecord(null);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch attendance:", error);
+    }
+  }, [employeeId]);
 
+  // Fetch today's attendance record and poll for updates
+  useEffect(() => {
     fetchTodayAttendance();
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel("attendance-clock")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "attendance_records",
-        },
-        () => {
-          fetchTodayAttendance();
-        }
-      )
-      .subscribe();
+    // Poll every 30 seconds for updates (replaces realtime)
+    const interval = setInterval(fetchTodayAttendance, 30000);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [employeeId]);
+    return () => clearInterval(interval);
+  }, [fetchTodayAttendance]);
 
   const handleClockIn = async () => {
     if (!employeeId) {
@@ -99,41 +64,26 @@ export const ClockInOutButton = () => {
     const currentTime = format(new Date(), "HH:mm:ss");
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const { error } = await supabase.from("attendance_records").insert({
-      employee_id: employeeId,
-      date: today,
-      check_in: currentTime,
-      status: "present",
-    });
-
-    setLoading(false);
-
-    if (error) {
-      if (error.code === "23505") {
-        // Duplicate - record already exists: fetch it and show a helpful message.
-        const { data } = await supabase
-          .from("attendance_records")
-          .select("id, check_in, check_out, status, date")
-          .eq("employee_id", employeeId)
-          .eq("date", today)
-          .maybeSingle();
-
-        if (data) {
-          setTodayRecord(data);
-          toast.info(
-            data.check_out
-              ? "Already clocked out for today"
-              : "Already clocked in for today"
-          );
-        } else {
-          toast.info("Attendance already exists for today");
-        }
+    try {
+      await api.post("/attendance", {
+        employee_id: employeeId,
+        date: today,
+        check_in: currentTime,
+        status: "present",
+      });
+      
+      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+      fetchTodayAttendance();
+    } catch (error: any) {
+      if (error.message?.includes("Duplicate") || error.message?.includes("exists")) {
+        toast.info("Already clocked in for today");
+        fetchTodayAttendance();
       } else {
         toast.error("Failed to clock in");
         console.error(error);
       }
-    } else {
-      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,21 +102,19 @@ export const ClockInOutButton = () => {
         (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
     }
 
-    const { error } = await supabase
-      .from("attendance_records")
-      .update({
+    try {
+      await api.put(`/attendance/${todayRecord.id}`, {
         check_out: currentTime,
         work_hours: workHours,
-      })
-      .eq("id", todayRecord.id);
-
-    setLoading(false);
-
-    if (error) {
+      });
+      
+      toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
+      fetchTodayAttendance();
+    } catch (error) {
       toast.error("Failed to clock out");
       console.error(error);
-    } else {
-      toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
+    } finally {
+      setLoading(false);
     }
   };
 

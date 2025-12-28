@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import api from "@/lib/api";
 import type { Json } from "@/integrations/supabase/types";
 
 export interface SystemSetting {
@@ -17,13 +17,7 @@ export function useSystemSettings() {
   return useQuery({
     queryKey: ["system-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("*")
-        .order("category", { ascending: true });
-
-      if (error) throw error;
-      return data as SystemSetting[];
+      return api.get<SystemSetting[]>("/settings");
     },
   });
 }
@@ -32,14 +26,11 @@ export function useSystemSetting(key: string) {
   return useQuery({
     queryKey: ["system-setting", key],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("*")
-        .eq("key", key)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as SystemSetting | null;
+      try {
+        return await api.get<SystemSetting>(`/settings/${key}`);
+      } catch {
+        return null;
+      }
     },
   });
 }
@@ -49,12 +40,7 @@ export function useUpdateSystemSetting() {
 
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: Json }) => {
-      const { error } = await supabase
-        .from("system_settings")
-        .update({ value })
-        .eq("key", key);
-
-      if (error) throw error;
+      return api.put(`/settings/${key}`, { value });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["system-settings"] });

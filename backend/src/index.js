@@ -24,6 +24,8 @@ const holidayRoutes = require('./routes/holidays');
 const settingsRoutes = require('./routes/settings');
 const auditRoutes = require('./routes/audit');
 const dashboardRoutes = require('./routes/dashboard');
+const emailRoutes = require('./routes/email');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Initialize express app
 const app = express();
@@ -65,7 +67,7 @@ app.use('/api/holidays', holidayRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
+app.use('/api/email', emailRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', message: `Route ${req.method} ${req.path} not found` });
