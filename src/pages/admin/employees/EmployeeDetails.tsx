@@ -33,8 +33,8 @@ import { format } from "date-fns";
 export default function EmployeeDetails() {
   const { id } = useParams<{ id: string }>();
   const { data: employee, isLoading: employeeLoading } = useEmployee(id || "");
-  const { data: attendanceRecords = [] } = useEmployeeAttendance(id || "");
-  const { data: leaveRequests = [] } = useEmployeeLeaves(id || "");
+  const { data: attendanceRecords = [], isError: attendanceError } = useEmployeeAttendance(id || "");
+  const { data: leaveRequests = [], isError: leavesError } = useEmployeeLeaves(id || "");
 
   if (employeeLoading) {
     return (

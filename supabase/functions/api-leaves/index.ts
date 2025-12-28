@@ -359,6 +359,25 @@ serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // GET /requests/employee/:employeeId - Get specific employee's leave requests (admin/hr only)
+    const employeeRequestsMatch = path.match(/^\/requests\/employee\/([a-f0-9-]+)$/);
+    if (method === 'GET' && employeeRequestsMatch) {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin or HR access required', 403);
+      }
+
+      const employeeId = employeeRequestsMatch[1];
+
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select('*, leave_type:leave_types(*)')
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
     // GET /balances/:employeeId - Get specific employee's balances (admin/hr only)
     const balanceMatch = path.match(/^\/balances\/([a-f0-9-]+)$/);
     if (method === 'GET' && balanceMatch) {
@@ -376,7 +395,7 @@ serve(async (req) => {
         .eq('year', year);
 
       if (error) throw error;
-      return jsonResponse(data);
+      return jsonResponse(data || []);
     }
 
     return errorResponse('Not found', 404);
