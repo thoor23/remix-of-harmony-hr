@@ -35,7 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useShifts, useCreateShift, useUpdateShift, useDeleteShift, ShiftData } from "@/hooks/useShifts";
+import { useShifts, useCreateShift, useUpdateShift, useDeleteShift, ShiftData, useShiftAssignments } from "@/hooks/useShifts";
 import { toast } from "sonner";
 
 export default function ShiftList() {
@@ -54,9 +54,13 @@ export default function ShiftList() {
   });
 
   const { data: shifts = [], isLoading } = useShifts();
+  const { data: shiftAssignments = [] } = useShiftAssignments();
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
   const deleteShiftMutation = useDeleteShift();
+
+  // Calculate total assigned count from actual assignments
+  const totalAssignedCount = shiftAssignments.filter(a => a.is_active).length;
 
   const filteredShifts = shifts.filter(
     (shift) =>
@@ -204,7 +208,7 @@ export default function ShiftList() {
                 <Users className="h-6 w-6 text-orange-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{totalAssignedCount}</p>
                 <p className="text-sm text-muted-foreground">Total Assigned</p>
               </div>
             </div>
