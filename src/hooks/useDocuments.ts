@@ -1,8 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { useCurrentEmployee } from "./useCurrentEmployee";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+interface Document {
+  id: string;
+  name: string;
+  type: string;
+  employee_id: string | null;
+  file_url: string | null;
+  file_size: number | null;
+  folder_path: string | null;
+  document_category: string | null;
+  is_company_document: boolean;
+  uploaded_by: string | null;
+  created_at: string;
+  employee?: {
+    id: string;
+    employee_id: string;
+    user_id: string | null;
+  } | null;
+  profile?: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+}
 
 export function useMyDocuments() {
   const { data: employee } = useCurrentEmployee();
@@ -11,15 +36,7 @@ export function useMyDocuments() {
     queryKey: ["my-documents", employee?.id],
     queryFn: async () => {
       if (!employee?.id) return [];
-
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("employee_id", employee.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
+      return api.get<Document[]>(`/documents/employee/${employee.id}`);
     },
     enabled: !!employee?.id,
   });
@@ -29,44 +46,7 @@ export function useAllDocuments() {
   return useQuery({
     queryKey: ["all-documents"],
     queryFn: async () => {
-      // First fetch documents with employee info
-      const { data: documents, error } = await supabase
-        .from("documents")
-        .select(`
-          *,
-          employee:employees(
-            id,
-            employee_id,
-            user_id
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Get unique user_ids to fetch profiles
-      const userIds = [...new Set(documents
-        .filter(d => d.employee?.user_id)
-        .map(d => d.employee!.user_id)
-      )];
-
-      if (userIds.length === 0) {
-        return documents.map(d => ({ ...d, profile: null }));
-      }
-
-      // Fetch profiles separately
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, first_name, last_name")
-        .in("user_id", userIds);
-
-      // Map profiles to documents
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      
-      return documents.map(doc => ({
-        ...doc,
-        profile: doc.employee?.user_id ? profileMap.get(doc.employee.user_id) : null
-      }));
+      return api.get<Document[]>("/documents");
     },
   });
 }
@@ -75,14 +55,7 @@ export function useCompanyDocuments() {
   return useQuery({
     queryKey: ["company-documents"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("is_company_document", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
+      return api.get<Document[]>("/documents/company");
     },
   });
 }
@@ -104,46 +77,29 @@ export function useUploadFile() {
       employee_id?: string;
       is_company_document?: boolean;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", name);
+      formData.append("type", type);
+      if (employee_id) formData.append("employee_id", employee_id);
+      formData.append("is_company_document", String(is_company_document));
 
-      if (!userId) throw new Error("Not authenticated");
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/documents/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-      // Create unique file path
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("documents")
-        .getPublicUrl(filePath);
-
-      // Create document record
-      const { data, error } = await supabase
-        .from("documents")
-        .insert([{
-          name,
-          type,
-          employee_id,
-          file_url: filePath,
-          file_size: file.size,
-          uploaded_by: userId,
-          is_company_document,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const data = await response.json();
       await logAuditEvent("CREATE", "Documents", `Uploaded document: ${name}`, { document_id: data.id });
-
       return data;
     },
     onSuccess: () => {
@@ -162,17 +118,8 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, name, file_url }: { id: string; name: string; file_url?: string }) => {
-      // Delete from storage if file exists
-      if (file_url) {
-        await supabase.storage.from("documents").remove([file_url]);
-      }
-
-      // Delete record
-      const { error } = await supabase.from("documents").delete().eq("id", id);
-
-      if (error) throw error;
-
+    mutationFn: async ({ id, name }: { id: string; name: string; file_url?: string }) => {
+      await api.delete(`/documents/${id}`);
       await logAuditEvent("DELETE", "Documents", `Deleted document: ${name}`, { document_id: id });
     },
     onSuccess: () => {
@@ -188,18 +135,22 @@ export function useDeleteDocument() {
 }
 
 export function getDocumentDownloadUrl(filePath: string): string {
-  const { data } = supabase.storage.from("documents").getPublicUrl(filePath);
-  return data.publicUrl;
+  return `${API_URL}/documents/download/${encodeURIComponent(filePath)}`;
 }
 
 export async function downloadDocument(filePath: string, fileName: string) {
   try {
-    const { data, error } = await supabase.storage.from("documents").download(filePath);
+    const token = localStorage.getItem("access_token");
+    const response = await fetch(`${API_URL}/documents/download/${encodeURIComponent(filePath)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-    if (error) throw error;
+    if (!response.ok) throw new Error("Download failed");
 
-    // Create download link
-    const url = URL.createObjectURL(data);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;

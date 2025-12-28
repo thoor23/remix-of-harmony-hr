@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
@@ -65,21 +65,8 @@ export function useLetterTemplates(type?: LetterType) {
   return useQuery({
     queryKey: ["letter-templates", type],
     queryFn: async () => {
-      let query = supabase
-        .from("letter_templates")
-        .select("*")
-        .eq("is_active", true)
-        .order("is_default", { ascending: false })
-        .order("name");
-
-      if (type) {
-        query = query.eq("type", type);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as LetterTemplate[];
+      const url = type ? `/templates/letters?type=${type}` : "/templates/letters";
+      return api.get<LetterTemplate[]>(url);
     },
   });
 }
@@ -88,14 +75,7 @@ export function useLetterTemplate(id: string) {
   return useQuery({
     queryKey: ["letter-template", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("letter_templates")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as LetterTemplate;
+      return api.get<LetterTemplate>(`/templates/letters/${id}`);
     },
     enabled: !!id,
   });
@@ -118,30 +98,13 @@ export function useCreateLetterTemplate() {
       placeholders?: string[];
       is_default?: boolean;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      // If setting as default, unset other defaults of same type
-      if (is_default) {
-        await supabase
-          .from("letter_templates")
-          .update({ is_default: false })
-          .eq("type", type);
-      }
-
-      const { data, error } = await supabase
-        .from("letter_templates")
-        .insert([{
-          name,
-          type,
-          content,
-          placeholders,
-          is_default,
-          created_by: userData.user?.id,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.post<LetterTemplate>("/templates/letters", {
+        name,
+        type,
+        content,
+        placeholders,
+        is_default,
+      });
 
       await logAuditEvent("CREATE", "Letter Templates", `Created template: ${name}`, { template_id: data.id });
 
@@ -178,30 +141,14 @@ export function useUpdateLetterTemplate() {
       is_default?: boolean;
       is_active?: boolean;
     }) => {
-      // If setting as default, unset other defaults of same type
-      if (is_default && type) {
-        await supabase
-          .from("letter_templates")
-          .update({ is_default: false })
-          .eq("type", type);
-      }
-
-      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-      if (name !== undefined) updateData.name = name;
-      if (type !== undefined) updateData.type = type;
-      if (content !== undefined) updateData.content = content;
-      if (placeholders !== undefined) updateData.placeholders = placeholders;
-      if (is_default !== undefined) updateData.is_default = is_default;
-      if (is_active !== undefined) updateData.is_active = is_active;
-
-      const { data, error } = await supabase
-        .from("letter_templates")
-        .update(updateData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.patch<LetterTemplate>(`/templates/letters/${id}`, {
+        name,
+        type,
+        content,
+        placeholders,
+        is_default,
+        is_active,
+      });
 
       await logAuditEvent("UPDATE", "Letter Templates", `Updated template: ${data.name}`, { template_id: id });
 
@@ -223,13 +170,7 @@ export function useDeleteLetterTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase
-        .from("letter_templates")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
+      await api.delete(`/templates/letters/${id}`);
       await logAuditEvent("DELETE", "Letter Templates", `Deleted template: ${name}`, { template_id: id });
     },
     onSuccess: () => {

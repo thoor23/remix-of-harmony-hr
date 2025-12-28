@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
@@ -89,21 +89,8 @@ export function useEmailTemplates(type?: EmailTemplateType) {
   return useQuery({
     queryKey: ["email-templates", type],
     queryFn: async () => {
-      let query = supabase
-        .from("email_templates")
-        .select("*")
-        .eq("is_active", true)
-        .order("is_default", { ascending: false })
-        .order("name");
-
-      if (type) {
-        query = query.eq("type", type);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as EmailTemplate[];
+      const url = type ? `/templates/emails?type=${type}` : "/templates/emails";
+      return api.get<EmailTemplate[]>(url);
     },
   });
 }
@@ -112,14 +99,7 @@ export function useEmailTemplate(id: string) {
   return useQuery({
     queryKey: ["email-template", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("email_templates")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as EmailTemplate;
+      return api.get<EmailTemplate>(`/templates/emails/${id}`);
     },
     enabled: !!id,
   });
@@ -129,31 +109,7 @@ export function useEmailTemplateByType(type: EmailTemplateType) {
   return useQuery({
     queryKey: ["email-template-by-type", type],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("email_templates")
-        .select("*")
-        .eq("type", type)
-        .eq("is_active", true)
-        .eq("is_default", true)
-        .maybeSingle();
-
-      if (error) throw error;
-      
-      // If no default, get any active template of this type
-      if (!data) {
-        const { data: fallback, error: fallbackError } = await supabase
-          .from("email_templates")
-          .select("*")
-          .eq("type", type)
-          .eq("is_active", true)
-          .limit(1)
-          .maybeSingle();
-        
-        if (fallbackError) throw fallbackError;
-        return fallback as EmailTemplate | null;
-      }
-      
-      return data as EmailTemplate;
+      return api.get<EmailTemplate | null>(`/templates/emails/by-type/${type}`);
     },
     enabled: !!type,
   });
@@ -178,31 +134,14 @@ export function useCreateEmailTemplate() {
       placeholders?: string[];
       is_default?: boolean;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      // If setting as default, unset other defaults of same type
-      if (is_default) {
-        await supabase
-          .from("email_templates")
-          .update({ is_default: false })
-          .eq("type", type);
-      }
-
-      const { data, error } = await supabase
-        .from("email_templates")
-        .insert([{
-          name,
-          type,
-          subject,
-          content,
-          placeholders,
-          is_default,
-          created_by: userData.user?.id,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.post<EmailTemplate>("/templates/emails", {
+        name,
+        type,
+        subject,
+        content,
+        placeholders,
+        is_default,
+      });
 
       await logAuditEvent("CREATE", "Email Templates", `Created template: ${name}`, { template_id: data.id });
 
@@ -241,31 +180,15 @@ export function useUpdateEmailTemplate() {
       is_default?: boolean;
       is_active?: boolean;
     }) => {
-      // If setting as default, unset other defaults of same type
-      if (is_default && type) {
-        await supabase
-          .from("email_templates")
-          .update({ is_default: false })
-          .eq("type", type);
-      }
-
-      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
-      if (name !== undefined) updateData.name = name;
-      if (type !== undefined) updateData.type = type;
-      if (subject !== undefined) updateData.subject = subject;
-      if (content !== undefined) updateData.content = content;
-      if (placeholders !== undefined) updateData.placeholders = placeholders;
-      if (is_default !== undefined) updateData.is_default = is_default;
-      if (is_active !== undefined) updateData.is_active = is_active;
-
-      const { data, error } = await supabase
-        .from("email_templates")
-        .update(updateData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.patch<EmailTemplate>(`/templates/emails/${id}`, {
+        name,
+        type,
+        subject,
+        content,
+        placeholders,
+        is_default,
+        is_active,
+      });
 
       await logAuditEvent("UPDATE", "Email Templates", `Updated template: ${data.name}`, { template_id: id });
 
@@ -288,13 +211,7 @@ export function useDeleteEmailTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase
-        .from("email_templates")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
+      await api.delete(`/templates/emails/${id}`);
       await logAuditEvent("DELETE", "Email Templates", `Deleted template: ${name}`, { template_id: id });
     },
     onSuccess: () => {

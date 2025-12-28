@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 import type { LetterType } from "./useLetterTemplates";
-import type { Json } from "@/integrations/supabase/types";
 
 export interface GeneratedLetter {
   id: string;
@@ -31,19 +30,10 @@ export function useGeneratedLetters(employeeId?: string) {
   return useQuery({
     queryKey: ["generated-letters", employeeId],
     queryFn: async () => {
-      let query = supabase
-        .from("generated_letters")
-        .select("*")
-        .order("generated_at", { ascending: false });
-
-      if (employeeId) {
-        query = query.eq("employee_id", employeeId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as GeneratedLetter[];
+      const url = employeeId 
+        ? `/templates/generated-letters?employeeId=${employeeId}` 
+        : "/templates/generated-letters";
+      return api.get<GeneratedLetter[]>(url);
     },
   });
 }
@@ -65,45 +55,13 @@ export function useGenerateLetter() {
       content: string;
       metadata?: Record<string, unknown>;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      // Save the generated letter
-      const { data, error } = await supabase
-        .from("generated_letters")
-        .insert([{
-          employee_id,
-          template_id,
-          type,
-          content,
-          metadata: metadata as Json,
-          generated_by: userData.user?.id,
-          status: "generated",
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Also save to documents table for the employee
-      const letterTypeNames: Record<string, string> = {
-        offer: "Offer Letter",
-        experience: "Experience Certificate",
-        relieving: "Relieving Letter",
-        increment: "Increment Letter",
-      };
-
-      const { error: docError } = await supabase
-        .from("documents")
-        .insert([{
-          name: `${letterTypeNames[type] || type} - ${new Date().toLocaleDateString()}`,
-          type: "generated_letter",
-          employee_id,
-          document_category: "generated_letter",
-          folder_path: `letters/${type}`,
-          uploaded_by: userData.user?.id,
-        }]);
-
-      if (docError) console.error("Failed to save document reference:", docError);
+      const data = await api.post<GeneratedLetter>("/templates/generated-letters", {
+        employee_id,
+        template_id,
+        type,
+        content,
+        metadata,
+      });
 
       await logAuditEvent(
         "CREATE",
@@ -131,13 +89,7 @@ export function useDeleteGeneratedLetter() {
 
   return useMutation({
     mutationFn: async ({ id, type }: { id: string; type: string }) => {
-      const { error } = await supabase
-        .from("generated_letters")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
+      await api.delete(`/templates/generated-letters/${id}`);
       await logAuditEvent("DELETE", "Generated Letters", `Deleted ${type} letter`, { letter_id: id });
     },
     onSuccess: () => {

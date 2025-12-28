@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
@@ -21,16 +21,7 @@ export function useDesignationsData() {
   return useQuery({
     queryKey: ["designations-data"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("designations")
-        .select(`
-          *,
-          department:departments(id, name)
-        `)
-        .order("name");
-
-      if (error) throw error;
-      return data as Designation[];
+      return api.get<Designation[]>("/designations");
     },
   });
 }
@@ -50,16 +41,8 @@ export function useCreateDesignation() {
       level?: number;
       department_id?: string;
     }) => {
-      const { data, error } = await supabase
-        .from("designations")
-        .insert({ name, code, level, department_id })
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const data = await api.post<Designation>("/designations", { name, code, level, department_id });
       await logAuditEvent("CREATE", "Designations", `Created designation: ${name}`, { designation_id: data.id });
-
       return data;
     },
     onSuccess: () => {
@@ -90,17 +73,8 @@ export function useUpdateDesignation() {
       level?: number;
       department_id?: string;
     }) => {
-      const { data, error } = await supabase
-        .from("designations")
-        .update({ name, code, level, department_id, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const data = await api.patch<Designation>(`/designations/${id}`, { name, code, level, department_id });
       await logAuditEvent("UPDATE", "Designations", `Updated designation: ${name}`, { designation_id: id });
-
       return data;
     },
     onSuccess: () => {
@@ -119,10 +93,7 @@ export function useDeleteDesignation() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("designations").delete().eq("id", id);
-
-      if (error) throw error;
-
+      await api.delete(`/designations/${id}`);
       await logAuditEvent("DELETE", "Designations", `Deleted designation: ${name}`, { designation_id: id });
     },
     onSuccess: () => {
