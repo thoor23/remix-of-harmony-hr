@@ -37,6 +37,7 @@ import {
   Eye,
   ClipboardCheck,
   FileCheck,
+  ClipboardEdit,
   BookOpen,
   List,
   UserCog,
@@ -87,6 +88,7 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "All Employees", href: "/admin/employees", icon: Users2 },
       { title: "Add Employee", href: "/admin/employees/new", icon: UserPlus },
+      { title: "Profile Requests", href: "/admin/employees/change-requests", icon: ClipboardCheck },
     ],
   },
   {
@@ -94,6 +96,7 @@ const adminNavItems: NavItem[] = [
     icon: CalendarDays,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: Eye },
+      { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardEdit },
       { title: "Policy & Rules", href: "/admin/attendance/policy", icon: BookOpen },
     ],
   },
