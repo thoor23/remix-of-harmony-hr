@@ -158,9 +158,8 @@ export default function ShiftAssignments() {
   const getEmployeeNameById = (empId: string) => {
     const emp = employees.find(e => e.id === empId);
     if (!emp) return empId;
-    const profile = emp.profile;
-    if (!profile) return emp.employee_id;
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || emp.employee_id;
+    if (!emp.first_name && !emp.last_name) return emp.employee_id;
+    return `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || emp.employee_id;
   };
 
   if (isLoading) {

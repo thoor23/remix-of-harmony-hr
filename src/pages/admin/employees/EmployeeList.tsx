@@ -56,9 +56,9 @@ export default function EmployeeList() {
   const deleteEmployee = useDeleteEmployee();
 
   const filteredEmployees = employees.filter((emp) => {
-    const firstName = emp.profile?.first_name || "";
-    const lastName = emp.profile?.last_name || "";
-    const email = emp.profile?.email || "";
+    const firstName = emp.first_name || "";
+    const lastName = emp.last_name || "";
+    const email = emp.email || "";
     const employeeId = emp.employee_id || "";
 
     const matchesSearch =
@@ -99,14 +99,14 @@ export default function EmployeeList() {
   };
 
   const getInitials = (employee: EmployeeWithDetails) => {
-    const first = employee.profile?.first_name?.[0] || "";
-    const last = employee.profile?.last_name?.[0] || "";
+    const first = employee.first_name?.[0] || "";
+    const last = employee.last_name?.[0] || "";
     return (first + last).toUpperCase() || "??";
   };
 
   const getFullName = (employee: EmployeeWithDetails) => {
-    const first = employee.profile?.first_name || "";
-    const last = employee.profile?.last_name || "";
+    const first = employee.first_name || "";
+    const last = employee.last_name || "";
     return `${first} ${last}`.trim() || "Unknown";
   };
 
@@ -206,13 +206,13 @@ export default function EmployeeList() {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={employee.profile?.avatar_url || undefined} />
+                      <AvatarImage src={employee.avatar_url || undefined} />
                       <AvatarFallback>{getInitials(employee)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">{getFullName(employee)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {employee.profile?.email || "No email"}
+                        {employee.email || "No email"}
                       </p>
                     </div>
                   </div>

@@ -15,6 +15,19 @@ export interface EmployeeWithDetails {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  reporting_to: string | null;
+  address_street: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip_code: string | null;
+  address_country: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_phone: string | null;
+  bank_name: string | null;
+  bank_account_holder_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc_code: string | null;
   department: {
     id: string;
     name: string;

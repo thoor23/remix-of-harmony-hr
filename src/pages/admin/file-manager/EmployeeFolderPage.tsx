@@ -91,7 +91,7 @@ export default function EmployeeFolderPage() {
   const employeeDocuments = allDocuments.filter((doc) => doc.employee_id === employeeId);
 
   const fullName = employee
-    ? `${employee.profile?.first_name || ""} ${employee.profile?.last_name || ""}`.trim()
+    ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim()
     : "Employee";
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

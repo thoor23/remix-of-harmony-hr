@@ -73,12 +73,12 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
 
     const data: Record<string, string> = {
       // Employee data
-      employee_name: employee ? `${employee.profile?.first_name || ""} ${employee.profile?.last_name || ""}`.trim() : "",
+      employee_name: employee ? `${employee.first_name || ""} ${employee.last_name || ""}`.trim() : "",
       employee_id: employee?.employee_id || "",
       designation: employee?.designation?.name || "",
       department: employee?.department?.name || "",
       date_of_joining: employee?.date_of_joining ? format(new Date(employee.date_of_joining), "MMMM d, yyyy") : "",
-      email: employee?.profile?.email || "",
+      email: employee?.email || "",
       // Company data
       company_logo: companyLogoHtml,
       company_name: branding?.companyName || "Your Company Name",
@@ -169,7 +169,7 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
                     <SelectContent>
                       {employees.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>
-                          {emp.profile?.first_name} {emp.profile?.last_name} ({emp.employee_id})
+                          {emp.first_name} {emp.last_name} ({emp.employee_id})
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -124,8 +124,8 @@ export default function ShiftExchange() {
   const employeesWithShifts = employees.map((emp) => {
     const assignment = getEmployeeAssignment(emp.id);
     const shift = assignment ? getShift(assignment.shift_id) : null;
-    const name = emp.profile?.first_name || emp.profile?.last_name
-      ? `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim()
+    const name = emp.first_name || emp.last_name
+      ? `${emp.first_name || ""} ${emp.last_name || ""}`.trim()
       : emp.employee_id;
     return {
       id: emp.id,

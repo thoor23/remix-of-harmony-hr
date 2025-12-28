@@ -59,15 +59,15 @@ export default function LeaveManagement() {
   };
 
   const getEmployeeName = (request: LeaveRequestWithDetails) => {
-    const profile = request.employee?.profile;
-    if (!profile) return "Unknown";
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+    const emp = request.employee;
+    if (!emp) return "Unknown";
+    return `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Unknown";
   };
 
   const getEmployeeInitials = (request: LeaveRequestWithDetails) => {
-    const profile = request.employee?.profile;
-    if (!profile) return "??";
-    return `${profile.first_name?.[0] || ""}${profile.last_name?.[0] || ""}`.toUpperCase() || "??";
+    const emp = request.employee;
+    if (!emp) return "??";
+    return `${emp.first_name?.[0] || ""}${emp.last_name?.[0] || ""}`.toUpperCase() || "??";
   };
 
   const renderRequestTable = (requests: LeaveRequestWithDetails[], showActions = false) => (
@@ -90,7 +90,7 @@ export default function LeaveManagement() {
             <TableCell>
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={request.employee?.profile?.avatar_url || undefined} />
+                  <AvatarImage src={request.employee?.avatar_url || undefined} />
                   <AvatarFallback>{getEmployeeInitials(request)}</AvatarFallback>
                 </Avatar>
                 <span className="font-medium">{getEmployeeName(request)}</span>
@@ -280,7 +280,7 @@ export default function LeaveManagement() {
             <div className="py-4 space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src={selectedRequest.employee?.profile?.avatar_url || undefined} />
+                  <AvatarImage src={selectedRequest.employee?.avatar_url || undefined} />
                   <AvatarFallback>{getEmployeeInitials(selectedRequest)}</AvatarFallback>
                 </Avatar>
                 <div>

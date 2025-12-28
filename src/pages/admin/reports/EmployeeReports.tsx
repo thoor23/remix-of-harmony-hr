@@ -62,7 +62,7 @@ export default function EmployeeReports() {
     headers: ["Employee ID", "Name", "Department", "Designation", "Join Date", "Status"],
     rows: filteredEmployees.map((emp: any) => [
       emp.employee_id,
-      emp.profile ? `${emp.profile.first_name || ""} ${emp.profile.last_name || ""}`.trim() : "N/A",
+      `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "N/A",
       emp.department?.name || "Unassigned",
       emp.designation?.name || "N/A",
       emp.date_of_joining,
@@ -133,9 +133,7 @@ export default function EmployeeReports() {
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.employee_id}</TableCell>
                   <TableCell>
-                    {employee.profile
-                      ? `${employee.profile.first_name || ""} ${employee.profile.last_name || ""}`.trim()
-                      : "N/A"}
+                    {`${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "N/A"}
                   </TableCell>
                   <TableCell>{employee.department?.name || "Unassigned"}</TableCell>
                   <TableCell>{employee.designation?.name || "N/A"}</TableCell>

@@ -64,8 +64,8 @@ export default function EmployeeDetails() {
     );
   }
 
-  const firstName = employee.profile?.first_name || "Unknown";
-  const lastName = employee.profile?.last_name || "";
+  const firstName = employee.first_name || "Unknown";
+  const lastName = employee.last_name || "";
   const fullName = `${firstName} ${lastName}`.trim();
   const initials = `${firstName[0] || ""}${lastName[0] || ""}`;
 
@@ -85,7 +85,7 @@ export default function EmployeeDetails() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={employee.profile?.avatar_url || ""} />
+              <AvatarImage src={employee.avatar_url || ""} />
               <AvatarFallback className="text-2xl">
                 {initials}
               </AvatarFallback>
@@ -113,11 +113,11 @@ export default function EmployeeDetails() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{employee.profile?.email || "No email"}</span>
+                  <span>{employee.email || "No email"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{employee.profile?.phone || "No phone"}</span>
+                  <span>{employee.phone || "No phone"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -172,7 +172,7 @@ export default function EmployeeDetails() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{employee.profile?.phone || "-"}</p>
+                    <p className="font-medium">{employee.phone || "-"}</p>
                   </div>
                 </div>
                 <div>

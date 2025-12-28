@@ -57,14 +57,14 @@ export default function PayslipsList() {
   // Generate display data - show employees with their payslips if available
   const allPayslips = employees.map((emp) => {
     const existing = payslips.find((p) => p.employee_id === emp.id);
-    const employeeName = `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim() || "Unknown";
+    const employeeName = `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "Unknown";
     
     return existing || {
       id: `temp-${emp.id}`,
       employee_id: emp.id,
       employeeName,
       employeeCode: emp.employee_id,
-      avatar: emp.profile?.avatar_url,
+      avatar: emp.avatar_url,
       pay_period: format(currentDate, "MMMM yyyy"),
       pay_date: new Date().toISOString(),
       basic_salary: 0,
@@ -203,7 +203,7 @@ export default function PayslipsList() {
               {allPayslips.length > 0 ? allPayslips.map((payslip) => {
                 const emp = employees.find((e) => e.id === payslip.employee_id);
                 const employeeName = emp 
-                  ? `${emp.profile?.first_name || ""} ${emp.profile?.last_name || ""}`.trim() 
+                  ? `${emp.first_name || ""} ${emp.last_name || ""}`.trim() 
                   : "Unknown";
                 
                 return (
@@ -211,10 +211,10 @@ export default function PayslipsList() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={emp?.profile?.avatar_url || ""} />
+                          <AvatarImage src={emp?.avatar_url || ""} />
                           <AvatarFallback>
-                            {emp?.profile?.first_name?.[0] || ""}
-                            {emp?.profile?.last_name?.[0] || ""}
+                            {emp?.first_name?.[0] || ""}
+                            {emp?.last_name?.[0] || ""}
                           </AvatarFallback>
                         </Avatar>
                         <div>

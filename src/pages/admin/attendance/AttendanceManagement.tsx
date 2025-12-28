@@ -200,15 +200,15 @@ export default function AttendanceManagement() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={emp.profile?.avatar_url || ""} />
+                            <AvatarImage src={emp.avatar_url || ""} />
                             <AvatarFallback>
-                              {emp.profile?.first_name?.[0] || ""}
-                              {emp.profile?.last_name?.[0] || ""}
+                              {emp.first_name?.[0] || ""}
+                              {emp.last_name?.[0] || ""}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">
-                              {emp.profile?.first_name} {emp.profile?.last_name}
+                              {emp.first_name} {emp.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {emp.employee_id}

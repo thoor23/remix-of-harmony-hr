@@ -26,14 +26,12 @@ export interface LeaveRequestWithDetails {
     id: string;
     employee_id: string;
     user_id: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
     department: {
       id: string;
       name: string;
-    } | null;
-    profile?: {
-      first_name: string | null;
-      last_name: string | null;
-      avatar_url: string | null;
     } | null;
   } | null;
 }
