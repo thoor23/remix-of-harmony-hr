@@ -52,9 +52,9 @@ serve(async (req) => {
           profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone, avatar_url)
         `)
         .eq('user_id', auth.userId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return jsonResponse(data);
     }
 

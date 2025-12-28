@@ -77,6 +77,28 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // GET /requests/pending - Get pending leave requests (for dashboard)
+    if (method === 'GET' && path === '/requests/pending') {
+      const limit = parseInt(url.searchParams.get('limit') || '10');
+      
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          leave_type:leave_types(*),
+          employee:employees(
+            id, employee_id,
+            profile:profiles!employees_user_id_fkey(first_name, last_name)
+          )
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
     // GET / - Get all leave requests (admin/hr only)
     if (method === 'GET' && path === '') {
       if (!isAdminOrHR) {
