@@ -27,7 +27,6 @@ interface TestEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -80,7 +79,6 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     if (config.provider === "resend") {
-      // Send via Resend API
       if (!config.resendApiKey) {
         throw new Error("Resend API key is not configured");
       }
@@ -120,82 +118,70 @@ const handler = async (req: Request): Promise<Response> => {
       );
 
     } else {
-      // Send via SMTP using nodemailer-like approach with Deno
+      // Send via SMTP using Gmail API for Gmail, or generic SMTP
       if (!config.smtpHost || !config.smtpUser || !config.smtpPassword) {
         throw new Error("SMTP configuration is incomplete");
       }
 
-      // Use a simple SMTP implementation via external API
-      // For production, you might want to use a more robust solution
-      const fromAddress = config.smtpFromName 
-        ? `${config.smtpFromName} <${config.smtpFromEmail || config.smtpUser}>`
-        : config.smtpFromEmail || config.smtpUser;
+      const fromEmail = config.smtpFromEmail || config.smtpUser;
+      const fromName = config.smtpFromName || "Full Circle HRMS";
 
-      // Create base64 encoded credentials
-      const credentials = btoa(`${config.smtpUser}:${config.smtpPassword}`);
-      
-      // For Gmail SMTP, we'll use a direct TCP connection approach
-      // This is a simplified version - in production you might want to use a library
-      
-      console.log("SMTP Configuration:", {
-        host: config.smtpHost,
-        port: config.smtpPort,
-        user: config.smtpUser,
-        secure: config.smtpSecure
-      });
-
-      // Since Deno's SMTP libraries can be unreliable, we'll use a workaround
-      // by calling an external email sending service or implementing basic SMTP
-      
-      // For now, let's try using the Gmail API approach if it's Gmail
+      // For Gmail, use Gmail's SMTP relay via their API
       if (config.smtpHost.includes("gmail")) {
-        // Use Gmail's API through SMTP relay simulation
-        const gmailApiUrl = "https://smtp.gmail.com";
+        // Use nodemailer-compatible approach via external service
+        // Since Deno doesn't have native nodemailer, we'll use a REST-based approach
         
-        // This is a placeholder - in a real implementation, you'd use proper SMTP
-        // For demonstration, we'll simulate success
-        console.log("Attempting SMTP send via:", config.smtpHost);
+        // Create the email in RFC 2822 format
+        const boundary = "----=_Part_" + Math.random().toString(36).substr(2);
+        const emailContent = [
+          `From: ${fromName} <${fromEmail}>`,
+          `To: ${recipientEmail}`,
+          `Subject: ${testSubject}`,
+          `MIME-Version: 1.0`,
+          `Content-Type: multipart/alternative; boundary="${boundary}"`,
+          ``,
+          `--${boundary}`,
+          `Content-Type: text/plain; charset=UTF-8`,
+          ``,
+          `This is a test email from Full Circle HRMS. Your email configuration is working correctly!`,
+          ``,
+          `--${boundary}`,
+          `Content-Type: text/html; charset=UTF-8`,
+          ``,
+          testHtml,
+          ``,
+          `--${boundary}--`
+        ].join("\r\n");
+
+        // Base64 encode for Gmail API (URL-safe base64)
+        const encodedEmail = btoa(emailContent)
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+
+        console.log("Attempting to send via Gmail SMTP...");
+        console.log("SMTP Config:", { host: config.smtpHost, port: config.smtpPort, user: config.smtpUser });
+
+        // Use SMTP2GO or similar service as relay, or implement basic SMTP
+        // For now, let's try using a simple HTTP-based email service approach
         
-        // Try a basic SMTP connection using Deno's TCP
-        try {
-          const conn = await Deno.connect({
-            hostname: config.smtpHost,
-            port: config.smtpPort,
-          });
-          
-          const encoder = new TextEncoder();
-          const decoder = new TextDecoder();
-          
-          // Read greeting
-          const buffer = new Uint8Array(1024);
-          await conn.read(buffer);
-          console.log("SMTP Greeting:", decoder.decode(buffer));
-          
-          // Send EHLO
-          await conn.write(encoder.encode("EHLO localhost\r\n"));
-          await conn.read(buffer);
-          
-          // Send STARTTLS
-          await conn.write(encoder.encode("STARTTLS\r\n"));
-          await conn.read(buffer);
-          
-          conn.close();
-          
+        // Alternative: Use Mailgun-compatible SMTP or direct SMTP with TLS
+        const smtpResult = await sendViaSMTP(config, recipientEmail, testSubject, testHtml, fromEmail, fromName);
+        
+        if (smtpResult.success) {
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: "SMTP connection successful. Note: Full SMTP implementation requires TLS negotiation." 
+              message: "Test email sent successfully via SMTP" 
             }),
             { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
-        } catch (smtpError: any) {
-          console.error("SMTP connection error:", smtpError);
-          throw new Error(`SMTP connection failed: ${smtpError.message}. Please verify your SMTP settings and App Password.`);
+        } else {
+          throw new Error(smtpResult.error || "Failed to send via SMTP");
         }
       }
 
-      // For non-Gmail SMTP servers
-      throw new Error("SMTP sending is currently only supported for Gmail. Please use Resend API for other providers.");
+      throw new Error("SMTP provider not fully supported. Please use Resend API for reliable email delivery, or ensure your SMTP settings are correct.");
     }
 
   } catch (error: any) {
@@ -209,5 +195,157 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
+
+// Basic SMTP implementation using Deno's TCP with STARTTLS
+async function sendViaSMTP(
+  config: EmailConfig,
+  to: string,
+  subject: string,
+  htmlBody: string,
+  fromEmail: string,
+  fromName: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    
+    console.log(`Connecting to ${config.smtpHost}:${config.smtpPort}...`);
+    
+    // Connect to SMTP server
+    const tcpConn = await Deno.connect({
+      hostname: config.smtpHost,
+      port: config.smtpPort,
+    });
+    
+    // Use a union type for the connection
+    let conn: Deno.TcpConn | Deno.TlsConn = tcpConn;
+
+    const readResponse = async (): Promise<string> => {
+      const buffer = new Uint8Array(4096);
+      const n = await conn.read(buffer);
+      if (n === null) return "";
+      return decoder.decode(buffer.subarray(0, n)).trim();
+    };
+
+    const sendCommand = async (cmd: string): Promise<string> => {
+      console.log(`> ${cmd.startsWith("AUTH") ? "AUTH ***" : cmd}`);
+      await conn.write(encoder.encode(cmd + "\r\n"));
+      const response = await readResponse();
+      console.log(`< ${response.substring(0, 100)}`);
+      return response;
+    };
+
+    // Read greeting
+    let response = await readResponse();
+    console.log("Greeting:", response.substring(0, 100));
+    
+    if (!response.startsWith("220")) {
+      throw new Error("Invalid SMTP greeting: " + response);
+    }
+
+    // EHLO
+    response = await sendCommand(`EHLO localhost`);
+    if (!response.includes("250")) {
+      throw new Error("EHLO failed: " + response);
+    }
+
+    // STARTTLS
+    response = await sendCommand("STARTTLS");
+    if (!response.startsWith("220")) {
+      throw new Error("STARTTLS failed: " + response);
+    }
+
+    // Upgrade to TLS - need to cast for type compatibility
+    const tlsConn = await Deno.startTls(tcpConn, { hostname: config.smtpHost });
+    conn = tlsConn;
+    console.log("TLS connection established");
+
+    // EHLO again after TLS
+    response = await sendCommand(`EHLO localhost`);
+    if (!response.includes("250")) {
+      throw new Error("EHLO after TLS failed: " + response);
+    }
+
+    // AUTH LOGIN
+    response = await sendCommand("AUTH LOGIN");
+    if (!response.startsWith("334")) {
+      throw new Error("AUTH LOGIN failed: " + response);
+    }
+
+    // Send username (base64)
+    response = await sendCommand(btoa(config.smtpUser));
+    if (!response.startsWith("334")) {
+      throw new Error("Username rejected: " + response);
+    }
+
+    // Send password (base64)
+    response = await sendCommand(btoa(config.smtpPassword));
+    if (!response.startsWith("235")) {
+      throw new Error("Authentication failed: " + response);
+    }
+
+    console.log("Authentication successful!");
+
+    // MAIL FROM
+    response = await sendCommand(`MAIL FROM:<${fromEmail}>`);
+    if (!response.startsWith("250")) {
+      throw new Error("MAIL FROM failed: " + response);
+    }
+
+    // RCPT TO
+    response = await sendCommand(`RCPT TO:<${to}>`);
+    if (!response.startsWith("250")) {
+      throw new Error("RCPT TO failed: " + response);
+    }
+
+    // DATA
+    response = await sendCommand("DATA");
+    if (!response.startsWith("354")) {
+      throw new Error("DATA command failed: " + response);
+    }
+
+    // Send email content
+    const boundary = "----=_Part_" + Math.random().toString(36).substr(2);
+    const emailData = [
+      `From: ${fromName} <${fromEmail}>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/plain; charset=UTF-8`,
+      ``,
+      `This is a test email from Full Circle HRMS.`,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/html; charset=UTF-8`,
+      ``,
+      htmlBody,
+      ``,
+      `--${boundary}--`,
+      `.`
+    ].join("\r\n");
+
+    await conn.write(encoder.encode(emailData + "\r\n"));
+    response = await readResponse();
+    console.log("DATA response:", response);
+    
+    if (!response.startsWith("250")) {
+      throw new Error("Email sending failed: " + response);
+    }
+
+    // QUIT
+    await sendCommand("QUIT");
+    conn.close();
+
+    console.log("Email sent successfully!");
+    return { success: true };
+
+  } catch (error: any) {
+    console.error("SMTP Error:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 serve(handler);
