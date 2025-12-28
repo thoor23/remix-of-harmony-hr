@@ -1,9 +1,9 @@
 /**
- * API Client for Node.js Backend
- * Replaces Supabase client calls with REST API calls
+ * API Client for Edge Functions Backend
+ * Calls Supabase Edge Functions for all operations
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // Token management
 const getAccessToken = () => localStorage.getItem('access_token');
@@ -16,6 +16,21 @@ const clearTokens = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
 };
+
+// Map endpoint to edge function name
+function getEdgeFunctionUrl(endpoint: string): string {
+  // Remove leading slash
+  const path = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const parts = path.split('/');
+  const resource = parts[0];
+  const subPath = parts.slice(1).join('/');
+  
+  // Map resource to edge function
+  const functionName = `api-${resource}`;
+  const fullPath = subPath ? `/${subPath}` : '';
+  
+  return `${SUPABASE_URL}/functions/v1/${functionName}${fullPath}`;
+}
 
 // Request helper with auth
 async function request<T>(
@@ -33,7 +48,10 @@ async function request<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
   
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = getEdgeFunctionUrl(endpoint);
+  console.log(`[API] ${options.method || 'GET'} ${url}`);
+  
+  const response = await fetch(url, {
     ...options,
     headers,
   });
@@ -42,9 +60,8 @@ async function request<T>(
   if (response.status === 401 && getRefreshToken()) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      // Retry request with new token
       (headers as Record<string, string>)['Authorization'] = `Bearer ${getAccessToken()}`;
-      const retryResponse = await fetch(`${API_URL}${endpoint}`, {
+      const retryResponse = await fetch(url, {
         ...options,
         headers,
       });
@@ -69,7 +86,7 @@ async function refreshAccessToken(): Promise<boolean> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) return false;
     
-    const response = await fetch(`${API_URL}/auth/refresh`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -91,49 +108,56 @@ async function refreshAccessToken(): Promise<boolean> {
 
 // API methods
 export const api = {
-  // GET request
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
-  
-  // POST request
   post: <T>(endpoint: string, data?: unknown) => 
     request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     }),
-  
-  // PUT request
   put: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  
-  // PATCH request
   patch: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
-  
-  // DELETE request
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
 };
 
 // Auth-specific methods
 export const authApi = {
   login: async (email: string, password: string) => {
-    const data = await api.post<{
-      user: { id: string; email: string; role: string; profile: any; employeeId?: string };
-      session: { access_token: string; refresh_token: string };
-    }>('/auth/login', { email, password });
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
     
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
+    }
+    
+    const data = await response.json();
     setTokens(data.session.access_token, data.session.refresh_token);
     return data;
   },
   
   logout: async () => {
     try {
-      await api.post('/auth/logout');
+      const token = getAccessToken();
+      if (token) {
+        await fetch(`${SUPABASE_URL}/functions/v1/api-auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      }
     } finally {
       clearTokens();
     }
@@ -141,27 +165,22 @@ export const authApi = {
   
   getMe: () => api.get<{
     user: { id: string; email: string; role: string };
-    profile: any;
-    employee: any;
+    profile: Record<string, unknown>;
+    employee: Record<string, unknown>;
   }>('/auth/me'),
   
   register: (email: string, password: string, firstName?: string, lastName?: string, role?: string) =>
     api.post('/auth/register', { email, password, firstName, lastName, role }),
   
   refresh: refreshAccessToken,
-  
   isAuthenticated: () => !!getAccessToken(),
-  
   getTokens: () => ({
     accessToken: getAccessToken(),
     refreshToken: getRefreshToken(),
   }),
-  
   clearTokens,
   setTokens,
 };
 
-// Export token helpers for AuthContext
 export { getAccessToken, getRefreshToken, setTokens, clearTokens };
-
 export default api;
