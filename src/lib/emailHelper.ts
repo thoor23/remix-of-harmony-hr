@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 
 export type EmailNotificationType = 
   | "leave_request_new" 
@@ -18,9 +18,29 @@ interface SendNotificationEmailParams {
   data: Record<string, string | number | undefined>;
 }
 
+interface AdminEmployee {
+  id: string;
+  user_id: string;
+  profile?: {
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+interface EmployeeWithProfile {
+  id: string;
+  user_id: string;
+  profile?: {
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
 /**
  * Send a notification email using the configured email provider
- * This function calls the send-notification-email edge function
+ * This function calls the backend email endpoint
  */
 export async function sendNotificationEmail({
   type,
@@ -29,19 +49,12 @@ export async function sendNotificationEmail({
   data,
 }: SendNotificationEmailParams): Promise<boolean> {
   try {
-    const { data: result, error } = await supabase.functions.invoke("send-notification-email", {
-      body: {
-        type,
-        recipientEmail,
-        recipientName,
-        data,
-      },
+    const result = await api.post<{ success: boolean; error?: string }>("/email/send", {
+      type,
+      recipientEmail,
+      recipientName,
+      data,
     });
-
-    if (error) {
-      console.error("Failed to send notification email:", error);
-      return false;
-    }
 
     if (!result?.success) {
       console.error("Email sending failed:", result?.error);
@@ -226,29 +239,20 @@ export async function sendWelcomeEmail(params: {
  */
 export async function getAdminEmails(): Promise<string[]> {
   try {
-    // Get admin user IDs
-    const { data: adminUserIds, error: rolesError } = await supabase
-      .rpc("get_admin_user_ids");
-
-    if (rolesError || !adminUserIds) {
-      console.error("Failed to fetch admin users:", rolesError);
-      return [];
-    }
-
-    // Get profiles for these users
-    const userIds = adminUserIds.map((r: { user_id: string }) => r.user_id);
+    // Get admin employees with their profiles
+    const employees = await api.get<AdminEmployee[]>("/employees?role=admin,hr");
     
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("email")
-      .in("user_id", userIds);
-
-    if (profilesError || !profiles) {
-      console.error("Failed to fetch admin profiles:", profilesError);
+    if (!employees || employees.length === 0) {
+      console.log("No admin users found");
       return [];
     }
 
-    return profiles.map((p) => p.email).filter(Boolean) as string[];
+    // Extract emails from profiles
+    const emails = employees
+      .filter((e) => e.profile?.email)
+      .map((e) => e.profile!.email);
+
+    return emails;
   } catch (err) {
     console.error("Error getting admin emails:", err);
     return [];
@@ -260,30 +264,15 @@ export async function getAdminEmails(): Promise<string[]> {
  */
 export async function getEmployeeEmail(employeeId: string): Promise<{ email: string; name: string } | null> {
   try {
-    const { data: employee, error: empError } = await supabase
-      .from("employees")
-      .select("user_id")
-      .eq("id", employeeId)
-      .single();
+    const employee = await api.get<EmployeeWithProfile>(`/employees/${employeeId}`);
 
-    if (empError || !employee?.user_id) {
-      console.error("Failed to fetch employee:", empError);
+    if (!employee?.profile?.email) {
+      console.error("Employee profile or email not found");
       return null;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("email, first_name, last_name")
-      .eq("user_id", employee.user_id)
-      .single();
-
-    if (profileError || !profile?.email) {
-      console.error("Failed to fetch profile:", profileError);
-      return null;
-    }
-
-    const name = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Employee";
-    return { email: profile.email, name };
+    const name = [employee.profile.first_name, employee.profile.last_name].filter(Boolean).join(" ") || "Employee";
+    return { email: employee.profile.email, name };
   } catch (err) {
     console.error("Error getting employee email:", err);
     return null;

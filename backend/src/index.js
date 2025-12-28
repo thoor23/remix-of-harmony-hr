@@ -25,7 +25,6 @@ const settingsRoutes = require('./routes/settings');
 const auditRoutes = require('./routes/audit');
 const dashboardRoutes = require('./routes/dashboard');
 const emailRoutes = require('./routes/email');
-const dashboardRoutes = require('./routes/dashboard');
 
 // Initialize express app
 const app = express();

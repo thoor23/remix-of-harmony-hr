@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
+import api, { getAccessToken } from "@/lib/api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export interface CompanyBranding {
   companyName: string;
@@ -35,20 +36,15 @@ export function useCompanyBranding() {
   return useQuery({
     queryKey: ["company-branding"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "company_branding")
-        .maybeSingle();
-
-      if (error) throw error;
-      
-      if (!data) return defaultBranding;
-      
-      return {
-        ...defaultBranding,
-        ...(data.value as unknown as Partial<CompanyBranding>),
-      };
+      try {
+        const data = await api.get<{ value: Partial<CompanyBranding> }>("/settings/company_branding");
+        return {
+          ...defaultBranding,
+          ...data.value,
+        };
+      } catch {
+        return defaultBranding;
+      }
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
@@ -60,21 +56,16 @@ export function useUpdateCompanyBranding() {
   return useMutation({
     mutationFn: async (branding: Partial<CompanyBranding>) => {
       // First get the current branding
-      const { data: current } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "company_branding")
-        .maybeSingle();
+      let currentBranding: CompanyBranding = defaultBranding;
+      try {
+        const current = await api.get<{ value: Partial<CompanyBranding> }>("/settings/company_branding");
+        currentBranding = { ...defaultBranding, ...current.value };
+      } catch {
+        // Use default if not found
+      }
 
-      const currentBranding = current?.value as unknown as CompanyBranding || defaultBranding;
       const updatedBranding = { ...currentBranding, ...branding };
-
-      const { error } = await supabase
-        .from("system_settings")
-        .update({ value: updatedBranding as unknown as Json })
-        .eq("key", "company_branding");
-
-      if (error) throw error;
+      await api.put("/settings/company_branding", { value: updatedBranding });
       return updatedBranding;
     },
     onSuccess: () => {
@@ -92,29 +83,29 @@ export function useUploadCompanyLogo() {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `logo.${fileExt}`;
-      const filePath = `branding/${fileName}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "logo");
 
-      // Delete existing logo if any
-      await supabase.storage.from("company-assets").remove([filePath]);
+      const response = await fetch(`${API_URL}/settings/branding/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAccessToken()}`,
+        },
+        body: formData,
+      });
 
-      // Upload new logo
-      const { error: uploadError } = await supabase.storage
-        .from("company-assets")
-        .upload(filePath, file, { upsert: true });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload logo");
+      }
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("company-assets")
-        .getPublicUrl(filePath);
-
-      return urlData.publicUrl;
+      const result = await response.json();
+      return result.url;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+      toast.success("Logo uploaded successfully");
     },
     onError: (error: Error) => {
       toast.error(`Failed to upload logo: ${error.message}`);
@@ -127,14 +118,11 @@ export function useDeleteCompanyLogo() {
 
   return useMutation({
     mutationFn: async () => {
-      // Try to delete common logo file extensions
-      const extensions = ["png", "jpg", "jpeg", "svg", "webp"];
-      const filesToDelete = extensions.map((ext) => `branding/logo.${ext}`);
-      
-      await supabase.storage.from("company-assets").remove(filesToDelete);
+      await api.delete("/settings/branding/logo");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+      toast.success("Logo deleted successfully");
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete logo: ${error.message}`);
@@ -147,31 +135,29 @@ export function useUploadFavicon() {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `favicon.${fileExt}`;
-      const filePath = `branding/${fileName}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "favicon");
 
-      // Delete existing favicon if any
-      const extensions = ["png", "ico", "svg"];
-      const filesToDelete = extensions.map((ext) => `branding/favicon.${ext}`);
-      await supabase.storage.from("company-assets").remove(filesToDelete);
+      const response = await fetch(`${API_URL}/settings/branding/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAccessToken()}`,
+        },
+        body: formData,
+      });
 
-      // Upload new favicon
-      const { error: uploadError } = await supabase.storage
-        .from("company-assets")
-        .upload(filePath, file, { upsert: true });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload favicon");
+      }
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("company-assets")
-        .getPublicUrl(filePath);
-
-      return urlData.publicUrl;
+      const result = await response.json();
+      return result.url;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+      toast.success("Favicon uploaded successfully");
     },
     onError: (error: Error) => {
       toast.error(`Failed to upload favicon: ${error.message}`);
@@ -184,12 +170,11 @@ export function useDeleteFavicon() {
 
   return useMutation({
     mutationFn: async () => {
-      const extensions = ["png", "ico", "svg"];
-      const filesToDelete = extensions.map((ext) => `branding/favicon.${ext}`);
-      await supabase.storage.from("company-assets").remove(filesToDelete);
+      await api.delete("/settings/branding/favicon");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
+      toast.success("Favicon deleted successfully");
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete favicon: ${error.message}`);

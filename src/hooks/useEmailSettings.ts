@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
+import api from "@/lib/api";
 
 export interface EmailConfig {
   enabled: boolean;
@@ -49,19 +48,12 @@ export function useEmailConfig() {
   return useQuery({
     queryKey: ["email-config"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("*")
-        .eq("key", "email_config")
-        .maybeSingle();
-
-      if (error) throw error;
-      
-      if (!data) {
+      try {
+        const data = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
+        return { ...defaultEmailConfig, ...data.value };
+      } catch {
         return defaultEmailConfig;
       }
-      
-      return { ...defaultEmailConfig, ...(data.value as unknown as Partial<EmailConfig>) };
     },
   });
 }
@@ -71,22 +63,18 @@ export function useUpdateEmailConfig() {
 
   return useMutation({
     mutationFn: async (config: Partial<EmailConfig>) => {
-      // First get the current config
-      const { data: existing } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "email_config")
-        .maybeSingle();
+      // Get current config first
+      let currentConfig: Partial<EmailConfig> = {};
+      try {
+        const existing = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
+        currentConfig = existing.value || {};
+      } catch {
+        // No existing config
+      }
 
-      const currentConfig = existing?.value as unknown as Partial<EmailConfig> || {};
       const updatedConfig = { ...currentConfig, ...config };
-
-      const { error } = await supabase
-        .from("system_settings")
-        .update({ value: updatedConfig as unknown as Json })
-        .eq("key", "email_config");
-
-      if (error) throw error;
+      await api.put("/settings/email_config", { value: updatedConfig });
+      return updatedConfig;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-config"] });
@@ -103,28 +91,34 @@ export function useSendTestEmail() {
 
   return useMutation({
     mutationFn: async ({ recipientEmail, config }: { recipientEmail: string; config: EmailConfig }) => {
-      const { data, error } = await supabase.functions.invoke("send-test-email", {
-        body: { recipientEmail, config },
+      const result = await api.post<{ success: boolean; error?: string }>("/email/test", {
+        recipientEmail,
+        config,
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send test email");
+      }
       
-      return data;
+      return result;
     },
     onSuccess: async () => {
       // Update the test status in the config
       const now = new Date().toISOString();
-      await supabase
-        .from("system_settings")
-        .update({ 
-          value: supabase.rpc ? undefined : {
+      try {
+        const existing = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
+        const currentConfig = existing.value || {};
+        await api.put("/settings/email_config", {
+          value: {
+            ...currentConfig,
             lastTestedAt: now,
             lastTestStatus: "success",
-            lastTestMessage: "Test email sent successfully"
-          } as unknown as Json
-        })
-        .eq("key", "email_config");
+            lastTestMessage: "Test email sent successfully",
+          },
+        });
+      } catch {
+        // Ignore error updating test status
+      }
         
       queryClient.invalidateQueries({ queryKey: ["email-config"] });
       toast.success("Test email sent successfully!");

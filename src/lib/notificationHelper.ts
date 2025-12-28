@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
@@ -8,6 +8,16 @@ interface CreateNotificationParams {
   message: string;
   type?: NotificationType;
   link?: string;
+}
+
+interface AdminEmployee {
+  id: string;
+  user_id: string;
+}
+
+interface Employee {
+  id: string;
+  user_id: string;
 }
 
 /**
@@ -20,15 +30,15 @@ export async function createNotification({
   type = 'info',
   link,
 }: CreateNotificationParams): Promise<void> {
-  const { error } = await supabase.from("notifications").insert({
-    user_id: userId,
-    title,
-    message,
-    type,
-    link,
-  });
-
-  if (error) {
+  try {
+    await api.post("/notifications", {
+      user_id: userId,
+      title,
+      message,
+      type,
+      link,
+    });
+  } catch (error) {
     console.error("Failed to create notification:", error);
   }
 }
@@ -43,39 +53,37 @@ export async function notifyAdmins(
   link?: string
 ): Promise<void> {
   try {
-    // Use the security definer function to get admin/HR user IDs
-    // This bypasses RLS so employees can notify admins
-    const { data: adminUserIds, error: rolesError } = await supabase
-      .rpc("get_admin_user_ids");
+    // Get admin/HR employees
+    const employees = await api.get<AdminEmployee[]>("/employees?role=admin,hr");
 
-    if (rolesError) {
-      console.error("Failed to fetch admin users:", rolesError);
-      return;
-    }
-
-    if (!adminUserIds || adminUserIds.length === 0) {
+    if (!employees || employees.length === 0) {
       console.log("No admin users found to notify");
       return;
     }
 
-    console.log("Creating notifications for admin users:", adminUserIds);
+    console.log("Creating notifications for admin users:", employees.map(e => e.user_id));
 
     // Create notifications for all admins
-    const notifications = adminUserIds.map((row: { user_id: string }) => ({
-      user_id: row.user_id,
-      title,
-      message,
-      type,
-      link,
-    }));
+    const notifications = employees
+      .filter(e => e.user_id)
+      .map((employee) => ({
+        user_id: employee.user_id,
+        title,
+        message,
+        type,
+        link,
+      }));
 
-    const { error } = await supabase.from("notifications").insert(notifications);
+    // Send all notifications
+    await Promise.all(
+      notifications.map((notification) =>
+        api.post("/notifications", notification).catch((err) => {
+          console.error("Failed to create notification:", err);
+        })
+      )
+    );
 
-    if (error) {
-      console.error("Failed to create admin notifications:", error);
-    } else {
-      console.log("Admin notifications created successfully");
-    }
+    console.log("Admin notifications created successfully");
   } catch (err) {
     console.error("Error in notifyAdmins:", err);
   }
@@ -85,18 +93,19 @@ export async function notifyAdmins(
  * Get the user_id for an employee
  */
 export async function getEmployeeUserId(employeeId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("employees")
-    .select("user_id")
-    .eq("id", employeeId)
-    .single();
+  try {
+    const employee = await api.get<Employee>(`/employees/${employeeId}`);
 
-  if (error || !data?.user_id) {
+    if (!employee?.user_id) {
+      console.error("Employee user_id not found");
+      return null;
+    }
+
+    return employee.user_id;
+  } catch (error) {
     console.error("Failed to get employee user_id:", error);
     return null;
   }
-
-  return data.user_id;
 }
 
 /**

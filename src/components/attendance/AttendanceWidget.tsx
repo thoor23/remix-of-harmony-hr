@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, LogIn, LogOut, Coffee, Play, Square } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import api from "@/lib/api";
 import {
   Popover,
   PopoverContent,
@@ -19,6 +19,11 @@ interface TodayAttendance {
   check_out: string | null;
   status: string;
   date: string;
+}
+
+interface Employee {
+  id: string;
+  employee_id: string;
 }
 
 export const AttendanceWidget = () => {
@@ -37,14 +42,13 @@ export const AttendanceWidget = () => {
     const fetchEmployeeId = async () => {
       if (!user?.id) return;
 
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!error && data) {
-        setEmployeeId(data.id);
+      try {
+        const data = await api.get<Employee>("/employees/current");
+        if (data?.id) {
+          setEmployeeId(data.id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch employee:", error);
       }
     };
 
@@ -52,48 +56,31 @@ export const AttendanceWidget = () => {
   }, [user?.id]);
 
   // Fetch today's attendance record
-  useEffect(() => {
-    const fetchTodayAttendance = async () => {
-      if (!employeeId) return;
+  const fetchTodayAttendance = useCallback(async () => {
+    if (!employeeId) return;
 
-      const today = format(new Date(), "yyyy-MM-dd");
+    const today = format(new Date(), "yyyy-MM-dd");
 
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .select("id, check_in, check_out, status, date")
-        .eq("employee_id", employeeId)
-        .eq("date", today)
-        .maybeSingle();
-
-      if (!error && data) {
-        setTodayRecord(data);
+    try {
+      const data = await api.get<TodayAttendance[]>(`/attendance?employee_id=${employeeId}&date=${today}`);
+      if (data && data.length > 0) {
+        setTodayRecord(data[0]);
       } else {
         setTodayRecord(null);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch attendance:", error);
+      setTodayRecord(null);
+    }
+  }, [employeeId]);
 
+  useEffect(() => {
     fetchTodayAttendance();
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel("attendance-widget")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "attendance_records",
-        },
-        () => {
-          fetchTodayAttendance();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [employeeId]);
+    // Poll for updates every 30 seconds instead of realtime
+    const interval = setInterval(fetchTodayAttendance, 30000);
+    return () => clearInterval(interval);
+  }, [fetchTodayAttendance]);
 
   // Live hours counter
   useEffect(() => {
@@ -140,45 +127,30 @@ export const AttendanceWidget = () => {
     const currentTime = format(new Date(), "HH:mm:ss");
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const { data, error } = await supabase
-      .from("attendance_records")
-      .insert({
+    try {
+      const data = await api.post<TodayAttendance>("/attendance", {
         employee_id: employeeId,
         date: today,
         check_in: currentTime,
         status: "present",
-      })
-      .select("id, check_in, check_out, status, date")
-      .single();
+      });
 
-    setLoading(false);
-
-    if (error) {
-      if (error.code === "23505") {
-        const { data: existingData } = await supabase
-          .from("attendance_records")
-          .select("id, check_in, check_out, status, date")
-          .eq("employee_id", employeeId)
-          .eq("date", today)
-          .maybeSingle();
-
-        if (existingData) {
-          setTodayRecord(existingData);
-          toast.info(
-            existingData.check_out
-              ? "Already clocked out for today"
-              : "Already clocked in for today"
-          );
-        }
+      if (data) {
+        setTodayRecord(data);
+        setTotalBreakMinutes(0);
+        toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+      }
+    } catch (error: any) {
+      if (error.message?.includes("duplicate") || error.message?.includes("already exists")) {
+        // Already clocked in, fetch current record
+        await fetchTodayAttendance();
+        toast.info("Already clocked in for today");
       } else {
         toast.error("Failed to clock in");
         console.error(error);
       }
-    } else if (data) {
-      // Instantly update the UI
-      setTodayRecord(data);
-      setTotalBreakMinutes(0);
-      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -202,25 +174,21 @@ export const AttendanceWidget = () => {
         (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60) - breakHours;
     }
 
-    const { data, error } = await supabase
-      .from("attendance_records")
-      .update({
+    try {
+      const data = await api.put<TodayAttendance>(`/attendance/${todayRecord.id}`, {
         check_out: currentTime,
         work_hours: workHours,
-      })
-      .eq("id", todayRecord.id)
-      .select("id, check_in, check_out, status, date")
-      .single();
+      });
 
-    setLoading(false);
-
-    if (error) {
+      if (data) {
+        setTodayRecord(data);
+        toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
+      }
+    } catch (error) {
       toast.error("Failed to clock out");
       console.error(error);
-    } else if (data) {
-      // Instantly update the UI
-      setTodayRecord(data);
-      toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
+    } finally {
+      setLoading(false);
     }
   };
 
