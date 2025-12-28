@@ -16,7 +16,6 @@ import {
   Search,
   CalendarIcon,
   Clock,
-  Save,
   FileText,
   Palette,
 } from "lucide-react";
@@ -67,7 +66,6 @@ import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { 
   useAnnouncementTemplates, 
-  useCreateAnnouncementTemplate, 
   useDeleteAnnouncementTemplate,
   AnnouncementTemplate 
 } from "@/hooks/useAnnouncementTemplates";
@@ -189,8 +187,6 @@ export default function NotificationCentre() {
   });
 
   // Template state
-  const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
-  const [templateName, setTemplateName] = useState("");
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   // Targeted notification state
@@ -213,7 +209,6 @@ export default function NotificationCentre() {
   const deleteAnnouncement = useDeleteAnnouncement();
 
   const { data: templates } = useAnnouncementTemplates();
-  const createTemplate = useCreateAnnouncementTemplate();
   const deleteTemplate = useDeleteAnnouncementTemplate();
   
   const { data: bannerTemplates } = useBannerTemplates();
@@ -315,22 +310,6 @@ export default function NotificationCentre() {
       expires_at: null,
       banner_template_id: announcementForm.banner_template_id,
     });
-  };
-
-  const handleSaveAsTemplate = async () => {
-    if (!templateName.trim()) return;
-    
-    await createTemplate.mutateAsync({
-      name: templateName,
-      title: announcementForm.title,
-      content: announcementForm.content,
-      type: announcementForm.type,
-      priority: announcementForm.priority,
-      target_audience: announcementForm.target_audience,
-    });
-    
-    setTemplateName("");
-    setSaveTemplateDialogOpen(false);
   };
 
   const handleDeleteTemplate = async () => {
@@ -890,16 +869,7 @@ export default function NotificationCentre() {
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setSaveTemplateDialogOpen(true)}
-              disabled={!announcementForm.title || !announcementForm.content}
-              className="sm:mr-auto"
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Save as Template
-            </Button>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setAnnouncementDialogOpen(false)}>
               Cancel
             </Button>
@@ -913,44 +883,6 @@ export default function NotificationCentre() {
         </DialogContent>
       </Dialog>
 
-      {/* Save Template Dialog */}
-      <Dialog open={saveTemplateDialogOpen} onOpenChange={setSaveTemplateDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Save as Template</DialogTitle>
-            <DialogDescription>
-              Save this announcement as a reusable template
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template-name">Template Name</Label>
-              <Input
-                id="template-name"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                placeholder="e.g., Monthly Newsletter, Leave Reminder"
-              />
-            </div>
-            <div className="p-3 rounded-md bg-muted">
-              <p className="text-sm font-medium mb-1">Will save:</p>
-              <p className="text-sm text-muted-foreground">Title: {announcementForm.title}</p>
-              <p className="text-sm text-muted-foreground truncate">Content: {announcementForm.content.substring(0, 50)}...</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveTemplateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveAsTemplate} 
-              disabled={!templateName.trim() || createTemplate.isPending}
-            >
-              Save Template
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Targeted Notification Dialog */}
       <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
