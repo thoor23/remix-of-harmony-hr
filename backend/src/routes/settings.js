@@ -38,6 +38,47 @@ const upload = multer({
   },
 });
 
+// PUBLIC ROUTES (no auth required)
+// GET /api/settings/public/branding - Get company branding without authentication
+router.get('/public/branding', async (req, res) => {
+  try {
+    const settings = await query('SELECT * FROM system_settings WHERE `key` = ?', ['company_branding']);
+    
+    const defaultBranding = {
+      companyName: 'HRMS Portal',
+      companyLogo: null,
+      companyFavicon: null,
+      companyEmail: '',
+      companyPhone: '',
+      companyAddress: '',
+      companyWebsite: '',
+      logoSize: 32,
+      nameSize: 18,
+      nameFontWeight: 'semibold',
+      nameItalic: false,
+    };
+    
+    if (settings.length === 0) {
+      return res.json({ value: defaultBranding });
+    }
+    
+    let branding = settings[0].value;
+    if (typeof branding === 'string') {
+      try {
+        branding = JSON.parse(branding);
+      } catch {
+        branding = defaultBranding;
+      }
+    }
+    
+    res.json({ value: { ...defaultBranding, ...branding } });
+  } catch (error) {
+    console.error('Get public branding error:', error);
+    res.status(500).json({ error: 'Failed to fetch branding' });
+  }
+});
+
+// PROTECTED ROUTES (auth required)
 router.use(authenticate);
 
 // GET /api/settings - Get all settings

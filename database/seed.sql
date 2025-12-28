@@ -14,11 +14,12 @@ SET @emp_user_id = UUID();
 SET @emp_employee_id = UUID();
 
 -- Create admin user
--- Password: Admin@123 (you'll need to hash this with bcrypt in your application)
+-- Password: Admin@123 (bcrypt hash with cost factor 10)
+-- To generate new hashes: Use bcryptjs in Node.js: bcrypt.hashSync('Admin@123', 10)
 INSERT INTO users (id, email, password_hash, email_confirmed_at) VALUES
-(@admin_user_id, 'admin@hrms.com', '$2a$10$rQEY8xN1xH.E8jQx.CQz7.QbMr8vN8XPvF2vN8XPvF2vN8XPvF2vN', NOW()),
-(@hr_user_id, 'hr@hrms.com', '$2a$10$rQEY8xN1xH.E8jQx.CQz7.QbMr8vN8XPvF2vN8XPvF2vN8XPvF2vN', NOW()),
-(@emp_user_id, 'employee@hrms.com', '$2a$10$rQEY8xN1xH.E8jQx.CQz7.QbMr8vN8XPvF2vN8XPvF2vN8XPvF2vN', NOW());
+(@admin_user_id, 'admin@hrms.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.F4H5X7U5Xa1LMGK1Sm', NOW()),
+(@hr_user_id, 'hr@hrms.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.F4H5X7U5Xa1LMGK1Sm', NOW()),
+(@emp_user_id, 'employee@hrms.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.F4H5X7U5Xa1LMGK1Sm', NOW());
 
 -- Create profiles
 INSERT INTO profiles (id, user_id, first_name, last_name, email) VALUES

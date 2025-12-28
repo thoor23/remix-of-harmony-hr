@@ -37,7 +37,12 @@ export function useCompanyBranding() {
     queryKey: ["company-branding"],
     queryFn: async () => {
       try {
-        const data = await api.get<{ value: Partial<CompanyBranding> }>("/settings/company_branding");
+        // Use public endpoint that doesn't require authentication
+        const response = await fetch(`${API_URL}/settings/public/branding`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch branding");
+        }
+        const data = await response.json();
         return {
           ...defaultBranding,
           ...data.value,
