@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 export interface Notification {
   id: string;
@@ -16,29 +16,11 @@ export interface Notification {
 
 export const useNotifications = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // Get current user ID
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUserId(session?.user?.id || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const query = useQuery({
-    queryKey: ["notifications", userId],
+    queryKey: ["notifications"],
     queryFn: async () => {
-      if (!userId) return [];
-      
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
@@ -48,127 +30,94 @@ export const useNotifications = () => {
       if (error) throw error;
       return data as Notification[];
     },
-    enabled: !!userId,
   });
 
-  // Subscribe to realtime notifications for current user
+  // Subscribe to realtime notifications
   useEffect(() => {
-    if (!userId) return;
+    // Get current user and set up subscription
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    console.log("Setting up realtime subscription for user:", userId);
+      console.log("Setting up realtime subscription for user:", user.id);
 
-    const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log("New notification received:", payload);
-          const newNotification = payload.new as Notification;
-          
-          // Show toast for new notification
-          toast({
-            title: newNotification.title,
-            description: newNotification.message,
-            variant: newNotification.type === 'error' ? 'destructive' : 'default',
-          });
+      // Clean up existing channel if any
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
 
-          // Optimistically update the cache
-          queryClient.setQueryData<Notification[]>(
-            ["notifications", userId],
-            (old) => {
-              if (!old) return [newNotification];
-              return [newNotification, ...old];
+      channelRef.current = supabase
+        .channel(`notifications-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log("New notification received:", payload);
+            const newNotification = payload.new as Notification;
+            
+            // Show toast for new notification
+            if (newNotification.type === 'error') {
+              toast.error(newNotification.title, {
+                description: newNotification.message,
+              });
+            } else if (newNotification.type === 'success') {
+              toast.success(newNotification.title, {
+                description: newNotification.message,
+              });
+            } else if (newNotification.type === 'warning') {
+              toast.warning(newNotification.title, {
+                description: newNotification.message,
+              });
+            } else {
+              toast.info(newNotification.title, {
+                description: newNotification.message,
+              });
             }
-          );
 
-          // Also invalidate unread count
-          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log("Notification updated:", payload);
-          const updatedNotification = payload.new as Notification;
-          
-          // Update the cache
-          queryClient.setQueryData<Notification[]>(
-            ["notifications", userId],
-            (old) => {
-              if (!old) return [];
-              return old.map((n) =>
-                n.id === updatedNotification.id ? updatedNotification : n
-              );
-            }
-          );
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            // Invalidate queries on update
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+            queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+          }
+        )
+        .subscribe((status) => {
+          console.log("Realtime subscription status:", status);
+        });
+    };
 
-          // Also invalidate unread count
-          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
-        }
-      )
-      .subscribe((status) => {
-        console.log("Realtime subscription status:", status);
-      });
+    setupSubscription();
 
     return () => {
-      console.log("Cleaning up realtime subscription");
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        console.log("Cleaning up realtime subscription");
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [userId, queryClient, toast]);
+  }, [queryClient]);
 
   return query;
 };
 
 export const useUnreadNotificationCount = () => {
-  const [userId, setUserId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    getUser();
-  }, []);
-
-  // Subscribe to realtime for unread count updates
-  useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel(`notifications-count-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          // Invalidate the count query on any change
-          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
-
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: async () => {
@@ -180,7 +129,6 @@ export const useUnreadNotificationCount = () => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!userId,
   });
 };
 
@@ -198,6 +146,7 @@ export const useMarkNotificationRead = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
     },
   });
 };
@@ -216,6 +165,7 @@ export const useMarkAllNotificationsRead = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
     },
   });
 };
