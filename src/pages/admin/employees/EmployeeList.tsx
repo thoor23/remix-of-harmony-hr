@@ -158,7 +158,7 @@ export default function EmployeeList() {
     paginatedData,
     setCurrentPage,
     setPageSize,
-  } = usePagination({ data: sortedEmployees, defaultPageSize: 50 });
+  } = usePagination({ data: sortedEmployees, defaultPageSize: 10 });
 
   const visibleColumns = useMemo(() => 
     columns.filter(col => col.visible !== false), 
