@@ -1,24 +1,32 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  Plus, 
   Search, 
   Users,
   Calendar,
   Edit,
   Trash2,
-  UserPlus
+  UserPlus,
+  MoreHorizontal,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { useShifts, useShiftAssignments, useCreateShiftAssignment, useUpdateShiftAssignment, useDeleteShiftAssignment } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useDepartments } from "@/hooks/useDashboard";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import {
   Table,
   TableBody,
@@ -36,6 +44,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,6 +58,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface AssignmentFormData {
   employeeId: string;
@@ -51,6 +66,21 @@ interface AssignmentFormData {
   startDate: string;
   endDate: string;
 }
+
+const getInitialColumns = (): ColumnDef[] => [
+  { id: "id", header: "ID", accessor: "id", visible: false },
+  { id: "employee_name", header: "Employee", accessor: (row: any) => {
+    const profile = row.employee?.profile;
+    if (!profile) return row.employee?.employee_id || "Unknown";
+    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+  }, visible: true },
+  { id: "employee_id", header: "Emp ID", accessor: (row: any) => row.employee?.employee_id, visible: true },
+  { id: "department", header: "Department", accessor: (row: any) => row.employee?.department?.name || "—", visible: true },
+  { id: "shift_name", header: "Current Shift", accessor: (row: any) => row.shift?.name || "—", visible: true },
+  { id: "start_date", header: "Effective From", accessor: "start_date", visible: true },
+  { id: "end_date", header: "Effective To", accessor: "end_date", visible: true },
+  { id: "is_active", header: "Status", accessor: (row: any) => row.is_active ? "Active" : "Inactive", visible: true },
+];
 
 export default function ShiftAssignments() {
   const [search, setSearch] = useState("");
@@ -66,8 +96,14 @@ export default function ShiftAssignments() {
     endDate: "",
   });
 
+  const [showFilter, setShowFilter] = useState(true);
+  const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   const { data: shifts = [], isLoading: shiftsLoading } = useShifts();
-  const { data: assignments = [], isLoading: assignmentsLoading } = useShiftAssignments();
+  const { data: assignments = [], isLoading: assignmentsLoading, refetch, isFetching } = useShiftAssignments();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
   
@@ -83,14 +119,62 @@ export default function ShiftAssignments() {
     return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
   };
 
-  const filteredAssignments = assignments.filter((a) => {
-    const name = getEmployeeName(a).toLowerCase();
-    const empId = a.employee?.employee_id?.toLowerCase() || "";
-    const matchesSearch = name.includes(search.toLowerCase()) || empId.includes(search.toLowerCase());
-    const matchesDepartment = !departmentFilter || a.employee?.department?.id === departmentFilter;
-    const matchesShift = !shiftFilter || a.shift_id === shiftFilter;
-    return matchesSearch && matchesDepartment && matchesShift;
-  });
+  const filteredAssignments = useMemo(() => 
+    assignments.filter((a) => {
+      const name = getEmployeeName(a).toLowerCase();
+      const empId = a.employee?.employee_id?.toLowerCase() || "";
+      const matchesSearch = name.includes(search.toLowerCase()) || empId.includes(search.toLowerCase());
+      const matchesDepartment = !departmentFilter || a.employee?.department?.id === departmentFilter;
+      const matchesShift = !shiftFilter || a.shift_id === shiftFilter;
+      return matchesSearch && matchesDepartment && matchesShift;
+    }), [assignments, search, departmentFilter, shiftFilter]);
+
+  const getColumnValue = (assignment: any, column: ColumnDef): any => {
+    if (typeof column.accessor === 'function') {
+      return column.accessor(assignment);
+    }
+    return assignment[column.accessor];
+  };
+
+  const sortedAssignments = useMemo(() => {
+    if (!sortColumn) return filteredAssignments;
+    
+    return [...filteredAssignments].sort((a, b) => {
+      const column = columns.find(c => c.id === sortColumn);
+      if (!column) return 0;
+      
+      const aValue = getColumnValue(a, column);
+      const bValue = getColumnValue(b, column);
+      
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      
+      return sortDirection === 'asc' 
+        ? (aValue > bValue ? 1 : -1) 
+        : (aValue < bValue ? 1 : -1);
+    });
+  }, [filteredAssignments, sortColumn, sortDirection, columns]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedAssignments, defaultPageSize: 10 });
+
+  const visibleColumns = useMemo(() => 
+    columns.filter(col => col.visible !== false), 
+    [columns]
+  );
 
   const assignedEmployeeIds = assignments.filter(a => a.is_active).map(a => a.employee_id);
   const unassignedEmployees = employees.filter(e => !assignedEmployeeIds.includes(e.id));
@@ -160,6 +244,91 @@ export default function ShiftAssignments() {
     if (!emp) return empId;
     if (!emp.first_name && !emp.last_name) return emp.employee_id;
     return `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || emp.employee_id;
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev =>
+      prev.map(col =>
+        col.id === columnId ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? filteredAssignments.filter(a => selectedRows.has(a.id))
+      : filteredAssignments;
+    
+    exportToCSV(dataToExport, columns, "shift_assignments");
+    toast.success(`Exported ${dataToExport.length} records to CSV`);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success("Data refreshed");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map(a => a.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const isAllSelected = paginatedData.length > 0 && 
+    paginatedData.every(a => selectedRows.has(a.id));
+
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnId);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderCellValue = (assignment: any, column: ColumnDef) => {
+    const value = getColumnValue(assignment, column);
+    const shift = shifts.find(s => s.id === assignment.shift_id);
+
+    if (column.id === 'shift_name' && shift) {
+      return (
+        <ShiftBadge 
+          name={shift.name} 
+          color={shift.color || "#888"}
+          size="sm"
+        />
+      );
+    }
+
+    if (column.id === 'start_date' || column.id === 'end_date') {
+      return value ? format(new Date(value), "MMM dd, yyyy") : "—";
+    }
+
+    if (column.id === 'is_active') {
+      return (
+        <Badge variant={assignment.is_active ? "default" : "secondary"}>
+          {assignment.is_active ? "Active" : "Inactive"}
+        </Badge>
+      );
+    }
+
+    if (column.id === 'id') {
+      return <span className="font-mono text-xs">{value?.substring(0, 8)}...</span>;
+    }
+
+    return value || "—";
   };
 
   if (isLoading) {
@@ -238,21 +407,32 @@ export default function ShiftAssignments() {
 
       {/* Table */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle>Employee Shift Assignments</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onAddRow={() => handleOpenForm()}
+          onToggleFilter={() => setShowFilter(!showFilter)}
+          showFilter={showFilter}
+          isRefreshing={isFetching}
+          addRowLabel="Assign"
+        />
+
+        {showFilter && (
+          <div className="p-4 border-b bg-muted/30">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search employees..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 w-[180px]"
+                  className="pl-9"
                 />
               </div>
               <Select value={departmentFilter || "_all"} onValueChange={(v) => setDepartmentFilter(v === "_all" ? "" : v)}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -263,7 +443,7 @@ export default function ShiftAssignments() {
                 </SelectContent>
               </Select>
               <Select value={shiftFilter || "_all"} onValueChange={(v) => setShiftFilter(v === "_all" ? "" : v)}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-full md:w-40">
                   <SelectValue placeholder="Shift" />
                 </SelectTrigger>
                 <SelectContent>
@@ -273,84 +453,101 @@ export default function ShiftAssignments() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={() => handleOpenForm()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Assign
-              </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        )}
+
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Current Shift</TableHead>
-                <TableHead>Effective From</TableHead>
-                <TableHead>Effective To</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                {visibleColumns.map((column) => (
+                  <TableHead 
+                    key={column.id} 
+                    className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => handleSort(column.id)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {column.header}
+                      {sortColumn === column.id ? (
+                        sortDirection === 'asc' 
+                          ? <ArrowUp className="h-4 w-4" /> 
+                          : <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAssignments.map((assignment) => {
-                const shift = shifts.find(s => s.id === assignment.shift_id);
-                return (
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    No assignments found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedData.map((assignment) => (
                   <TableRow key={assignment.id}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{getEmployeeName(assignment)}</p>
-                        <p className="text-sm text-muted-foreground">{assignment.employee?.employee_id}</p>
-                      </div>
+                      <Checkbox
+                        checked={selectedRows.has(assignment.id)}
+                        onCheckedChange={(checked) => handleSelectRow(assignment.id, !!checked)}
+                        aria-label={`Select assignment`}
+                      />
                     </TableCell>
-                    <TableCell>{assignment.employee?.department?.name || "—"}</TableCell>
+                    {visibleColumns.map((column) => (
+                      <TableCell key={column.id} className="whitespace-nowrap">
+                        {renderCellValue(assignment, column)}
+                      </TableCell>
+                    ))}
                     <TableCell>
-                      {shift && (
-                        <ShiftBadge 
-                          name={shift.name} 
-                          color={shift.color || "#888"}
-                          size="sm"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>{format(new Date(assignment.start_date), "MMM dd, yyyy")}</TableCell>
-                    <TableCell>{assignment.end_date ? format(new Date(assignment.end_date), "MMM dd, yyyy") : "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={assignment.is_active ? "default" : "secondary"}>
-                        {assignment.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleOpenForm(assignment.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setDeleteAssignmentId(assignment.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenForm(assignment.id)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeleteAssignmentId(assignment.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                ))
+              )}
             </TableBody>
           </Table>
+        </div>
 
-          {filteredAssignments.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No assignments found
-            </div>
-          )}
-        </CardContent>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
 
       {/* Assignment Form Dialog */}

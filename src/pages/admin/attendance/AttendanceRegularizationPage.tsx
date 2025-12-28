@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -29,27 +29,129 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Check, X, Eye, Clock, CheckCircle, XCircle } from "lucide-react";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { Check, X, Eye, Clock, CheckCircle, XCircle, Search, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   useAllRegularizationRequests,
   useReviewRegularizationRequest,
 } from "@/hooks/useAttendanceRegularization";
 import { format } from "date-fns";
+import { toast } from "sonner";
+
+const requestTypeLabels: Record<string, string> = {
+  correction: "Time Correction",
+  missing_entry: "Missing Entry",
+  overtime: "Overtime Claim",
+};
+
+const getInitialColumns = (): ColumnDef[] => [
+  { id: "id", header: "ID", accessor: "id", visible: false },
+  { id: "employee_name", header: "Employee", accessor: (row: any) => {
+    if (row.employee?.profile) {
+      const { first_name, last_name } = row.employee.profile;
+      return `${first_name || ""} ${last_name || ""}`.trim() || row.employee.employee_id;
+    }
+    return row.employee?.employee_id || "Unknown";
+  }, visible: true },
+  { id: "request_date", header: "Date", accessor: "request_date", visible: true },
+  { id: "request_type", header: "Type", accessor: (row: any) => requestTypeLabels[row.request_type] || row.request_type, visible: true },
+  { id: "original_time", header: "Original Time", accessor: (row: any) => `${row.original_check_in || "-"} - ${row.original_check_out || "-"}`, visible: true },
+  { id: "requested_time", header: "Requested Time", accessor: (row: any) => `${row.requested_check_in || "-"} - ${row.requested_check_out || "-"}`, visible: true },
+  { id: "reason", header: "Reason", accessor: "reason", visible: true },
+  { id: "status", header: "Status", accessor: "status", visible: true },
+];
 
 export default function AttendanceRegularizationPage() {
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [reviewAction, setReviewAction] = useState<"approved" | "rejected" | null>(null);
   const [comments, setComments] = useState("");
 
-  const { data: requests = [], isLoading } = useAllRegularizationRequests(statusFilter);
+  const [showFilter, setShowFilter] = useState(true);
+  const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const { data: requests = [], isLoading, refetch, isFetching } = useAllRegularizationRequests(statusFilter === "all" ? undefined : statusFilter);
   const reviewMutation = useReviewRegularizationRequest();
 
   const pendingCount = requests.filter((r: any) => r.status === "pending").length;
   const approvedCount = requests.filter((r: any) => r.status === "approved").length;
   const rejectedCount = requests.filter((r: any) => r.status === "rejected").length;
+
+  const getEmployeeName = (request: any) => {
+    if (request.employee?.profile) {
+      const { first_name, last_name } = request.employee.profile;
+      return `${first_name || ""} ${last_name || ""}`.trim() || request.employee.employee_id;
+    }
+    return request.employee?.employee_id || "Unknown";
+  };
+
+  const filteredRequests = useMemo(() => 
+    requests.filter((r: any) => {
+      const name = getEmployeeName(r).toLowerCase();
+      const matchesSearch = name.includes(search.toLowerCase());
+      return matchesSearch;
+    }), [requests, search]);
+
+  const getColumnValue = (request: any, column: ColumnDef): any => {
+    if (typeof column.accessor === 'function') {
+      return column.accessor(request);
+    }
+    return request[column.accessor];
+  };
+
+  const sortedRequests = useMemo(() => {
+    if (!sortColumn) return filteredRequests;
+    
+    return [...filteredRequests].sort((a, b) => {
+      const column = columns.find(c => c.id === sortColumn);
+      if (!column) return 0;
+      
+      const aValue = getColumnValue(a, column);
+      const bValue = getColumnValue(b, column);
+      
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      
+      return sortDirection === 'asc' 
+        ? (aValue > bValue ? 1 : -1) 
+        : (aValue < bValue ? 1 : -1);
+    });
+  }, [filteredRequests, sortColumn, sortDirection, columns]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedRequests, defaultPageSize: 10 });
+
+  const visibleColumns = useMemo(() => 
+    columns.filter(col => col.visible !== false), 
+    [columns]
+  );
 
   const handleReview = () => {
     if (!selectedRequest || !reviewAction) return;
@@ -70,18 +172,90 @@ export default function AttendanceRegularizationPage() {
     );
   };
 
-  const getEmployeeName = (request: any) => {
-    if (request.employee?.profile) {
-      const { first_name, last_name } = request.employee.profile;
-      return `${first_name || ""} ${last_name || ""}`.trim() || request.employee.employee_id;
-    }
-    return request.employee?.employee_id || "Unknown";
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev =>
+      prev.map(col =>
+        col.id === columnId ? { ...col, visible } : col
+      )
+    );
   };
 
-  const requestTypeLabels: Record<string, string> = {
-    correction: "Time Correction",
-    missing_entry: "Missing Entry",
-    overtime: "Overtime Claim",
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? filteredRequests.filter((r: any) => selectedRows.has(r.id))
+      : filteredRequests;
+    
+    exportToCSV(dataToExport, columns, "attendance_regularization");
+    toast.success(`Exported ${dataToExport.length} records to CSV`);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success("Data refreshed");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map((r: any) => r.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const isAllSelected = paginatedData.length > 0 && 
+    paginatedData.every((r: any) => selectedRows.has(r.id));
+
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnId);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderCellValue = (request: any, column: ColumnDef) => {
+    const value = getColumnValue(request, column);
+
+    if (column.id === 'request_date') {
+      return value ? format(new Date(value), "MMM d, yyyy") : "—";
+    }
+
+    if (column.id === 'request_type') {
+      return <Badge variant="outline">{value}</Badge>;
+    }
+
+    if (column.id === 'original_time') {
+      return <span className="text-muted-foreground">{value}</span>;
+    }
+
+    if (column.id === 'requested_time') {
+      return <span className="font-medium text-primary">{value}</span>;
+    }
+
+    if (column.id === 'reason') {
+      return <span className="max-w-[200px] truncate block">{value}</span>;
+    }
+
+    if (column.id === 'status') {
+      return <StatusBadge status={value as any} />;
+    }
+
+    if (column.id === 'id') {
+      return <span className="font-mono text-xs">{value?.substring(0, 8)}...</span>;
+    }
+
+    return value || "—";
   };
 
   if (isLoading) {
@@ -144,69 +318,100 @@ export default function AttendanceRegularizationPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="all">All</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Requests Table */}
+      {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          {requests.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No regularization requests found
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onToggleFilter={() => setShowFilter(!showFilter)}
+          showFilter={showFilter}
+          isRefreshing={isFetching}
+        />
+
+        {showFilter && (
+          <div className="p-4 border-b bg-muted/30">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by employee name..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                {visibleColumns.map((column) => (
+                  <TableHead 
+                    key={column.id} 
+                    className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => handleSort(column.id)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {column.header}
+                      {sortColumn === column.id ? (
+                        sortDirection === 'asc' 
+                          ? <ArrowUp className="h-4 w-4" /> 
+                          : <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
+                <TableHead className="w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Original Time</TableHead>
-                  <TableHead>Requested Time</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    No regularization requests found
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((request: any) => (
+              ) : (
+                paginatedData.map((request: any) => (
                   <TableRow key={request.id}>
-                    <TableCell className="font-medium">
-                      {getEmployeeName(request)}
-                    </TableCell>
                     <TableCell>
-                      {format(new Date(request.request_date), "MMM d, yyyy")}
+                      <Checkbox
+                        checked={selectedRows.has(request.id)}
+                        onCheckedChange={(checked) => handleSelectRow(request.id, !!checked)}
+                        aria-label={`Select request`}
+                      />
                     </TableCell>
+                    {visibleColumns.map((column) => (
+                      <TableCell key={column.id} className="whitespace-nowrap">
+                        {renderCellValue(request, column)}
+                      </TableCell>
+                    ))}
                     <TableCell>
-                      <Badge variant="outline">
-                        {requestTypeLabels[request.request_type] || request.request_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {request.original_check_in || "-"} - {request.original_check_out || "-"}
-                    </TableCell>
-                    <TableCell className="font-medium text-primary">
-                      {request.requested_check_in || "-"} - {request.requested_check_out || "-"}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {request.reason}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={request.status as any} />
-                    </TableCell>
-                    <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
@@ -242,11 +447,20 @@ export default function AttendanceRegularizationPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
 
       {/* Review Dialog */}
