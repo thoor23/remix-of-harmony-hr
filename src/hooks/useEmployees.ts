@@ -304,3 +304,72 @@ export function useEmployeeLeaves(employeeId: string) {
     enabled: !!employeeId,
   });
 }
+
+export interface UpdateEmployeeAccountData {
+  employee_id: string;
+  user_id: string;
+  profile: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  };
+  role?: "admin" | "hr" | "manager" | "employee";
+  status?: "active" | "inactive";
+  password?: string;
+}
+
+export function useUpdateEmployeeAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateEmployeeAccountData) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await supabase.functions.invoke("update-employee-account", {
+        body: data,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to update employee account");
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employee"] });
+      toast.success("Employee account updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update employee account: ${error.message}`);
+    },
+  });
+}
+
+export function useEmployeeRole(userId: string | null) {
+  return useQuery({
+    queryKey: ["employee-role", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.role || null;
+    },
+    enabled: !!userId,
+  });
+}
