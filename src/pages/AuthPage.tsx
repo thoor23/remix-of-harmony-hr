@@ -4,10 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Building2, Loader2, ArrowLeft, Lock, Mail } from "lucide-react";
+import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -30,8 +30,50 @@ const newPasswordSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 type FormErrors = Partial<Record<string, string>>;
-
 type AuthView = "login" | "forgot-password" | "reset-password";
+
+// Geometric shapes component for the left panel
+const GeometricPattern = () => (
+  <div className="absolute inset-0 overflow-hidden">
+    {/* Grid overlay */}
+    <div className="absolute inset-0 opacity-20" style={{
+      backgroundImage: `linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)`,
+      backgroundSize: '60px 60px'
+    }} />
+    
+    {/* Top left diamond */}
+    <div className="absolute top-16 left-16 w-6 h-6 bg-background rotate-45 opacity-90" />
+    
+    {/* Top right shapes */}
+    <div className="absolute -top-10 right-20 w-32 h-32 rounded-full bg-amber-600/80" />
+    <div className="absolute top-8 right-8 w-20 h-20 rounded-full bg-background/20" />
+    <div className="absolute top-2 right-32 w-16 h-16 rounded-full bg-primary/50" />
+    
+    {/* Center left circle */}
+    <div className="absolute top-1/4 -left-16 w-48 h-48 rounded-full border-[20px] border-primary/40" />
+    
+    {/* White dot top */}
+    <div className="absolute top-20 right-1/3 w-4 h-4 rounded-full bg-background" />
+    
+    {/* Bottom left shapes */}
+    <div className="absolute bottom-32 left-8 w-24 h-24 bg-amber-600/70" />
+    <div className="absolute bottom-16 left-24 w-16 h-16 rounded-full bg-primary/40" />
+    
+    {/* Bottom center shapes */}
+    <div className="absolute -bottom-20 left-1/4 w-40 h-40 rounded-full bg-primary/30" />
+    <div className="absolute bottom-8 left-1/3 w-28 h-16 rounded-full bg-background/15" />
+    
+    {/* Bottom right shapes */}
+    <div className="absolute bottom-24 right-16 w-20 h-20 rounded-full bg-background/10" />
+    <div className="absolute bottom-8 right-8 w-5 h-5 bg-amber-600/80 rotate-45" />
+    <div className="absolute bottom-16 right-32 w-32 h-32 rounded-full bg-background/10" />
+    
+    {/* Cream colored shapes */}
+    <div className="absolute top-16 right-4 w-16 h-32 rounded-t-full bg-amber-50/30" />
+    <div className="absolute bottom-0 left-0 w-24 h-20 rounded-tr-full bg-amber-50/20" />
+    <div className="absolute bottom-0 right-24 w-16 h-12 rounded-t-full bg-amber-50/25" />
+  </div>
+);
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -41,6 +83,8 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [view, setView] = useState<AuthView>("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -159,7 +203,7 @@ export default function AuthPage() {
 
   const renderError = (field: string) => {
     if (errors[field]) {
-      return <p className="text-sm text-destructive mt-1.5">{errors[field]}</p>;
+      return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
     }
     return null;
   };
@@ -167,97 +211,81 @@ export default function AuthPage() {
   // Forgot Password View
   if (view === "forgot-password") {
     return (
-      <div className="min-h-screen flex">
-        {/* Left - Visual Panel */}
-        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
-          </div>
-          <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20">
-                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-                <AvatarFallback className="rounded-xl bg-primary-foreground/10">
-                  <Building2 className="h-6 w-6 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
-            </div>
-            <div className="space-y-6 max-w-lg">
-              <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
-                Reset Your Password
-              </h1>
-              <p className="text-xl text-primary-foreground/80">
-                Enter your email address and we'll send you instructions to reset your password.
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+        <div className="w-full max-w-4xl bg-background rounded-2xl shadow-2xl overflow-hidden flex min-h-[600px]">
+          {/* Left Panel */}
+          <div className="hidden md:flex md:w-1/2 bg-primary relative">
+            <GeometricPattern />
+            <div className="relative z-10 flex flex-col items-center justify-center w-full p-8 text-center">
+              <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+                Reset Password
+              </h2>
+              <p className="text-primary-foreground/70 max-w-xs">
+                We'll send you instructions to reset your password.
               </p>
+              <div className="flex gap-2 mt-8">
+                <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+                <div className="w-6 h-2 rounded-full bg-primary-foreground" />
+                <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+              </div>
             </div>
-            <p className="text-sm text-primary-foreground/50">
-              © {new Date().getFullYear()} {companyName}
-            </p>
           </div>
-        </div>
 
-        {/* Right - Form */}
-        <div className="flex-1 flex items-center justify-center p-8 bg-background">
-          <div className="w-full max-w-sm">
-            <div className="lg:hidden flex items-center gap-3 mb-10">
-              <Avatar className="h-10 w-10 rounded-xl">
-                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-                <AvatarFallback className="rounded-xl bg-primary">
-                  <Building2 className="h-5 w-5 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-lg font-semibold">{companyName}</span>
-            </div>
+          {/* Right Panel */}
+          <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
+            <div className="w-full max-w-sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-2 mb-6 text-muted-foreground"
+                onClick={() => setView("login")}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to login
+              </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-2 mb-6 text-muted-foreground"
-              onClick={() => setView("login")}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to sign in
-            </Button>
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold tracking-tight mb-2">Forgot password?</h2>
-              <p className="text-muted-foreground">
-                No worries, we'll send you reset instructions.
-              </p>
-            </div>
-
-            <form onSubmit={handleForgotPassword} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="reset-email" className="text-sm font-medium">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="reset-email"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className={`pl-10 h-11 ${errors.email ? "border-destructive" : ""}`}
-                    disabled={isLoading}
-                  />
-                </div>
-                {renderError("email")}
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <Avatar className="h-9 w-9 rounded-lg">
+                  <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                  <AvatarFallback className="rounded-lg bg-primary">
+                    <Building2 className="h-5 w-5 text-primary-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xl font-bold">{companyName}</span>
               </div>
 
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Send Reset Link"
-                )}
-              </Button>
-            </form>
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-semibold mb-2">Forgot Password?</h1>
+                <p className="text-muted-foreground text-sm">
+                  Enter your email to receive reset instructions.
+                </p>
+              </div>
+
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className={`h-12 px-4 border-border ${errors.email ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                  {renderError("email")}
+                </div>
+
+                <Button type="submit" className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Link"
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -267,104 +295,90 @@ export default function AuthPage() {
   // Reset Password View
   if (view === "reset-password") {
     return (
-      <div className="min-h-screen flex">
-        {/* Left Panel */}
-        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
-          </div>
-          <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20">
-                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-                <AvatarFallback className="rounded-xl bg-primary-foreground/10">
-                  <Building2 className="h-6 w-6 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
-            </div>
-            <div className="space-y-6 max-w-lg">
-              <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
-                Create New Password
-              </h1>
-              <p className="text-xl text-primary-foreground/80">
-                Choose a strong password to secure your account.
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+        <div className="w-full max-w-4xl bg-background rounded-2xl shadow-2xl overflow-hidden flex min-h-[600px]">
+          {/* Left Panel */}
+          <div className="hidden md:flex md:w-1/2 bg-primary relative">
+            <GeometricPattern />
+            <div className="relative z-10 flex flex-col items-center justify-center w-full p-8 text-center">
+              <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+                New Password
+              </h2>
+              <p className="text-primary-foreground/70 max-w-xs">
+                Create a strong password to secure your account.
               </p>
+              <div className="flex gap-2 mt-8">
+                <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+                <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+                <div className="w-6 h-2 rounded-full bg-primary-foreground" />
+              </div>
             </div>
-            <p className="text-sm text-primary-foreground/50">
-              © {new Date().getFullYear()} {companyName}
-            </p>
           </div>
-        </div>
 
-        {/* Right Panel */}
-        <div className="flex-1 flex items-center justify-center p-8 bg-background">
-          <div className="w-full max-w-sm">
-            <div className="lg:hidden flex items-center gap-3 mb-10">
-              <Avatar className="h-10 w-10 rounded-xl">
-                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-                <AvatarFallback className="rounded-xl bg-primary">
-                  <Building2 className="h-5 w-5 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-lg font-semibold">{companyName}</span>
-            </div>
+          {/* Right Panel */}
+          <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
+            <div className="w-full max-w-sm">
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <Avatar className="h-9 w-9 rounded-lg">
+                  <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                  <AvatarFallback className="rounded-lg bg-primary">
+                    <Building2 className="h-5 w-5 text-primary-foreground" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xl font-bold">{companyName}</span>
+              </div>
 
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold tracking-tight mb-2">Set new password</h2>
-              <p className="text-muted-foreground">
-                Must be at least 6 characters.
-              </p>
-            </div>
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-semibold mb-2">Set New Password</h1>
+                <p className="text-muted-foreground text-sm">
+                  Must be at least 6 characters.
+                </p>
+              </div>
 
-            <form onSubmit={handleResetPassword} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
+              <form onSubmit={handleResetPassword} className="space-y-5">
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="••••••••"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="New Password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className={`pl-10 h-11 ${errors.password ? "border-destructive" : ""}`}
+                    className={`h-12 px-4 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
                     disabled={isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  {renderError("password")}
                 </div>
-                {renderError("password")}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirm-new-password" className="text-sm font-medium">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div>
                   <Input
-                    id="confirm-new-password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Confirm Password"
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className={`pl-10 h-11 ${errors.confirmPassword ? "border-destructive" : ""}`}
+                    className={`h-12 px-4 border-border ${errors.confirmPassword ? "border-destructive" : ""}`}
                     disabled={isLoading}
                   />
+                  {renderError("confirmPassword")}
                 </div>
-                {renderError("confirmPassword")}
-              </div>
 
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Reset Password"
-                )}
-              </Button>
-            </form>
+                <Button type="submit" className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Reset Password"
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -373,157 +387,127 @@ export default function AuthPage() {
 
   // Main Login View
   return (
-    <div className="min-h-screen flex">
-      {/* Left - Visual Panel with gradient and decorative elements */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
-        
-        {/* Decorative blurred circles */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full" />
-        </div>
-
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }} />
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20 shadow-lg">
-              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary-foreground/10 backdrop-blur-sm">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
-          </div>
-
-          {/* Main headline */}
-          <div className="space-y-6 max-w-lg">
-            <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
-              Manage Your Workforce with Confidence
-            </h1>
-            <p className="text-xl text-primary-foreground/80">
-              Streamline HR operations, empower your team, and drive business success with our comprehensive platform.
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+      <div className="w-full max-w-4xl bg-background rounded-2xl shadow-2xl overflow-hidden flex min-h-[600px]">
+        {/* Left Panel - Geometric Design */}
+        <div className="hidden md:flex md:w-1/2 bg-primary relative">
+          <GeometricPattern />
+          <div className="relative z-10 flex flex-col items-center justify-center w-full p-8 text-center">
+            <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+              Welcome Back
+            </h2>
+            <p className="text-primary-foreground/70 max-w-xs">
+              Manage your workforce efficiently with our comprehensive HR management solution.
             </p>
-            
-            {/* Stats */}
-            <div className="flex gap-8 pt-6">
-              <div>
-                <div className="text-3xl font-bold text-primary-foreground">99.9%</div>
-                <div className="text-sm text-primary-foreground/60">Uptime</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-primary-foreground">24/7</div>
-                <div className="text-sm text-primary-foreground/60">Support</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-primary-foreground">256-bit</div>
-                <div className="text-sm text-primary-foreground/60">Encryption</div>
-              </div>
+            {/* Carousel dots */}
+            <div className="flex gap-2 mt-8">
+              <div className="w-6 h-2 rounded-full bg-primary-foreground" />
+              <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+              <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
             </div>
           </div>
-
-          {/* Footer */}
-          <p className="text-sm text-primary-foreground/50">
-            © {new Date().getFullYear()} {companyName}. All rights reserved.
-          </p>
         </div>
-      </div>
 
-      {/* Right - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <Avatar className="h-10 w-10 rounded-xl">
-              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary">
-                <Building2 className="h-5 w-5 text-primary-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-lg font-semibold">{companyName}</span>
-          </div>
+        {/* Right Panel - Login Form */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
+          <div className="w-full max-w-sm">
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <Avatar className="h-9 w-9 rounded-lg">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-lg bg-primary">
+                  <Building2 className="h-5 w-5 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xl font-bold">{companyName}</span>
+            </div>
 
-          {/* Welcome text */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold tracking-tight mb-2">Welcome back</h2>
-            <p className="text-muted-foreground">
-              Enter your credentials to access your account
-            </p>
-          </div>
+            {/* Welcome text */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-semibold mb-2">
+                Welcome to <span className="font-bold">{companyName}</span>
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Sign in to continue to {companyName}.
+              </p>
+            </div>
 
-          {/* Login form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* Login form */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
                 <Input
-                  id="login-email"
                   type="email"
-                  placeholder="name@company.com"
+                  placeholder="Email"
                   value={loginData.email}
                   onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                  className={`pl-10 h-11 ${errors.email ? "border-destructive" : ""}`}
+                  className={`h-12 px-4 border-border ${errors.email ? "border-destructive" : ""}`}
                   disabled={isLoading}
                 />
+                {renderError("email")}
               </div>
-              {renderError("email")}
-            </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => setView("forgot-password")}
-                >
-                  Forgot password?
-                </Button>
-              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
                   value={loginData.password}
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className={`pl-10 h-11 ${errors.password ? "border-destructive" : ""}`}
+                  className={`h-12 px-4 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+                {renderError("password")}
               </div>
-              {renderError("password")}
-            </div>
 
-            <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </Button>
-          </form>
+              {/* Remember me & Forgot password */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="remember" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                    Remember me
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setView("forgot-password")}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
 
-          {/* Footer note */}
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            Need an account?{" "}
-            <span className="text-foreground">Contact your administrator</span>
-          </p>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background font-medium" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Log In"
+                )}
+              </Button>
+            </form>
+
+            {/* Footer */}
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Don't have an account?{" "}
+              <span className="text-primary font-medium">Contact Admin</span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
