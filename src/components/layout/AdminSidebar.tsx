@@ -145,7 +145,7 @@ const adminNavItems: NavItem[] = [
       { title: "Letter Templates", href: "/admin/letters/templates", icon: LayoutTemplate },
     ],
   },
-  { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
+  { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
   {
     title: "Reports",
     icon: BarChart3,
