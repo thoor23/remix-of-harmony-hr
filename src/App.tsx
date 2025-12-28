@@ -23,6 +23,7 @@ import EmployeeDetails from "./pages/admin/employees/EmployeeDetails";
 import AddEmployee from "./pages/admin/employees/AddEmployee";
 import EditEmployee from "./pages/admin/employees/EditEmployee";
 import AttendanceManagement from "./pages/admin/attendance/AttendanceManagement";
+import AttendanceRegularizationPage from "./pages/admin/attendance/AttendanceRegularizationPage";
 import LeaveManagement from "./pages/admin/leaves/LeaveManagement";
 import LeavePolicy from "./pages/admin/leaves/LeavePolicy";
 import SalaryStructure from "./pages/admin/payroll/SalaryStructure";
@@ -112,6 +113,7 @@ const App = () => (
                 <Route path="employees/:id/edit" element={<EditEmployee />} />
                 <Route path="employees/change-requests" element={<ProfileChangeRequestsPage />} />
                 <Route path="attendance" element={<AttendanceManagement />} />
+                <Route path="attendance/regularization" element={<AttendanceRegularizationPage />} />
                 <Route path="attendance/policy" element={<AttendancePolicyPage />} />
                 <Route path="leaves" element={<LeaveManagement />} />
                 <Route path="leaves/policy" element={<LeavePolicy />} />

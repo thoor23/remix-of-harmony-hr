@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.api-documents]
 verify_jwt = false
+
+[functions.api-profile-requests]
+verify_jwt = false
+
+[functions.api-attendance-regularization]
+verify_jwt = false

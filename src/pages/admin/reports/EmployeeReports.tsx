@@ -15,68 +15,77 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-const departmentData = [
-  { name: "Engineering", value: 45 },
-  { name: "Sales", value: 30 },
-  { name: "Marketing", value: 20 },
-  { name: "HR", value: 15 },
-  { name: "Finance", value: 12 },
-];
-
-const employmentTypeData = [
-  { name: "Full-time", value: 95 },
-  { name: "Part-time", value: 15 },
-  { name: "Contract", value: 8 },
-  { name: "Intern", value: 4 },
-];
-
-const monthlyHiresData = [
-  { name: "Jul", hires: 3, exits: 1 },
-  { name: "Aug", hires: 5, exits: 2 },
-  { name: "Sep", hires: 4, exits: 1 },
-  { name: "Oct", hires: 6, exits: 3 },
-  { name: "Nov", hires: 8, exits: 2 },
-  { name: "Dec", hires: 4, exits: 1 },
-];
-
-const tenureData = [
-  { name: "< 1 year", value: 28 },
-  { name: "1-2 years", value: 35 },
-  { name: "2-3 years", value: 25 },
-  { name: "3-5 years", value: 18 },
-  { name: "5+ years", value: 16 },
-];
-
-const employeeDirectory = [
-  { id: "EMP001", name: "John Smith", department: "Engineering", designation: "Senior Developer", joinDate: "2022-03-15", status: "Active" },
-  { id: "EMP002", name: "Sarah Johnson", department: "Marketing", designation: "Marketing Manager", joinDate: "2021-08-20", status: "Active" },
-  { id: "EMP003", name: "Mike Chen", department: "Sales", designation: "Sales Executive", joinDate: "2023-01-10", status: "Active" },
-  { id: "EMP004", name: "Emily Davis", department: "HR", designation: "HR Specialist", joinDate: "2022-06-01", status: "On Leave" },
-  { id: "EMP005", name: "Alex Wilson", department: "Finance", designation: "Accountant", joinDate: "2020-11-25", status: "Active" },
-];
-
-const departments = ["Engineering", "Sales", "Marketing", "HR", "Finance"];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useEmployeeReportData, processEmployeeData } from "@/hooks/useReportData";
+import { useDepartmentsData } from "@/hooks/useDepartments";
 
 export default function EmployeeReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
 
+  const { data: employees = [], isLoading } = useEmployeeReportData();
+  const { data: departments = [] } = useDepartmentsData();
+
+  const departmentNames = departments.map((d: any) => d.name);
+
+  // Filter employees by department
   const filteredEmployees = filteredDepartment === "all"
-    ? employeeDirectory
-    : employeeDirectory.filter(emp => emp.department === filteredDepartment);
+    ? employees
+    : employees.filter((emp: any) => emp.department?.name === filteredDepartment);
+
+  // Process data for charts
+  const { departmentData, employmentTypeData, statusData } = processEmployeeData(employees);
+
+  // Calculate tenure data from employees
+  const tenureData = (() => {
+    const buckets: Record<string, number> = {
+      "< 1 year": 0,
+      "1-2 years": 0,
+      "2-3 years": 0,
+      "3-5 years": 0,
+      "5+ years": 0,
+    };
+
+    employees.forEach((emp: any) => {
+      if (!emp.date_of_joining) return;
+      const years = (Date.now() - new Date(emp.date_of_joining).getTime()) / (1000 * 60 * 60 * 24 * 365);
+      if (years < 1) buckets["< 1 year"]++;
+      else if (years < 2) buckets["1-2 years"]++;
+      else if (years < 3) buckets["2-3 years"]++;
+      else if (years < 5) buckets["3-5 years"]++;
+      else buckets["5+ years"]++;
+    });
+
+    return Object.entries(buckets).map(([name, value]) => ({ name, value }));
+  })();
 
   const exportData = {
     headers: ["Employee ID", "Name", "Department", "Designation", "Join Date", "Status"],
-    rows: filteredEmployees.map(emp => [
-      emp.id,
-      emp.name,
-      emp.department,
-      emp.designation,
-      emp.joinDate,
+    rows: filteredEmployees.map((emp: any) => [
+      emp.employee_id,
+      emp.profile ? `${emp.profile.first_name || ""} ${emp.profile.last_name || ""}`.trim() : "N/A",
+      emp.department?.name || "Unassigned",
+      emp.designation?.name || "N/A",
+      emp.date_of_joining,
       emp.status,
     ]),
     filename: "employee-report",
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Employee Reports"
+          description="Analyze workforce demographics and employee data"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -86,7 +95,7 @@ export default function EmployeeReports() {
       />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
-          departments={departments}
+          departments={departmentNames}
           onDepartmentChange={setFilteredDepartment}
         />
         <ReportExport data={exportData} title="Employee Report" />
@@ -96,21 +105,16 @@ export default function EmployeeReports() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <PieChartCard title="Headcount by Department" data={departmentData} />
         <PieChartCard title="Employment Type Distribution" data={employmentTypeData} />
-        <LineChartCard
-          title="Monthly Hiring vs Exits"
-          data={monthlyHiresData}
-          lines={[
-            { dataKey: "hires", name: "New Hires" },
-            { dataKey: "exits", name: "Exits" },
-          ]}
-        />
+        <PieChartCard title="Employee Status" data={statusData} />
         <BarChartCard title="Employee Tenure Distribution" data={tenureData} />
       </div>
 
       {/* Employee Directory Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Employee Directory</CardTitle>
+          <CardTitle className="text-base">
+            Employee Directory ({filteredEmployees.length} employees)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -125,24 +129,40 @@ export default function EmployeeReports() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEmployees.map((employee) => (
+              {filteredEmployees.slice(0, 20).map((employee: any) => (
                 <TableRow key={employee.id}>
-                  <TableCell className="font-medium">{employee.id}</TableCell>
-                  <TableCell>{employee.name}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
-                  <TableCell>{employee.designation}</TableCell>
-                  <TableCell>{employee.joinDate}</TableCell>
+                  <TableCell className="font-medium">{employee.employee_id}</TableCell>
+                  <TableCell>
+                    {employee.profile
+                      ? `${employee.profile.first_name || ""} ${employee.profile.last_name || ""}`.trim()
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell>{employee.department?.name || "Unassigned"}</TableCell>
+                  <TableCell>{employee.designation?.name || "N/A"}</TableCell>
+                  <TableCell>{employee.date_of_joining}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={employee.status === "Active" ? "default" : "secondary"}
+                      variant={employee.status === "active" ? "default" : "secondary"}
                     >
                       {employee.status}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredEmployees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No employees found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
+          {filteredEmployees.length > 20 && (
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              Showing 20 of {filteredEmployees.length} employees. Export for full list.
+            </p>
+          )}
         </CardContent>
       </Card>
     </PageContainer>
