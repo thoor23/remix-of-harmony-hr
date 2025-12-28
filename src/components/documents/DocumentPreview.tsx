@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, FileImage, File, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
 import { getAccessToken } from "@/lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-const UPLOADS_BASE_URL = API_URL.replace("/api", "") + "/uploads/documents";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const UPLOADS_BASE_URL = `${SUPABASE_URL}/functions/v1/api-documents/download`;
 
 interface DocumentPreviewProps {
   open: boolean;
