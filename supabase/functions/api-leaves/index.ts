@@ -83,54 +83,26 @@ serve(async (req) => {
 
       const { data: leaveRequests, error } = await supabase
         .from('leave_requests')
-        .select(
-          `
+        .select(`
           *,
           leave_type:leave_types(*),
           employee:employees!leave_requests_employee_id_fkey(
             id,
             employee_id,
-            user_id
+            user_id,
+            first_name,
+            last_name,
+            email,
+            avatar_url
           )
-        `
-        )
+        `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
 
-      // Fetch profiles separately (profiles.user_id -> employees.user_id)
-      const userIds = (leaveRequests || [])
-        .map((r: any) => r?.employee?.user_id)
-        .filter(Boolean);
-
-      let profilesMap: Record<string, any> = {};
-      if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name, email, phone, avatar_url')
-          .in('user_id', userIds);
-
-        if (profilesError) throw profilesError;
-
-        profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-          acc[p.user_id] = p;
-          return acc;
-        }, {});
-      }
-
-      const result = (leaveRequests || []).map((r: any) => {
-        const userId = r?.employee?.user_id;
-        return {
-          ...r,
-          employee: r.employee
-            ? { ...r.employee, profile: userId ? profilesMap[userId] || null : null }
-            : null,
-        };
-      });
-
-      return jsonResponse(result);
+      return jsonResponse(leaveRequests || []);
     }
 
     // GET / or /requests - Get all leave requests (admin/hr only)
@@ -143,17 +115,19 @@ serve(async (req) => {
 
       let query = supabase
         .from('leave_requests')
-        .select(
-          `
+        .select(`
           *,
           leave_type:leave_types(*),
           employee:employees!leave_requests_employee_id_fkey(
             id,
             employee_id,
-            user_id
+            user_id,
+            first_name,
+            last_name,
+            email,
+            avatar_url
           )
-        `
-        )
+        `)
         .order('created_at', { ascending: false });
 
       if (status) {
@@ -163,37 +137,7 @@ serve(async (req) => {
       const { data: leaveRequests, error } = await query;
       if (error) throw error;
 
-      // Fetch profiles separately (profiles.user_id -> employees.user_id)
-      const userIds = (leaveRequests || [])
-        .map((r: any) => r?.employee?.user_id)
-        .filter(Boolean);
-
-      let profilesMap: Record<string, any> = {};
-      if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name, email, phone, avatar_url')
-          .in('user_id', userIds);
-
-        if (profilesError) throw profilesError;
-
-        profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-          acc[p.user_id] = p;
-          return acc;
-        }, {});
-      }
-
-      const result = (leaveRequests || []).map((r: any) => {
-        const userId = r?.employee?.user_id;
-        return {
-          ...r,
-          employee: r.employee
-            ? { ...r.employee, profile: userId ? profilesMap[userId] || null : null }
-            : null,
-        };
-      });
-
-      return jsonResponse(result);
+      return jsonResponse(leaveRequests || []);
     }
 
     // POST / - Create leave request

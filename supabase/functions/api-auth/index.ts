@@ -65,17 +65,10 @@ serve(async (req) => {
 
       const role = roleData?.role || 'employee';
 
-      // Get profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      // Get employee if exists
+      // Get employee (which now has profile data)
       const { data: employee } = await supabase
         .from('employees')
-        .select('id')
+        .select('id, first_name, last_name, email, phone, avatar_url')
         .eq('user_id', user.id)
         .single();
 
@@ -104,7 +97,13 @@ serve(async (req) => {
           id: user.id,
           email: user.email,
           role,
-          profile,
+          profile: employee ? {
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            email: employee.email,
+            phone: employee.phone,
+            avatar_url: employee.avatar_url,
+          } : null,
           employeeId: employee?.id,
         },
         session: {
@@ -121,7 +120,7 @@ serve(async (req) => {
         return errorResponse('Admin or HR access required', 403);
       }
 
-      const { email, password, firstName, lastName, role = 'employee' } = await req.json();
+      const { email, password, firstName, lastName, phone, role = 'employee' } = await req.json();
 
       if (!email || !password) {
         return errorResponse('Email and password are required', 400);
@@ -158,14 +157,6 @@ serve(async (req) => {
         return errorResponse('Failed to create user', 500);
       }
 
-      // Create profile
-      await supabase.from('profiles').insert({
-        user_id: newUser.id,
-        first_name: firstName,
-        last_name: lastName,
-        email: email.toLowerCase(),
-      });
-
       // Create role
       await supabase.from('user_roles').insert({
         user_id: newUser.id,
@@ -195,7 +186,13 @@ serve(async (req) => {
           email: userInfo.user.email,
           role: userInfo.role,
         },
-        profile: userInfo.profile,
+        profile: userInfo.employee ? {
+          first_name: userInfo.employee.first_name,
+          last_name: userInfo.employee.last_name,
+          email: userInfo.employee.email,
+          phone: userInfo.employee.phone,
+          avatar_url: userInfo.employee.avatar_url,
+        } : null,
         employee: userInfo.employee,
       });
     }

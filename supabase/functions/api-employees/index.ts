@@ -38,29 +38,7 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      // Fetch profiles for all employees with user_ids
-      const userIds = employees?.filter(e => e.user_id).map(e => e.user_id) || [];
-      let profilesMap: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name, email, phone, avatar_url')
-          .in('user_id', userIds);
-        
-        profilesMap = (profiles || []).reduce((acc, p) => {
-          acc[p.user_id] = p;
-          return acc;
-        }, {} as Record<string, any>);
-      }
-
-      // Merge profiles into employees
-      const result = employees?.map(emp => ({
-        ...emp,
-        profile: emp.user_id ? profilesMap[emp.user_id] || null : null
-      }));
-
-      return jsonResponse(result);
+      return jsonResponse(employees);
     }
 
     // GET /current - Get current user's employee record
@@ -76,19 +54,8 @@ serve(async (req) => {
         .maybeSingle();
 
       if (error) throw error;
-      
-      // Fetch profile separately
-      let profile = null;
-      if (employee?.user_id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email, phone, avatar_url')
-          .eq('user_id', employee.user_id)
-          .maybeSingle();
-        profile = profileData;
-      }
 
-      return jsonResponse(employee ? { ...employee, profile } : null);
+      return jsonResponse(employee);
     }
 
     // GET /:id - Get specific employee
@@ -111,18 +78,7 @@ serve(async (req) => {
         return errorResponse('Employee not found', 404);
       }
 
-      // Fetch profile separately
-      let profile = null;
-      if (employee.user_id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email, phone, avatar_url')
-          .eq('user_id', employee.user_id)
-          .maybeSingle();
-        profile = profileData;
-      }
-
-      return jsonResponse({ ...employee, profile });
+      return jsonResponse(employee);
     }
 
     // POST / - Create employee
@@ -155,7 +111,7 @@ serve(async (req) => {
         return errorResponse('Admin or HR access required', 403);
       }
 
-      const { email, password, firstName, lastName, role = 'employee', ...employeeData } = await req.json();
+      const { email, password, firstName, lastName, phone, role = 'employee', ...employeeData } = await req.json();
 
       // Import auth functions
       const { hashPassword } = await import('../_shared/auth.ts');
@@ -175,26 +131,22 @@ serve(async (req) => {
 
       if (userError) throw userError;
 
-      // Create profile
-      await supabase.from('profiles').insert({
-        user_id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        email: email.toLowerCase(),
-      });
-
       // Create role
       await supabase.from('user_roles').insert({
         user_id: user.id,
         role,
       });
 
-      // Create employee
+      // Create employee with profile fields merged
       const { data: employee, error: empError } = await supabase
         .from('employees')
         .insert({
           ...employeeData,
           user_id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: email.toLowerCase(),
+          phone: phone || null,
         })
         .select()
         .single();

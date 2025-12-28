@@ -483,6 +483,7 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           address_zip_code: string | null
+          avatar_url: string | null
           bank_account_holder_name: string | null
           bank_account_number: string | null
           bank_ifsc_code: string | null
@@ -492,12 +493,16 @@ export type Database = {
           date_of_joining: string
           department_id: string | null
           designation_id: string | null
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
           employee_id: string
           employment_type: string
+          first_name: string | null
           id: string
+          last_name: string | null
+          phone: string | null
           reporting_to: string | null
           status: string
           updated_at: string
@@ -509,6 +514,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip_code?: string | null
+          avatar_url?: string | null
           bank_account_holder_name?: string | null
           bank_account_number?: string | null
           bank_ifsc_code?: string | null
@@ -518,12 +524,16 @@ export type Database = {
           date_of_joining?: string
           department_id?: string | null
           designation_id?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
           employee_id: string
           employment_type?: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          phone?: string | null
           reporting_to?: string | null
           status?: string
           updated_at?: string
@@ -535,6 +545,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           address_zip_code?: string | null
+          avatar_url?: string | null
           bank_account_holder_name?: string | null
           bank_account_number?: string | null
           bank_ifsc_code?: string | null
@@ -544,12 +555,16 @@ export type Database = {
           date_of_joining?: string
           department_id?: string | null
           designation_id?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
           employee_id?: string
           employment_type?: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          phone?: string | null
           reporting_to?: string | null
           status?: string
           updated_at?: string
