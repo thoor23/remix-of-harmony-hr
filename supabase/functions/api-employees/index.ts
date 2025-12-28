@@ -27,35 +27,68 @@ serve(async (req) => {
         return errorResponse('Admin or HR access required', 403);
       }
 
-      const { data, error } = await supabase
+      const { data: employees, error } = await supabase
         .from('employees')
         .select(`
           *,
           department:departments(id, name, code),
-          designation:designations(id, name, code),
-          profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone, avatar_url)
+          designation:designations(id, name, code)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      // Fetch profiles for all employees with user_ids
+      const userIds = employees?.filter(e => e.user_id).map(e => e.user_id) || [];
+      let profilesMap: Record<string, any> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, email, phone, avatar_url')
+          .in('user_id', userIds);
+        
+        profilesMap = (profiles || []).reduce((acc, p) => {
+          acc[p.user_id] = p;
+          return acc;
+        }, {} as Record<string, any>);
+      }
+
+      // Merge profiles into employees
+      const result = employees?.map(emp => ({
+        ...emp,
+        profile: emp.user_id ? profilesMap[emp.user_id] || null : null
+      }));
+
+      return jsonResponse(result);
     }
 
     // GET /current - Get current user's employee record
     if (method === 'GET' && path === '/current') {
-      const { data, error } = await supabase
+      const { data: employee, error } = await supabase
         .from('employees')
         .select(`
           *,
           department:departments(id, name, code),
-          designation:designations(id, name, code),
-          profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone, avatar_url)
+          designation:designations(id, name, code)
         `)
         .eq('user_id', auth.userId)
         .maybeSingle();
 
       if (error) throw error;
-      return jsonResponse(data);
+      
+      // Fetch profile separately
+      let profile = null;
+      if (employee?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, phone, avatar_url')
+          .eq('user_id', employee.user_id)
+          .maybeSingle();
+        profile = profileData;
+      }
+
+      return jsonResponse(employee ? { ...employee, profile } : null);
     }
 
     // GET /:id - Get specific employee
@@ -63,19 +96,30 @@ serve(async (req) => {
     if (method === 'GET' && idMatch) {
       const id = idMatch[1];
       
-      const { data, error } = await supabase
+      const { data: employee, error } = await supabase
         .from('employees')
         .select(`
           *,
           department:departments(id, name, code),
-          designation:designations(id, name, code),
-          profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone, avatar_url)
+          designation:designations(id, name, code)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return jsonResponse(data);
+
+      // Fetch profile separately
+      let profile = null;
+      if (employee?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, phone, avatar_url')
+          .eq('user_id', employee.user_id)
+          .maybeSingle();
+        profile = profileData;
+      }
+
+      return jsonResponse({ ...employee, profile });
     }
 
     // POST / - Create employee
