@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, Star, Copy, Code } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Star, Copy, Code, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import {
   useBannerTemplates,
   useCreateBannerTemplate,
@@ -24,9 +29,11 @@ import {
   DEFAULT_BANNER_HTML,
   BannerTemplate,
 } from "@/hooks/useBannerTemplates";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function BannerTemplatesPage() {
-  const { data: templates, isLoading } = useBannerTemplates();
+  const queryClient = useQueryClient();
+  const { data: templates, isLoading, isFetching } = useBannerTemplates();
   const createTemplate = useCreateBannerTemplate();
   const updateTemplate = useUpdateBannerTemplate();
   const deleteTemplate = useDeleteBannerTemplate();
@@ -36,6 +43,20 @@ export default function BannerTemplatesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<BannerTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<BannerTemplate | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+
+  // Table state
+  const [sortColumn, setSortColumn] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "name", header: "Name", visible: true },
+    { id: "priority_type", header: "Priority Type", visible: true },
+    { id: "is_default", header: "Default", visible: true },
+    { id: "created_at", header: "Created", visible: true },
+    { id: "actions", header: "Actions", visible: true },
+  ]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -44,6 +65,44 @@ export default function BannerTemplatesPage() {
     priority_type: "all",
     is_default: false,
   });
+
+  const filteredTemplates = useMemo(() => {
+    if (!templates) return [];
+    return templates.filter(t => 
+      t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [templates, searchQuery]);
+
+  const sortedTemplates = useMemo(() => {
+    return [...filteredTemplates].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortColumn) {
+        case "name":
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case "priority_type":
+          aVal = a.priority_type;
+          bVal = b.priority_type;
+          break;
+        case "is_default":
+          aVal = a.is_default ? 1 : 0;
+          bVal = b.is_default ? 1 : 0;
+          break;
+        case "created_at":
+          aVal = new Date(a.created_at).getTime();
+          bVal = new Date(b.created_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredTemplates, sortColumn, sortDirection]);
+
+  const { paginatedItems, ...pagination } = usePagination(sortedTemplates, { defaultPageSize: 10 });
 
   const handleOpenCreate = () => {
     setEditingTemplate(null);
@@ -104,7 +163,6 @@ export default function BannerTemplatesPage() {
     }));
   };
 
-  // Generate preview with sample data
   const getPreviewHtml = (html: string) => {
     const sampleData: Record<string, string> = {
       "{{title}}": "Sample Announcement Title",
@@ -127,29 +185,84 @@ export default function BannerTemplatesPage() {
     return result;
   };
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    return sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedRows(checked ? paginatedItems.map((t) => t.id) : []);
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedRows(prev => checked ? [...prev, id] : prev.filter(r => r !== id));
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev => prev.map(col => col.id === columnId ? { ...col, visible } : col));
+  };
+
+  const handleExport = () => {
+    const data = sortedTemplates.map(t => ({
+      name: t.name,
+      priority_type: PRIORITY_TYPES.find(p => p.value === t.priority_type)?.label || t.priority_type,
+      is_default: t.is_default ? "Yes" : "No",
+      created_at: format(new Date(t.created_at), "yyyy-MM-dd"),
+    }));
+    exportToCSV(data, columns, "banner-templates");
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Banner Templates"
         description="Design HTML templates for dashboard announcement banners"
-      >
-        <Button onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Template
-        </Button>
-      </PageHeader>
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Banner Templates</CardTitle>
-          <CardDescription>
-            Create and manage HTML templates with placeholders for dashboard banners
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onAddRow={handleOpenCreate}
+          onToggleFilter={() => setShowFilter(!showFilter)}
+          showFilter={showFilter}
+          isRefreshing={isFetching}
+          addRowLabel="New Template"
+        />
+
+        {showFilter && (
+          <div className="px-4 py-3 border-b bg-muted/30">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+        )}
+
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="text-muted-foreground">Loading templates...</div>
-          ) : !templates?.length ? (
+            <div className="text-muted-foreground p-6">Loading templates...</div>
+          ) : !paginatedItems?.length ? (
             <div className="text-center py-8 text-muted-foreground">
               No banner templates yet. Create your first template.
             </div>
@@ -157,80 +270,129 @@ export default function BannerTemplatesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Priority Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={paginatedItems.length > 0 && selectedRows.length === paginatedItems.length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  {columns.find(c => c.id === "name")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
+                      <div className="flex items-center">Name {getSortIcon("name")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "priority_type")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("priority_type")}>
+                      <div className="flex items-center">Priority Type {getSortIcon("priority_type")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "is_default")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("is_default")}>
+                      <div className="flex items-center">Default {getSortIcon("is_default")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "created_at")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("created_at")}>
+                      <div className="flex items-center">Created {getSortIcon("created_at")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "actions")?.visible && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">{template.name}</TableCell>
+                {paginatedItems.map((template) => (
+                  <TableRow key={template.id} data-state={selectedRows.includes(template.id) ? "selected" : undefined}>
                     <TableCell>
-                      <Badge variant="outline">
-                        {PRIORITY_TYPES.find((p) => p.value === template.priority_type)?.label || template.priority_type}
-                      </Badge>
+                      <Checkbox
+                        checked={selectedRows.includes(template.id)}
+                        onCheckedChange={(checked) => handleSelectRow(template.id, !!checked)}
+                      />
                     </TableCell>
-                    <TableCell>
-                      {template.is_default ? (
-                        <Badge variant="default" className="bg-yellow-500">
-                          <Star className="h-3 w-3 mr-1" />
-                          Default
+                    {columns.find(c => c.id === "name")?.visible && (
+                      <TableCell className="font-medium">{template.name}</TableCell>
+                    )}
+                    {columns.find(c => c.id === "priority_type")?.visible && (
+                      <TableCell>
+                        <Badge variant="outline">
+                          {PRIORITY_TYPES.find((p) => p.value === template.priority_type)?.label || template.priority_type}
                         </Badge>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleSetDefault(template)}
-                        >
-                          Set Default
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>{format(new Date(template.created_at), "MMM dd, yyyy")}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setPreviewTemplate(template);
-                            setIsPreviewOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDuplicate(template)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(template)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(template.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                      </TableCell>
+                    )}
+                    {columns.find(c => c.id === "is_default")?.visible && (
+                      <TableCell>
+                        {template.is_default ? (
+                          <Badge variant="default" className="bg-yellow-500">
+                            <Star className="h-3 w-3 mr-1" />
+                            Default
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetDefault(template)}
+                          >
+                            Set Default
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
+                    {columns.find(c => c.id === "created_at")?.visible && (
+                      <TableCell>{format(new Date(template.created_at), "MMM dd, yyyy")}</TableCell>
+                    )}
+                    {columns.find(c => c.id === "actions")?.visible && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setPreviewTemplate(template);
+                              setIsPreviewOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDuplicate(template)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEdit(template)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(template.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
+
+        <TablePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.goToPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
       </Card>
 
       {/* Template Editor Dialog */}

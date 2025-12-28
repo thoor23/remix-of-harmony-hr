@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -32,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Copy, Eye, Star } from "lucide-react";
+import { Plus, Edit, Trash2, Copy, Eye, Star, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import {
   useLetterTemplates,
   useCreateLetterTemplate,
@@ -44,7 +45,12 @@ import {
 } from "@/hooks/useLetterTemplates";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 const letterTypes: { value: LetterType; label: string }[] = [
   { value: "offer", label: "Offer Letter" },
@@ -62,7 +68,8 @@ interface TemplateForm {
 }
 
 export default function LetterTemplatesPage() {
-  const { data: templates = [], isLoading } = useLetterTemplates();
+  const queryClient = useQueryClient();
+  const { data: templates = [], isLoading, isFetching } = useLetterTemplates();
   const { data: branding } = useCompanyBranding();
   const createTemplate = useCreateLetterTemplate();
   const updateTemplate = useUpdateLetterTemplate();
@@ -73,12 +80,64 @@ export default function LetterTemplatesPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState("");
   const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
   const [form, setForm] = useState<TemplateForm>({
     name: "",
     type: "offer",
     content: "",
     is_default: false,
   });
+
+  // Table state
+  const [sortColumn, setSortColumn] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "name", header: "Name", visible: true },
+    { id: "type", header: "Type", visible: true },
+    { id: "is_default", header: "Default", visible: true },
+    { id: "version", header: "Version", visible: true },
+    { id: "actions", header: "Actions", visible: true },
+  ]);
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => 
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.type.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [templates, searchQuery]);
+
+  const sortedTemplates = useMemo(() => {
+    return [...filteredTemplates].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortColumn) {
+        case "name":
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case "type":
+          aVal = a.type;
+          bVal = b.type;
+          break;
+        case "is_default":
+          aVal = a.is_default ? 1 : 0;
+          bVal = b.is_default ? 1 : 0;
+          break;
+        case "version":
+          aVal = a.version || 0;
+          bVal = b.version || 0;
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredTemplates, sortColumn, sortDirection]);
+
+  const { paginatedItems, ...pagination } = usePagination(sortedTemplates, { defaultPageSize: 10 });
 
   const openDialog = (template?: typeof templates[0]) => {
     if (template) {
@@ -150,7 +209,6 @@ export default function LetterTemplatesPage() {
   };
 
   const handlePreview = (content: string) => {
-    // Replace placeholders with sample data including company logo
     const logoHtml = branding?.companyLogo 
       ? `<img src="${branding.companyLogo}" alt="Company Logo" style="max-height: 60px; margin-bottom: 10px;" />`
       : '';
@@ -175,6 +233,46 @@ export default function LetterTemplatesPage() {
     setDialogOpen(true);
   };
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    return sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedRows(checked ? paginatedItems.map((t) => t.id) : []);
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedRows(prev => checked ? [...prev, id] : prev.filter(r => r !== id));
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev => prev.map(col => col.id === columnId ? { ...col, visible } : col));
+  };
+
+  const handleExport = () => {
+    const data = sortedTemplates.map(t => ({
+      name: t.name,
+      type: t.type,
+      is_default: t.is_default ? "Yes" : "No",
+      version: t.version || 1,
+    }));
+    exportToCSV(data, columns, "letter-templates");
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["letter-templates"] });
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -183,21 +281,40 @@ export default function LetterTemplatesPage() {
       />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Templates</CardTitle>
-          <Button onClick={() => openDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Template
-          </Button>
-        </CardHeader>
-        <CardContent>
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onAddRow={() => openDialog()}
+          onToggleFilter={() => setShowFilter(!showFilter)}
+          showFilter={showFilter}
+          isRefreshing={isFetching}
+          addRowLabel="New Template"
+        />
+
+        {showFilter && (
+          <div className="px-4 py-3 border-b bg-muted/30">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+        )}
+
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="p-6 space-y-4">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : templates.length === 0 ? (
+          ) : paginatedItems.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>No templates created yet</p>
               <Button variant="outline" className="mt-4" onClick={() => openDialog()}>
@@ -208,68 +325,117 @@ export default function LetterTemplatesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead className="w-32">Actions</TableHead>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={paginatedItems.length > 0 && selectedRows.length === paginatedItems.length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  {columns.find(c => c.id === "name")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
+                      <div className="flex items-center">Name {getSortIcon("name")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "type")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("type")}>
+                      <div className="flex items-center">Type {getSortIcon("type")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "is_default")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("is_default")}>
+                      <div className="flex items-center">Default {getSortIcon("is_default")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "version")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("version")}>
+                      <div className="flex items-center">Version {getSortIcon("version")}</div>
+                    </TableHead>
+                  )}
+                  {columns.find(c => c.id === "actions")?.visible && (
+                    <TableHead className="w-32">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">{template.name}</TableCell>
+                {paginatedItems.map((template) => (
+                  <TableRow key={template.id} data-state={selectedRows.includes(template.id) ? "selected" : undefined}>
                     <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {template.type}
-                      </Badge>
+                      <Checkbox
+                        checked={selectedRows.includes(template.id)}
+                        onCheckedChange={(checked) => handleSelectRow(template.id, !!checked)}
+                      />
                     </TableCell>
-                    <TableCell>
-                      {template.is_default && (
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      v{template.version}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handlePreview(template.content)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDuplicate(template)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDialog(template)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteDialog({ id: template.id, name: template.name })}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {columns.find(c => c.id === "name")?.visible && (
+                      <TableCell className="font-medium">{template.name}</TableCell>
+                    )}
+                    {columns.find(c => c.id === "type")?.visible && (
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {template.type}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {columns.find(c => c.id === "is_default")?.visible && (
+                      <TableCell>
+                        {template.is_default && (
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        )}
+                      </TableCell>
+                    )}
+                    {columns.find(c => c.id === "version")?.visible && (
+                      <TableCell className="text-muted-foreground">
+                        v{template.version}
+                      </TableCell>
+                    )}
+                    {columns.find(c => c.id === "actions")?.visible && (
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handlePreview(template.content)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDuplicate(template)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDialog(template)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteDialog({ id: template.id, name: template.name })}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
+
+        <TablePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.goToPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
       </Card>
 
       {/* Template Editor Dialog */}
