@@ -19,10 +19,12 @@ export type Database = {
           content: string
           created_at: string
           created_by: string
+          expires_at: string | null
           id: string
           is_active: boolean | null
           priority: string
           published_at: string
+          scheduled_at: string | null
           target_audience: string
           title: string
           type: string
@@ -31,10 +33,12 @@ export type Database = {
           content: string
           created_at?: string
           created_by: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
           priority?: string
           published_at?: string
+          scheduled_at?: string | null
           target_audience?: string
           title: string
           type?: string
@@ -43,10 +47,12 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
           priority?: string
           published_at?: string
+          scheduled_at?: string | null
           target_audience?: string
           title?: string
           type?: string

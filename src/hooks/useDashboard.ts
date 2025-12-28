@@ -117,10 +117,13 @@ export function useRecentAnnouncements(limit = 3) {
   return useQuery({
     queryKey: ["recent-announcements", limit],
     queryFn: async () => {
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("announcements")
-        .select("id, title, content, priority, type, published_at")
+        .select("id, title, content, priority, type, published_at, scheduled_at, expires_at")
         .eq("is_active", true)
+        .or(`scheduled_at.is.null,scheduled_at.lte.${now}`)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order("published_at", { ascending: false })
         .limit(limit);
 
