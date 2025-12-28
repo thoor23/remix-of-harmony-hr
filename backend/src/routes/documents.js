@@ -169,4 +169,58 @@ router.get('/folders/list', async (req, res) => {
   }
 });
 
+// Download document file
+router.get('/download/:id', async (req, res) => {
+  try {
+    const documents = await query('SELECT * FROM documents WHERE id = ?', [req.params.id]);
+    if (documents.length === 0) return res.status(404).json({ error: 'Document not found' });
+    
+    const doc = documents[0];
+    if (!doc.file_url) return res.status(404).json({ error: 'File not found' });
+    
+    const filePath = path.join(__dirname, '../..', doc.file_url);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found on server' });
+    }
+    
+    res.download(filePath, doc.name);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to download document' });
+  }
+});
+
+// Get my documents (for employee)
+router.get('/my/list', async (req, res) => {
+  try {
+    const employees = await query('SELECT id FROM employees WHERE user_id = ?', [req.user.userId]);
+    if (employees.length === 0) return res.json([]);
+    
+    const documents = await query(`
+      SELECT d.* FROM documents d
+      WHERE d.employee_id = ? OR d.is_company_document = true
+      ORDER BY d.created_at DESC
+    `, [employees[0].id]);
+    res.json(documents);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch my documents' });
+  }
+});
+
+// Get documents by category
+router.get('/category/:category', async (req, res) => {
+  try {
+    const documents = await query(`
+      SELECT d.*, e.employee_id as emp_code, p.first_name, p.last_name
+      FROM documents d
+      LEFT JOIN employees e ON d.employee_id = e.id
+      LEFT JOIN profiles p ON e.user_id = p.user_id
+      WHERE d.document_category = ?
+      ORDER BY d.created_at DESC
+    `, [req.params.category]);
+    res.json(documents);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch documents by category' });
+  }
+});
+
 module.exports = router;
