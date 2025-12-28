@@ -1,5 +1,32 @@
 project_id = "gdfaemouuvmovtsecgif"
 
+[functions.api-auth]
+verify_jwt = false
+
+[functions.api-employees]
+verify_jwt = false
+
+[functions.api-attendance]
+verify_jwt = false
+
+[functions.api-leaves]
+verify_jwt = false
+
+[functions.api-departments]
+verify_jwt = false
+
+[functions.api-designations]
+verify_jwt = false
+
+[functions.api-dashboard]
+verify_jwt = false
+
+[functions.api-holidays]
+verify_jwt = false
+
+[functions.api-announcements]
+verify_jwt = false
+
 [functions.create-employee-account]
 verify_jwt = false
 

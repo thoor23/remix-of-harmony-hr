@@ -1010,6 +1010,38 @@ export type Database = {
         }
         Relationships: []
       }
+      refresh_tokens: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refresh_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salary_structures: {
         Row: {
           basic_salary: number
@@ -1308,6 +1340,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string
+          email_confirmed_at: string | null
+          id: string
+          is_active: boolean | null
+          last_sign_in_at: string | null
+          password_hash: string
+          reset_token: string | null
+          reset_token_expires: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          email_confirmed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sign_in_at?: string | null
+          password_hash: string
+          reset_token?: string | null
+          reset_token_expires?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          email_confirmed_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sign_in_at?: string | null
+          password_hash?: string
+          reset_token?: string | null
+          reset_token_expires?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
