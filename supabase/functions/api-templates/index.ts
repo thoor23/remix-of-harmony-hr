@@ -70,7 +70,19 @@ Deno.serve(async (req) => {
       return errorResponse('Invalid template type', 400);
     }
 
-    // GET /type/default/:letterType - Get default template by type (must be before /:id route)
+    // GET /type/default - Get default template (for payslips which don't have letterType)
+    if (req.method === 'GET' && subPath[1] === 'default' && !subPath[2] && tableName) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // GET /type/default/:letterType - Get default template by type (for letters)
     if (req.method === 'GET' && subPath[1] === 'default' && subPath[2] && tableName) {
       const letterType = subPath[2];
       const { data, error } = await supabase

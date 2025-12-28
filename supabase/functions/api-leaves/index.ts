@@ -133,8 +133,8 @@ serve(async (req) => {
       return jsonResponse(result);
     }
 
-    // GET / - Get all leave requests (admin/hr only)
-    if (method === 'GET' && path === '') {
+    // GET / or /requests - Get all leave requests (admin/hr only)
+    if (method === 'GET' && (path === '' || path === '/requests')) {
       if (!isAdminOrHR) {
         return errorResponse('Admin or HR access required', 403);
       }
