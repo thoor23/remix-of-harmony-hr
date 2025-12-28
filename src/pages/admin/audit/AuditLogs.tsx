@@ -97,7 +97,8 @@ export default function AuditLogs() {
     });
   }, [logs, sortColumn, sortDirection]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedLogs, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedLogs, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -301,7 +302,7 @@ export default function AuditLogs() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>

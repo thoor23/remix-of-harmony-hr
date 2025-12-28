@@ -164,7 +164,8 @@ export default function AnnouncementTemplatesPage() {
     });
   }, [filteredTemplates, sortColumn, sortDirection]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedTemplates, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedTemplates, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const openDialog = (template?: any) => {
     if (template) {
@@ -530,7 +531,7 @@ export default function AnnouncementTemplatesPage() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>
@@ -666,11 +667,11 @@ export default function AnnouncementTemplatesPage() {
                   <TabsContent value="company" className="mt-0 space-y-1">
                     {ANNOUNCEMENT_PLACEHOLDERS.company.map((p) => (
                       <Button
-                        key={p.key}
+                        key={p.value}
                         variant="outline"
                         size="sm"
                         className="w-full justify-start text-xs h-8"
-                        onClick={() => insertPlaceholder(p.key)}
+                        onClick={() => insertPlaceholder(p.value)}
                       >
                         {p.label}
                       </Button>
@@ -679,11 +680,11 @@ export default function AnnouncementTemplatesPage() {
                   <TabsContent value="dates" className="mt-0 space-y-1">
                     {ANNOUNCEMENT_PLACEHOLDERS.dates.map((p) => (
                       <Button
-                        key={p.key}
+                        key={p.value}
                         variant="outline"
                         size="sm"
                         className="w-full justify-start text-xs h-8"
-                        onClick={() => insertPlaceholder(p.key)}
+                        onClick={() => insertPlaceholder(p.value)}
                       >
                         {p.label}
                       </Button>
@@ -692,11 +693,11 @@ export default function AnnouncementTemplatesPage() {
                   <TabsContent value="announcement" className="mt-0 space-y-1">
                     {ANNOUNCEMENT_PLACEHOLDERS.announcement.map((p) => (
                       <Button
-                        key={p.key}
+                        key={p.value}
                         variant="outline"
                         size="sm"
                         className="w-full justify-start text-xs h-8"
-                        onClick={() => insertPlaceholder(p.key)}
+                        onClick={() => insertPlaceholder(p.value)}
                       >
                         {p.label}
                       </Button>

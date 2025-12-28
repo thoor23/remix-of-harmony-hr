@@ -149,7 +149,8 @@ export default function EmailTemplatesPage() {
     });
   }, [filteredTemplates, sortColumn, sortDirection]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedTemplates, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedTemplates, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const openDialog = (template?: typeof templates[0]) => {
     if (template) {
@@ -493,7 +494,7 @@ export default function EmailTemplatesPage() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>

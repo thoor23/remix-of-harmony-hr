@@ -187,7 +187,8 @@ export default function PayslipTemplatesPage() {
     });
   }, [filteredTemplates, sortColumn, sortDirection]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedTemplates, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedTemplates, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const handleOpenCreate = () => {
     setEditingTemplate(null);
@@ -532,7 +533,7 @@ export default function PayslipTemplatesPage() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>
