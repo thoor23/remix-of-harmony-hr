@@ -17,6 +17,23 @@ serve(async (req) => {
     const supabase = getSupabaseClient();
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
+    // GET /recent - Get recent announcements (for dashboard)
+    if (method === 'GET' && path === '/recent') {
+      const limit = parseInt(url.searchParams.get('limit') || '5');
+      const now = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_active', true)
+        .or(`expires_at.is.null,expires_at.gt.${now}`)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
     if (method === 'GET' && path === '') {
       const all = url.searchParams.get('all') === 'true';
       let query = supabase.from('announcements').select('*').order('created_at', { ascending: false });
