@@ -119,7 +119,7 @@ export function useRecentAnnouncements(limit = 3) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("announcements")
-        .select("id, title, content, priority, published_at")
+        .select("id, title, content, priority, type, published_at")
         .eq("is_active", true)
         .order("published_at", { ascending: false })
         .limit(limit);

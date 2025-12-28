@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { StatCard } from "@/components/shared/StatCard";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import {
   Users,
   CalendarCheck,
@@ -13,7 +13,6 @@ import {
   UserPlus,
   TrendingUp,
   ArrowRight,
-  Megaphone,
 } from "lucide-react";
 import { useAdminDashboardStats, usePendingLeaveRequests, useRecentAnnouncements } from "@/hooks/useDashboard";
 import { useUpdateLeaveRequest } from "@/hooks/useLeaves";
@@ -55,6 +54,9 @@ export default function AdminDashboard() {
         title="Dashboard"
         description="Welcome back! Here's what's happening today."
       />
+
+      {/* Announcement Banner */}
+      <AnnouncementBanner announcements={announcements} isLoading={loadingAnnouncements} />
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -172,49 +174,6 @@ export default function AdminDashboard() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Recent Announcements */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Megaphone className="h-5 w-5 text-primary" />
-                Announcements
-              </CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/admin/announcements">View All</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {loadingAnnouncements ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {announcements.map((announcement) => (
-                    <div key={announcement.id} className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{announcement.title}</p>
-                        {announcement.priority === "high" && (
-                          <StatusBadge status="pending" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {announcement.content}
-                      </p>
-                    </div>
-                  ))}
-                  {announcements.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      No announcements
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Department Distribution */}
           <Card>
             <CardHeader>
