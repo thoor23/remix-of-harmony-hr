@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 export interface PayslipTemplate {
   id: string;
   name: string;
   content: string;
-  layout_config: Json;
+  layout_config: Record<string, unknown>;
   is_default: boolean | null;
   is_active: boolean | null;
   company_name: string | null;
@@ -48,13 +47,7 @@ export function usePayslipTemplates() {
   return useQuery({
     queryKey: ["payslip-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payslip_templates")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as PayslipTemplate[];
+      return api.get<PayslipTemplate[]>("/templates/payslips");
     },
   });
 }
@@ -63,14 +56,7 @@ export function usePayslipTemplate(id: string) {
   return useQuery({
     queryKey: ["payslip-template", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payslip_templates")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as PayslipTemplate;
+      return api.get<PayslipTemplate>(`/templates/payslips/${id}`);
     },
     enabled: !!id,
   });
@@ -80,15 +66,7 @@ export function useDefaultPayslipTemplate() {
   return useQuery({
     queryKey: ["payslip-template-default"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payslip_templates")
-        .select("*")
-        .eq("is_default", true)
-        .eq("is_active", true)
-        .single();
-
-      if (error) throw error;
-      return data as PayslipTemplate;
+      return api.get<PayslipTemplate>("/templates/payslips/default");
     },
   });
 }
@@ -98,25 +76,13 @@ export function useCreatePayslipTemplate() {
 
   return useMutation({
     mutationFn: async (template: Omit<PayslipTemplate, "id" | "created_at" | "updated_at">) => {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from("payslip_templates")
-        .insert([{
-          ...template,
-          created_by: userData.user?.id,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<PayslipTemplate>("/templates/payslips", template);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
       toast.success("Payslip template created successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create template: ${error.message}`);
     },
   });
@@ -127,22 +93,14 @@ export function useUpdatePayslipTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, ...template }: Partial<PayslipTemplate> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("payslip_templates")
-        .update(template)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.patch<PayslipTemplate>(`/templates/payslips/${id}`, template);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
       queryClient.invalidateQueries({ queryKey: ["payslip-template-default"] });
       toast.success("Payslip template updated successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update template: ${error.message}`);
     },
   });
@@ -153,18 +111,13 @@ export function useDeletePayslipTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("payslip_templates")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/templates/payslips/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
       toast.success("Payslip template deleted successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to delete template: ${error.message}`);
     },
   });
@@ -175,26 +128,14 @@ export function useSetDefaultPayslipTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // First, unset any existing default
-      await supabase
-        .from("payslip_templates")
-        .update({ is_default: false })
-        .eq("is_default", true);
-
-      // Then set the new default
-      const { error } = await supabase
-        .from("payslip_templates")
-        .update({ is_default: true })
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.post(`/templates/payslips/${id}/set-default`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
       queryClient.invalidateQueries({ queryKey: ["payslip-template-default"] });
       toast.success("Default template updated");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to set default: ${error.message}`);
     },
   });

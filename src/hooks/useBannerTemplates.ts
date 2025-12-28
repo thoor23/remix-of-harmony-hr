@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 // Banner placeholder constants
@@ -61,14 +61,7 @@ export function useBannerTemplates() {
   return useQuery({
     queryKey: ["banner-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("announcement_banner_templates")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as BannerTemplate[];
+      return api.get<BannerTemplate[]>("/templates/banners");
     },
   });
 }
@@ -78,30 +71,10 @@ export function useDefaultBannerTemplate(priority?: string) {
   return useQuery({
     queryKey: ["default-banner-template", priority],
     queryFn: async () => {
-      // First try to find a template for the specific priority
-      if (priority) {
-        const { data: priorityTemplate } = await supabase
-          .from("announcement_banner_templates")
-          .select("*")
-          .eq("is_active", true)
-          .eq("priority_type", priority)
-          .eq("is_default", true)
-          .single();
-
-        if (priorityTemplate) return priorityTemplate as BannerTemplate;
-      }
-
-      // Fall back to the "all" priority default template
-      const { data, error } = await supabase
-        .from("announcement_banner_templates")
-        .select("*")
-        .eq("is_active", true)
-        .eq("priority_type", "all")
-        .eq("is_default", true)
-        .single();
-
-      if (error && error.code !== "PGRST116") throw error;
-      return data as BannerTemplate | null;
+      const url = priority 
+        ? `/templates/banners/default?priority=${priority}` 
+        : "/templates/banners/default";
+      return api.get<BannerTemplate | null>(url);
     },
   });
 }
@@ -112,19 +85,7 @@ export function useCreateBannerTemplate() {
 
   return useMutation({
     mutationFn: async (templateData: CreateBannerTemplateData) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      const { data, error } = await supabase
-        .from("announcement_banner_templates")
-        .insert({
-          ...templateData,
-          created_by: userData.user?.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<BannerTemplate>("/templates/banners", templateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -143,15 +104,7 @@ export function useUpdateBannerTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, ...templateData }: { id: string } & Partial<CreateBannerTemplateData>) => {
-      const { data, error } = await supabase
-        .from("announcement_banner_templates")
-        .update(templateData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.patch<BannerTemplate>(`/templates/banners/${id}`, templateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -170,12 +123,7 @@ export function useDeleteBannerTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("announcement_banner_templates")
-        .update({ is_active: false })
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/templates/banners/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -194,19 +142,7 @@ export function useSetDefaultBannerTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, priorityType }: { id: string; priorityType: string }) => {
-      // First, unset all defaults for this priority type
-      await supabase
-        .from("announcement_banner_templates")
-        .update({ is_default: false })
-        .eq("priority_type", priorityType);
-
-      // Then set the new default
-      const { error } = await supabase
-        .from("announcement_banner_templates")
-        .update({ is_default: true })
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.post(`/templates/banners/${id}/set-default`, { priorityType });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });

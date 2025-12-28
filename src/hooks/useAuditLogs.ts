@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
+import api from "@/lib/api";
 
 interface AuditLog {
   id: string;
@@ -10,7 +9,7 @@ interface AuditLog {
   performed_by: string | null;
   performer_name: string | null;
   ip_address: string | null;
-  metadata: Json;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -26,36 +25,15 @@ export function useAuditLogs(filters?: AuditLogFilters) {
   return useQuery({
     queryKey: ["audit-logs", filters],
     queryFn: async () => {
-      let query = supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const params = new URLSearchParams();
+      if (filters?.action && filters.action !== "all") params.append("action", filters.action);
+      if (filters?.module && filters.module !== "all") params.append("module", filters.module);
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.startDate) params.append("startDate", filters.startDate);
+      if (filters?.endDate) params.append("endDate", filters.endDate);
 
-      if (filters?.action && filters.action !== "all") {
-        query = query.eq("action", filters.action);
-      }
-
-      if (filters?.module && filters.module !== "all") {
-        query = query.eq("module", filters.module);
-      }
-
-      if (filters?.search) {
-        query = query.ilike("description", `%${filters.search}%`);
-      }
-
-      if (filters?.startDate) {
-        query = query.gte("created_at", filters.startDate);
-      }
-
-      if (filters?.endDate) {
-        query = query.lte("created_at", filters.endDate);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as AuditLog[];
+      const queryString = params.toString();
+      return api.get<AuditLog[]>(`/audit${queryString ? `?${queryString}` : ""}`);
     },
   });
 }
@@ -73,35 +51,9 @@ export function useCreateAuditLog() {
       action: string;
       module: string;
       description: string;
-      metadata?: Json;
+      metadata?: Record<string, unknown>;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-
-      // Get user's profile name
-      let performerName = user?.email || "System";
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("user_id", user.id)
-          .single();
-
-        if (profile) {
-          performerName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || user.email || "System";
-        }
-      }
-
-      const { error } = await supabase.from("audit_logs").insert([{
-        action,
-        module,
-        description,
-        performed_by: user?.id || null,
-        performer_name: performerName,
-        metadata,
-      }]);
-
-      if (error) throw error;
+      return api.post("/audit", { action, module, description, metadata });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
@@ -116,33 +68,10 @@ export async function logAuditEvent(
   action: string,
   module: string,
   description: string,
-  metadata: Json = {}
+  metadata: Record<string, unknown> = {}
 ) {
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
-
-    let performerName = user?.email || "System";
-    if (user?.id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile) {
-        performerName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || user.email || "System";
-      }
-    }
-
-    await supabase.from("audit_logs").insert([{
-      action,
-      module,
-      description,
-      performed_by: user?.id || null,
-      performer_name: performerName,
-      metadata,
-    }]);
+    await api.post("/audit", { action, module, description, metadata });
   } catch (error) {
     console.error("Audit log failed:", error);
   }

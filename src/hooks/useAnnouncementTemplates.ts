@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 // Constants for announcement templates
@@ -103,14 +103,7 @@ export const useAnnouncementTemplates = () => {
   return useQuery({
     queryKey: ["announcement-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("announcement_templates")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      return data as AnnouncementTemplate[];
+      return api.get<AnnouncementTemplate[]>("/templates/announcements");
     },
   });
 };
@@ -120,25 +113,13 @@ export const useCreateAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async (templateData: CreateAnnouncementTemplateData) => {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from("announcement_templates")
-        .insert({
-          ...templateData,
-          created_by: userData.user?.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<AnnouncementTemplate>("/templates/announcements", templateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });
       toast.success("Template saved successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error("Failed to save template: " + error.message);
     },
   });
@@ -149,21 +130,13 @@ export const useUpdateAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updateData }: Partial<AnnouncementTemplate> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("announcement_templates")
-        .update(updateData)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.patch<AnnouncementTemplate>(`/templates/announcements/${id}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });
       toast.success("Template updated successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error("Failed to update template: " + error.message);
     },
   });
@@ -174,18 +147,13 @@ export const useDeleteAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("announcement_templates")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/templates/announcements/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });
       toast.success("Template deleted successfully");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error("Failed to delete template: " + error.message);
     },
   });

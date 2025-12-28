@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
@@ -18,13 +18,7 @@ export function useDepartmentsData() {
   return useQuery({
     queryKey: ["departments-data"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      return data as Department[];
+      return api.get<Department[]>("/departments");
     },
   });
 }
@@ -42,16 +36,8 @@ export function useCreateDepartment() {
       code: string;
       description?: string;
     }) => {
-      const { data, error } = await supabase
-        .from("departments")
-        .insert({ name, code, description })
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const data = await api.post<Department>("/departments", { name, code, description });
       await logAuditEvent("CREATE", "Departments", `Created department: ${name}`, { department_id: data.id });
-
       return data;
     },
     onSuccess: () => {
@@ -80,17 +66,8 @@ export function useUpdateDepartment() {
       code: string;
       description?: string;
     }) => {
-      const { data, error } = await supabase
-        .from("departments")
-        .update({ name, code, description, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
+      const data = await api.patch<Department>(`/departments/${id}`, { name, code, description });
       await logAuditEvent("UPDATE", "Departments", `Updated department: ${name}`, { department_id: id });
-
       return data;
     },
     onSuccess: () => {
@@ -109,10 +86,7 @@ export function useDeleteDepartment() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("departments").delete().eq("id", id);
-
-      if (error) throw error;
-
+      await api.delete(`/departments/${id}`);
       await logAuditEvent("DELETE", "Departments", `Deleted department: ${name}`, { department_id: id });
     },
     onSuccess: () => {
