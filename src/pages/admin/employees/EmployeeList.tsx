@@ -121,6 +121,10 @@ export default function EmployeeList() {
     });
   }, [employees, search, departmentFilter, statusFilter]);
 
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((current, key) => current?.[key], obj);
+  };
+
   const sortedEmployees = useMemo(() => {
     if (!sortColumn) return filteredEmployees;
     
@@ -223,9 +227,6 @@ export default function EmployeeList() {
   const isAllSelected = paginatedData.length > 0 && 
     paginatedData.every(emp => selectedRows.has(emp.id));
 
-  const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
 
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
