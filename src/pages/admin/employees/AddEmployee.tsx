@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound } from "lucide-react";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployees } from "@/hooks/useEmployees";
 import { useCreateEmployeeAccount } from "@/hooks/useCreateEmployeeAccount";
 import { z } from "zod";
@@ -22,17 +22,17 @@ const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
   lastName: z.string().min(1, "Last name is required").max(50),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   gender: z.string().optional(),
-  role: z.enum(["admin", "hr", "manager", "employee"]),
   employeeId: z.string().min(1, "Employee ID is required"),
   joiningDate: z.string().min(1, "Joining date is required"),
   department: z.string().min(1, "Department is required"),
   designation: z.string().min(1, "Designation is required"),
   employmentType: z.string().min(1, "Employment type is required"),
   reportingTo: z.string().optional(),
+  status: z.string().min(1, "Status is required"),
+  role: z.enum(["admin", "hr", "manager", "employee"]),
   street: z.string().min(1, "Street address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
@@ -45,6 +45,11 @@ const employeeSchema = z.object({
   accountHolder: z.string().min(1, "Account holder name is required"),
   accountNumber: z.string().min(1, "Account number is required"),
   routingNumber: z.string().min(1, "Routing number is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Confirm password is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type FormErrors = Partial<Record<keyof z.infer<typeof employeeSchema>, string>>;
@@ -53,21 +58,23 @@ export default function AddEmployee() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("personal");
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
     phone: "",
     dateOfBirth: "",
     gender: "",
-    role: "employee" as "admin" | "hr" | "manager" | "employee",
     employeeId: "",
     joiningDate: "",
     department: "",
     designation: "",
     employmentType: "",
     reportingTo: "",
+    status: "active",
+    role: "employee" as "admin" | "hr" | "manager" | "employee",
     street: "",
     city: "",
     state: "",
@@ -80,6 +87,8 @@ export default function AddEmployee() {
     accountHolder: "",
     accountNumber: "",
     routingNumber: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const { data: departments = [] } = useDepartments();
@@ -126,6 +135,7 @@ export default function AddEmployee() {
           department_id: formData.department || undefined,
           designation_id: formData.designation || undefined,
           employment_type: formData.employmentType,
+          status: formData.status,
           reporting_to: formData.reportingTo || undefined,
           address_street: formData.street || undefined,
           address_city: formData.city || undefined,
@@ -149,7 +159,7 @@ export default function AddEmployee() {
   };
 
   const handleNext = () => {
-    const tabs = ["personal", "work", "contact", "bank"];
+    const tabs = ["personal", "work", "contact", "bank", "account"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex < tabs.length - 1) {
       setActiveTab(tabs[currentIndex + 1]);
@@ -157,7 +167,7 @@ export default function AddEmployee() {
   };
 
   const handlePrevious = () => {
-    const tabs = ["personal", "work", "contact", "bank"];
+    const tabs = ["personal", "work", "contact", "bank", "account"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1]);
@@ -211,6 +221,10 @@ export default function AddEmployee() {
               <CreditCard className="h-4 w-4" />
               Bank
             </TabsTrigger>
+            <TabsTrigger value="account" className="gap-2">
+              <KeyRound className="h-4 w-4" />
+              Account
+            </TabsTrigger>
           </TabsList>
 
           {/* Personal Information */}
@@ -225,7 +239,6 @@ export default function AddEmployee() {
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
-                      placeholder="John"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange("firstName", e.target.value)}
                       className={errors.firstName ? "border-destructive" : ""}
@@ -236,7 +249,6 @@ export default function AddEmployee() {
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
-                      placeholder="Smith"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange("lastName", e.target.value)}
                       className={errors.lastName ? "border-destructive" : ""}
@@ -248,7 +260,6 @@ export default function AddEmployee() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="john.smith@company.com"
                       value={formData.email}
                       onChange={(e) => handleInputChange("email", e.target.value)}
                       className={errors.email ? "border-destructive" : ""}
@@ -256,45 +267,14 @@ export default function AddEmployee() {
                     {renderError("email")}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
-                      className={errors.password ? "border-destructive" : ""}
-                    />
-                    {renderError("password")}
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number *</Label>
                     <Input
                       id="phone"
-                      placeholder="+1 (555) 123-4567"
                       value={formData.phone}
                       onChange={(e) => handleInputChange("phone", e.target.value)}
                       className={errors.phone ? "border-destructive" : ""}
                     />
                     {renderError("phone")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role *</Label>
-                    <Select
-                      value={formData.role}
-                      onValueChange={(value) => handleInputChange("role", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderError("role")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth *</Label>
@@ -347,7 +327,6 @@ export default function AddEmployee() {
                     <Label htmlFor="employeeId">Employee ID *</Label>
                     <Input
                       id="employeeId"
-                      placeholder="EMP011"
                       value={formData.employeeId}
                       onChange={(e) => handleInputChange("employeeId", e.target.value)}
                       className={errors.employeeId ? "border-destructive" : ""}
@@ -422,6 +401,22 @@ export default function AddEmployee() {
                     {renderError("employmentType")}
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="status">Employee Status *</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => handleInputChange("status", value)}
+                    >
+                      <SelectTrigger className={errors.status ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("status")}
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="reportingTo">Reporting To</Label>
                     <Select
                       value={formData.reportingTo}
@@ -467,7 +462,6 @@ export default function AddEmployee() {
                       <Label htmlFor="street">Street Address *</Label>
                       <Input
                         id="street"
-                        placeholder="123 Main Street"
                         value={formData.street}
                         onChange={(e) => handleInputChange("street", e.target.value)}
                         className={errors.street ? "border-destructive" : ""}
@@ -478,7 +472,6 @@ export default function AddEmployee() {
                       <Label htmlFor="city">City *</Label>
                       <Input
                         id="city"
-                        placeholder="San Francisco"
                         value={formData.city}
                         onChange={(e) => handleInputChange("city", e.target.value)}
                         className={errors.city ? "border-destructive" : ""}
@@ -489,7 +482,6 @@ export default function AddEmployee() {
                       <Label htmlFor="state">State *</Label>
                       <Input
                         id="state"
-                        placeholder="California"
                         value={formData.state}
                         onChange={(e) => handleInputChange("state", e.target.value)}
                         className={errors.state ? "border-destructive" : ""}
@@ -500,7 +492,6 @@ export default function AddEmployee() {
                       <Label htmlFor="zipCode">Zip Code *</Label>
                       <Input
                         id="zipCode"
-                        placeholder="94102"
                         value={formData.zipCode}
                         onChange={(e) => handleInputChange("zipCode", e.target.value)}
                         className={errors.zipCode ? "border-destructive" : ""}
@@ -511,7 +502,6 @@ export default function AddEmployee() {
                       <Label htmlFor="country">Country *</Label>
                       <Input
                         id="country"
-                        placeholder="USA"
                         value={formData.country}
                         onChange={(e) => handleInputChange("country", e.target.value)}
                         className={errors.country ? "border-destructive" : ""}
@@ -528,7 +518,6 @@ export default function AddEmployee() {
                       <Label htmlFor="emergencyName">Name *</Label>
                       <Input
                         id="emergencyName"
-                        placeholder="Jane Doe"
                         value={formData.emergencyName}
                         onChange={(e) => handleInputChange("emergencyName", e.target.value)}
                         className={errors.emergencyName ? "border-destructive" : ""}
@@ -539,7 +528,6 @@ export default function AddEmployee() {
                       <Label htmlFor="emergencyRelation">Relationship *</Label>
                       <Input
                         id="emergencyRelation"
-                        placeholder="Spouse"
                         value={formData.emergencyRelation}
                         onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
                         className={errors.emergencyRelation ? "border-destructive" : ""}
@@ -550,7 +538,6 @@ export default function AddEmployee() {
                       <Label htmlFor="emergencyPhone">Phone *</Label>
                       <Input
                         id="emergencyPhone"
-                        placeholder="+1 (555) 987-6543"
                         value={formData.emergencyPhone}
                         onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
                         className={errors.emergencyPhone ? "border-destructive" : ""}
@@ -584,7 +571,6 @@ export default function AddEmployee() {
                     <Label htmlFor="bankName">Bank Name *</Label>
                     <Input
                       id="bankName"
-                      placeholder="Chase Bank"
                       value={formData.bankName}
                       onChange={(e) => handleInputChange("bankName", e.target.value)}
                       className={errors.bankName ? "border-destructive" : ""}
@@ -595,7 +581,6 @@ export default function AddEmployee() {
                     <Label htmlFor="accountHolder">Account Holder Name *</Label>
                     <Input
                       id="accountHolder"
-                      placeholder="John Smith"
                       value={formData.accountHolder}
                       onChange={(e) => handleInputChange("accountHolder", e.target.value)}
                       className={errors.accountHolder ? "border-destructive" : ""}
@@ -606,7 +591,6 @@ export default function AddEmployee() {
                     <Label htmlFor="accountNumber">Account Number *</Label>
                     <Input
                       id="accountNumber"
-                      placeholder="1234567890"
                       value={formData.accountNumber}
                       onChange={(e) => handleInputChange("accountNumber", e.target.value)}
                       className={errors.accountNumber ? "border-destructive" : ""}
@@ -617,12 +601,111 @@ export default function AddEmployee() {
                     <Label htmlFor="routingNumber">Routing Number / IFSC *</Label>
                     <Input
                       id="routingNumber"
-                      placeholder="CHASE001"
                       value={formData.routingNumber}
                       onChange={(e) => handleInputChange("routingNumber", e.target.value)}
                       className={errors.routingNumber ? "border-destructive" : ""}
                     />
                     {renderError("routingNumber")}
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="button" onClick={handleNext}>
+                    Next: Account Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Account Settings */}
+          <TabsContent value="account">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleInputChange("role", value)}
+                    >
+                      <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("role")}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Set Password</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange("password", e.target.value)}
+                          className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                          placeholder="Enter password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      {renderError("password")}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                          className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                          placeholder="Confirm password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
+                      {renderError("confirmPassword")}
+                    </div>
                   </div>
                 </div>
 
