@@ -1,54 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 export function usePayslips(payPeriod?: string) {
   return useQuery({
     queryKey: ["payslips", payPeriod],
     queryFn: async () => {
-      let query = supabase
-        .from("payslips")
-        .select(`
-          *,
-          employee:employees(
-            id,
-            employee_id,
-            user_id,
-            department:departments(id, name)
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (payPeriod) {
-        query = query.eq("pay_period", payPeriod);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Fetch profiles
-      const userIds = data?.map(p => p.employee?.user_id).filter(Boolean) || [];
-      let profiles: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", userIds);
-        
-        profilesData?.forEach(p => {
-          profiles[p.user_id] = p;
-        });
-      }
-
-      return data?.map(payslip => ({
-        ...payslip,
-        employee: payslip.employee ? {
-          ...payslip.employee,
-          profile: payslip.employee.user_id ? profiles[payslip.employee.user_id] : null
-        } : null
-      }));
+      const params = payPeriod ? `?pay_period=${payPeriod}` : '';
+      return api.get<any[]>(`/payroll/payslips${params}`);
     },
   });
 }
@@ -56,16 +15,7 @@ export function usePayslips(payPeriod?: string) {
 export function useMyPayslips(employeeId: string) {
   return useQuery({
     queryKey: ["my-payslips", employeeId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payslips")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .order("pay_date", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any[]>(`/payroll/payslips/employee/${employeeId}`),
     enabled: !!employeeId,
   });
 }
@@ -73,45 +23,7 @@ export function useMyPayslips(employeeId: string) {
 export function useSalaryStructures() {
   return useQuery({
     queryKey: ["salary-structures"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("salary_structures")
-        .select(`
-          *,
-          employee:employees(
-            id,
-            employee_id,
-            user_id,
-            department:departments(id, name)
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch profiles
-      const userIds = data?.map(s => s.employee?.user_id).filter(Boolean) || [];
-      let profiles: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", userIds);
-        
-        profilesData?.forEach(p => {
-          profiles[p.user_id] = p;
-        });
-      }
-
-      return data?.map(salary => ({
-        ...salary,
-        employee: salary.employee ? {
-          ...salary.employee,
-          profile: salary.employee.user_id ? profiles[salary.employee.user_id] : null
-        } : null
-      }));
-    },
+    queryFn: () => api.get<any[]>('/payroll/salary-structures'),
   });
 }
 
@@ -131,11 +43,7 @@ export function useCreateSalaryStructure() {
       other_deductions?: number;
       effective_from: string;
     }) => {
-      const { error } = await supabase
-        .from("salary_structures")
-        .insert(structure);
-
-      if (error) throw error;
+      await api.post('/payroll/salary-structures', structure);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
@@ -168,12 +76,7 @@ export function useUpdateSalaryStructure() {
         effective_from?: string;
       };
     }) => {
-      const { error } = await supabase
-        .from("salary_structures")
-        .update(data)
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.put(`/payroll/salary-structures/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
@@ -198,14 +101,10 @@ export function useGeneratePayslip() {
       total_deductions: number;
       net_pay: number;
     }) => {
-      const { error } = await supabase
-        .from("payslips")
-        .insert({
-          ...payslip,
-          status: "generated",
-        });
-
-      if (error) throw error;
+      await api.post('/payroll/payslips', {
+        ...payslip,
+        status: "generated",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslips"] });

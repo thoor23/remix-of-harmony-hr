@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 export interface ShiftData {
@@ -17,15 +17,7 @@ export interface ShiftData {
 export function useShifts() {
   return useQuery({
     queryKey: ["shifts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("shifts")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      return data as ShiftData[];
-    },
+    queryFn: () => api.get<ShiftData[]>('/shifts'),
   });
 }
 
@@ -41,11 +33,7 @@ export function useCreateShift() {
       break_duration?: number;
       color?: string;
     }) => {
-      const { error } = await supabase
-        .from("shifts")
-        .insert(shift);
-
-      if (error) throw error;
+      await api.post('/shifts', shift);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -62,12 +50,7 @@ export function useUpdateShift() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ShiftData> }) => {
-      const { error } = await supabase
-        .from("shifts")
-        .update(data)
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.put(`/shifts/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -84,12 +67,7 @@ export function useDeleteShift() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("shifts")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/shifts/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -104,46 +82,7 @@ export function useDeleteShift() {
 export function useShiftAssignments() {
   return useQuery({
     queryKey: ["shift-assignments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("shift_assignments")
-        .select(`
-          *,
-          shift:shifts(*),
-          employee:employees(
-            id,
-            employee_id,
-            user_id,
-            department:departments(id, name)
-          )
-        `)
-        .eq("is_active", true);
-
-      if (error) throw error;
-
-      // Fetch profiles
-      const userIds = data?.map(a => a.employee?.user_id).filter(Boolean) || [];
-      let profiles: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", userIds);
-        
-        profilesData?.forEach(p => {
-          profiles[p.user_id] = p;
-        });
-      }
-
-      return data?.map(assignment => ({
-        ...assignment,
-        employee: assignment.employee ? {
-          ...assignment.employee,
-          profile: assignment.employee.user_id ? profiles[assignment.employee.user_id] : null
-        } : null
-      }));
-    },
+    queryFn: () => api.get<any[]>('/shifts/assignments'),
   });
 }
 
@@ -157,11 +96,7 @@ export function useCreateShiftAssignment() {
       start_date: string;
       end_date?: string;
     }) => {
-      const { error } = await supabase
-        .from("shift_assignments")
-        .insert(assignment);
-
-      if (error) throw error;
+      await api.post('/shifts/assignments', assignment);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -189,12 +124,7 @@ export function useUpdateShiftAssignment() {
         is_active?: boolean;
       };
     }) => {
-      const { error } = await supabase
-        .from("shift_assignments")
-        .update(data)
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.put(`/shifts/assignments/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -211,12 +141,7 @@ export function useDeleteShiftAssignment() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("shift_assignments")
-        .update({ is_active: false })
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.put(`/shifts/assignments/${id}`, { is_active: false });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -231,20 +156,7 @@ export function useDeleteShiftAssignment() {
 export function useMyShiftAssignment(employeeId?: string) {
   return useQuery({
     queryKey: ["my-shift-assignment", employeeId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("shift_assignments")
-        .select(`
-          *,
-          shift:shifts(*)
-        `)
-        .eq("employee_id", employeeId!)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.get<any>(`/shifts/assignments/employee/${employeeId}`),
     enabled: !!employeeId,
   });
 }

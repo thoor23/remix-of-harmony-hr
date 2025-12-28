@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -22,15 +22,7 @@ export interface Announcement {
 export function useAnnouncements() {
   return useQuery({
     queryKey: ["announcements"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("announcements")
-        .select("*")
-        .order("published_at", { ascending: false });
-
-      if (error) throw error;
-      return data as Announcement[];
-    },
+    queryFn: () => api.get<Announcement[]>('/announcements'),
   });
 }
 
@@ -52,16 +44,11 @@ export function useCreateAnnouncement() {
   return useMutation({
     mutationFn: async (announcement: CreateAnnouncementData) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from("announcements")
-        .insert({
-          ...announcement,
-          created_by: user.id,
-          is_active: true,
-        });
-
-      if (error) throw error;
+      await api.post('/announcements', {
+        ...announcement,
+        created_by: user.id,
+        is_active: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -90,12 +77,7 @@ export function useUpdateAnnouncement() {
       is_active?: boolean;
       banner_template_id?: string | null;
     }) => {
-      const { error } = await supabase
-        .from("announcements")
-        .update(updates)
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.put(`/announcements/${id}`, updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -112,12 +94,7 @@ export function useDeleteAnnouncement() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("announcements")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/announcements/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });

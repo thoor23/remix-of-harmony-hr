@@ -115,10 +115,10 @@ const getUUIDLabel = (parentSegments: string[]): string => {
 export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, role, signOut } = useAuth();
+  const { user, role, profile, signOut } = useAuth();
 
-  const displayName = user?.user_metadata?.first_name && user?.user_metadata?.last_name
-    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+  const displayName = profile?.first_name && profile?.last_name
+    ? `${profile.first_name} ${profile.last_name}`
     : user?.email?.split("@")[0] || "User";
 
   const displayEmail = user?.email || "";
