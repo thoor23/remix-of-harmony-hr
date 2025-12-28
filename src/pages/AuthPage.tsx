@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Building2, Loader2, ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -437,25 +437,27 @@ export default function AuthPage() {
 
             {/* Login form */}
             <form onSubmit={handleLogin} className="space-y-5">
-              <div>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="email"
                   placeholder="Email"
                   value={loginData.email}
                   onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                  className={`h-12 px-4 border-border ${errors.email ? "border-destructive" : ""}`}
+                  className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
                   disabled={isLoading}
                 />
                 {renderError("email")}
               </div>
 
               <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={loginData.password}
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className={`h-12 px-4 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
+                  className={`h-12 pl-11 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
                   disabled={isLoading}
                 />
                 <button
