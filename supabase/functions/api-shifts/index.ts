@@ -106,6 +106,17 @@ Deno.serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // GET /stats - Get shift statistics including assignment count
+    if (req.method === 'GET' && subPath[0] === 'stats') {
+      const { data: assignments, error } = await supabase
+        .from('shift_assignments')
+        .select('id')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return jsonResponse({ total_assigned: assignments?.length || 0 });
+    }
+
     // POST /shifts - Create shift
     if (req.method === 'POST' && subPath.length === 0) {
       const body = await req.json();

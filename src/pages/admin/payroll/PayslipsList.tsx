@@ -28,13 +28,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, Eye, Send, Calendar, LayoutTemplate } from "lucide-react";
-import { usePayslips } from "@/hooks/usePayroll";
+import { FileText, Download, Eye, Send, Calendar, LayoutTemplate, Loader2 } from "lucide-react";
+import { usePayslips, useSalaryStructures } from "@/hooks/usePayroll";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePayslipTemplates, useDefaultPayslipTemplate } from "@/hooks/usePayslipTemplates";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { downloadPayslipPDF, downloadPayslipFromTemplate } from "@/lib/pdfGenerator";
+import { api } from "@/lib/api";
 
 export default function PayslipsList() {
   const currentDate = new Date();
@@ -43,9 +44,11 @@ export default function PayslipsList() {
   );
   const [previewPayslip, setPreviewPayslip] = useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const { data: payslips = [], isLoading: payslipsLoading } = usePayslips();
+  const { data: payslips = [], isLoading: payslipsLoading, refetch: refetchPayslips } = usePayslips();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: salaryStructures = [] } = useSalaryStructures();
   const { data: templates = [] } = usePayslipTemplates();
   const { data: defaultTemplate } = useDefaultPayslipTemplate();
 
@@ -83,8 +86,26 @@ export default function PayslipsList() {
     return options;
   };
 
-  const handleGenerateAll = () => {
-    toast.success("Payslips generated for all employees!");
+  const handleGenerateAll = async () => {
+    if (salaryStructures.length === 0) {
+      toast.error("No salary structures found. Please set up salary structures first.");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const payPeriod = format(new Date(selectedMonth + "-01"), "MMMM yyyy");
+      const result = await api.post<{ generated: number; skipped: number; message: string }>(
+        '/payroll/payslips/generate-all',
+        { pay_period: payPeriod, pay_date: new Date().toISOString().split('T')[0] }
+      );
+      toast.success(result.message);
+      refetchPayslips();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate payslips");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSendAll = () => {
@@ -114,7 +135,8 @@ export default function PayslipsList() {
             <Send className="mr-2 h-4 w-4" />
             Send All
           </Button>
-          <Button onClick={handleGenerateAll}>
+          <Button onClick={handleGenerateAll} disabled={isGenerating}>
+            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <FileText className="mr-2 h-4 w-4" />
             Generate Payslips
           </Button>

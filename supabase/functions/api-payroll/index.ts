@@ -123,6 +123,88 @@ Deno.serve(async (req) => {
       return jsonResponse(data, 201);
     }
 
+    // POST /payslips/generate-all - Generate payslips for all employees with salary structures
+    if (req.method === 'POST' && subPath[0] === 'payslips' && subPath[1] === 'generate-all') {
+      const body = await req.json();
+      const payPeriod = body.pay_period;
+      const payDate = body.pay_date || new Date().toISOString().split('T')[0];
+
+      // Get all salary structures with employee info
+      const { data: salaryStructures, error: ssError } = await supabase
+        .from('salary_structures')
+        .select('*')
+        .order('effective_from', { ascending: false });
+
+      if (ssError) throw ssError;
+
+      // Get existing payslips for this period
+      const { data: existingPayslips } = await supabase
+        .from('payslips')
+        .select('employee_id')
+        .eq('pay_period', payPeriod);
+
+      const existingEmployeeIds = new Set((existingPayslips || []).map((p: any) => p.employee_id));
+
+      // Group salary structures by employee (latest one wins)
+      const employeeSalaryMap: Record<string, any> = {};
+      for (const ss of salaryStructures || []) {
+        if (!employeeSalaryMap[ss.employee_id]) {
+          employeeSalaryMap[ss.employee_id] = ss;
+        }
+      }
+
+      // Generate payslips
+      const payslipsToInsert = [];
+      for (const [employeeId, salary] of Object.entries(employeeSalaryMap)) {
+        if (existingEmployeeIds.has(employeeId)) continue; // Skip if already exists
+
+        const grossEarnings = 
+          (salary.basic_salary || 0) +
+          (salary.hra || 0) +
+          (salary.transport_allowance || 0) +
+          (salary.medical_allowance || 0) +
+          (salary.other_allowances || 0);
+
+        const totalDeductions =
+          (salary.pf_deduction || 0) +
+          (salary.tax_deduction || 0) +
+          (salary.other_deductions || 0);
+
+        const netPay = grossEarnings - totalDeductions;
+
+        payslipsToInsert.push({
+          employee_id: employeeId,
+          pay_period: payPeriod,
+          pay_date: payDate,
+          basic_salary: salary.basic_salary || 0,
+          gross_earnings: grossEarnings,
+          total_deductions: totalDeductions,
+          net_pay: netPay,
+          status: 'generated',
+        });
+      }
+
+      if (payslipsToInsert.length > 0) {
+        const { data, error } = await supabase
+          .from('payslips')
+          .insert(payslipsToInsert)
+          .select();
+
+        if (error) throw error;
+        return jsonResponse({ 
+          generated: data?.length || 0, 
+          skipped: existingEmployeeIds.size,
+          message: `Generated ${data?.length || 0} payslips`
+        });
+      }
+
+      return jsonResponse({ 
+        generated: 0, 
+        skipped: existingEmployeeIds.size,
+        message: 'No new payslips to generate'
+      });
+    }
+
     // GET /salary-structures - List all salary structures
     if (req.method === 'GET' && subPath[0] === 'salary-structures' && subPath.length === 1) {
       const { data, error } = await supabase

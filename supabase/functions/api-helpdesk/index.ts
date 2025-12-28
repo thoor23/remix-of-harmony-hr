@@ -198,6 +198,137 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // GET /:ticketId/messages - Get messages for a ticket
+    if (req.method === 'GET' && subPath.length === 2 && subPath[1] === 'messages') {
+      const ticketId = subPath[0];
+      
+      // Verify access to ticket
+      const { data: ticket } = await supabase
+        .from('helpdesk_tickets')
+        .select('employee_id')
+        .eq('id', ticketId)
+        .single();
+
+      if (!ticket) {
+        return errorResponse('Ticket not found', 404);
+      }
+
+      // Get employee ID for current user
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+
+      const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
+      
+      // Check access - must be ticket owner or admin/hr
+      if (!isAdminOrHR && employee?.id !== ticket.employee_id) {
+        return errorResponse('Access denied', 403);
+      }
+
+      let query = supabase
+        .from('ticket_messages')
+        .select(`
+          *,
+          sender:employees!ticket_messages_sender_id_fkey(id, employee_id, user_id)
+        `)
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      // Non-admin users can't see internal messages
+      if (!isAdminOrHR) {
+        query = query.eq('is_internal', false);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Merge profiles into messages
+      const userIds = (data || []).map((m: any) => m?.sender?.user_id).filter(Boolean);
+      let messagesWithProfiles = data || [];
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, avatar_url')
+          .in('user_id', userIds);
+
+        const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
+          acc[p.user_id] = p;
+          return acc;
+        }, {});
+
+        messagesWithProfiles = (data || []).map((m: any) => ({
+          ...m,
+          sender: m.sender
+            ? { ...m.sender, profile: m.sender.user_id ? profilesMap[m.sender.user_id] || null : null }
+            : null,
+        }));
+      }
+
+      return jsonResponse(messagesWithProfiles);
+    }
+
+    // POST /:ticketId/messages - Send message to ticket
+    if (req.method === 'POST' && subPath.length === 2 && subPath[1] === 'messages') {
+      const ticketId = subPath[0];
+      const body = await req.json();
+      
+      // Get employee ID for current user
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+
+      if (!employee) {
+        return errorResponse('Employee not found', 404);
+      }
+
+      // Verify access to ticket
+      const { data: ticket } = await supabase
+        .from('helpdesk_tickets')
+        .select('employee_id')
+        .eq('id', ticketId)
+        .single();
+
+      if (!ticket) {
+        return errorResponse('Ticket not found', 404);
+      }
+
+      const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
+      
+      // Check access - must be ticket owner or admin/hr
+      if (!isAdminOrHR && employee.id !== ticket.employee_id) {
+        return errorResponse('Access denied', 403);
+      }
+
+      // Non-admin users can't send internal messages
+      const isInternal = isAdminOrHR ? (body.is_internal || false) : false;
+
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_id: employee.id,
+          message: body.message,
+          is_internal: isInternal,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update ticket updated_at
+      await supabase
+        .from('helpdesk_tickets')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', ticketId);
+
+      return jsonResponse(data, 201);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('Helpdesk API error:', error);

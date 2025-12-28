@@ -10,6 +10,7 @@ import { useCurrentEmployee, useLeaveBalances, useLeaveTypes } from "@/hooks/use
 import { useMyAttendance } from "@/hooks/useAttendance";
 import { useHolidays } from "@/hooks/useHolidays";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
+import { usePendingLeaveCount } from "@/hooks/usePendingLeaveCount";
 import { format } from "date-fns";
 
 export default function EmployeeDashboard() {
@@ -18,6 +19,7 @@ export default function EmployeeDashboard() {
   const { data: leaveTypes = [] } = useLeaveTypes();
   const { data: holidays = [] } = useHolidays(new Date().getFullYear());
   const { data: announcements = [] } = useAnnouncements();
+  const { data: pendingLeaveCount = 0 } = usePendingLeaveCount(employee?.id || "");
   
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const { data: attendanceRecords = [] } = useMyAttendance(employee?.id || "", currentMonth);
@@ -60,7 +62,7 @@ export default function EmployeeDashboard() {
         <StatCard title="Days Present" value={presentCount} subtitle="This month" icon={CalendarCheck} />
         <StatCard title="Days Late" value={lateCount} subtitle="This month" icon={Clock} />
         <StatCard title="Leave Balance" value={totalLeaveBalance} subtitle="Days available" icon={Calendar} />
-        <StatCard title="Pending Requests" value={0} subtitle="Awaiting approval" icon={FileText} />
+        <StatCard title="Pending Requests" value={pendingLeaveCount} subtitle="Awaiting approval" icon={FileText} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
