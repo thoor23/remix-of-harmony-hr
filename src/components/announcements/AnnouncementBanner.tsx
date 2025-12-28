@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import { X, Megaphone, Calendar, Shield, AlertTriangle, Clock } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { useDefaultBannerTemplate } from "@/hooks/useBannerTemplates";
 
 interface Announcement {
   id: string;
@@ -18,27 +19,39 @@ interface AnnouncementBannerProps {
   isLoading?: boolean;
 }
 
-const getTypeIcon = (type?: string) => {
+const getTypeIcon = (type?: string): string => {
   switch (type) {
     case "event":
-      return Calendar;
+      return "📅";
     case "policy":
-      return Shield;
+      return "🛡️";
     case "urgent":
-      return AlertTriangle;
+      return "⚠️";
     default:
-      return Megaphone;
+      return "📢";
   }
 };
 
-const getPriorityStyles = (priority: string) => {
+const getPriorityColors = (priority: string) => {
   switch (priority) {
     case "high":
-      return "bg-destructive/10 border-destructive/30 text-destructive dark:bg-destructive/20 dark:border-destructive/40";
+      return {
+        color: "#DC2626",
+        bg: "rgba(220, 38, 38, 0.1)",
+        border: "rgba(220, 38, 38, 0.3)",
+      };
     case "medium":
-      return "bg-warning/10 border-warning/30 text-warning-foreground dark:bg-warning/20 dark:border-warning/40";
+      return {
+        color: "#CA8A04",
+        bg: "rgba(202, 138, 4, 0.1)",
+        border: "rgba(202, 138, 4, 0.3)",
+      };
     default:
-      return "bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40";
+      return {
+        color: "#2563EB",
+        bg: "rgba(37, 99, 235, 0.1)",
+        border: "rgba(37, 99, 235, 0.3)",
+      };
   }
 };
 
@@ -62,6 +75,8 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [expiredIds, setExpiredIds] = useState<string[]>([]);
   const [, setTick] = useState(0);
+  
+  const { data: defaultTemplate } = useDefaultBannerTemplate();
 
   useEffect(() => {
     const stored = localStorage.getItem("dismissed-announcements");
@@ -111,35 +126,87 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
     localStorage.setItem("dismissed-announcements", JSON.stringify(newDismissed));
   };
 
-  if (isLoading) return null;
-
-  const visibleAnnouncements = announcements.filter(
-    (a) => !dismissedIds.includes(a.id) && !expiredIds.includes(a.id)
+  const visibleAnnouncements = useMemo(() => 
+    announcements.filter(
+      (a) => !dismissedIds.includes(a.id) && !expiredIds.includes(a.id)
+    ), [announcements, dismissedIds, expiredIds]
   );
 
+  // Generate HTML from template with placeholders replaced
+  const renderBannerHtml = useCallback((announcement: Announcement) => {
+    if (!defaultTemplate?.html_content) return null;
+
+    const priorityColors = getPriorityColors(announcement.priority);
+    const timeRemaining = announcement.expires_at ? getTimeRemaining(announcement.expires_at) : "";
+
+    const placeholders: Record<string, string> = {
+      "{{title}}": announcement.title,
+      "{{content}}": announcement.content,
+      "{{priority}}": announcement.priority.charAt(0).toUpperCase() + announcement.priority.slice(1),
+      "{{type}}": (announcement.type || "general").charAt(0).toUpperCase() + (announcement.type || "general").slice(1),
+      "{{type_icon}}": getTypeIcon(announcement.type),
+      "{{time_remaining}}": timeRemaining || "",
+      "{{expires_at}}": announcement.expires_at ? format(new Date(announcement.expires_at), "MMM dd, yyyy") : "",
+      "{{published_at}}": format(new Date(announcement.published_at), "MMM dd, yyyy"),
+      "{{priority_color}}": priorityColors.color,
+      "{{priority_bg}}": priorityColors.bg,
+      "{{priority_border}}": priorityColors.border,
+    };
+
+    let html = defaultTemplate.html_content;
+    Object.entries(placeholders).forEach(([key, value]) => {
+      html = html.replace(new RegExp(key.replace(/[{}]/g, "\\$&"), "g"), value);
+    });
+
+    return html;
+  }, [defaultTemplate]);
+
+  if (isLoading) return null;
   if (visibleAnnouncements.length === 0) return null;
 
   return (
     <div className="space-y-2 mb-6">
       {visibleAnnouncements.map((announcement) => {
-        const Icon = getTypeIcon(announcement.type);
+        const bannerHtml = renderBannerHtml(announcement);
+
+        // Use HTML template if available
+        if (bannerHtml) {
+          return (
+            <div key={announcement.id} className="relative group">
+              <div dangerouslySetInnerHTML={{ __html: bannerHtml }} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/50"
+                onClick={() => handleDismiss(announcement.id)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        }
+
+        // Fallback to hardcoded design if no template
+        const priorityColors = getPriorityColors(announcement.priority);
         const timeRemaining = announcement.expires_at ? getTimeRemaining(announcement.expires_at) : null;
-        
+
         return (
           <div
             key={announcement.id}
-            className={cn(
-              "flex items-start justify-between gap-4 p-4 rounded-lg border transition-all",
-              getPriorityStyles(announcement.priority)
-            )}
+            className="flex items-start justify-between gap-4 p-4 rounded-lg border transition-all"
+            style={{
+              backgroundColor: priorityColors.bg,
+              borderColor: priorityColors.border,
+              color: priorityColors.color,
+            }}
           >
             <div className="flex items-start gap-3 min-w-0">
-              <Icon className="h-5 w-5 shrink-0 mt-0.5" />
+              <span className="text-xl">{getTypeIcon(announcement.type)}</span>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold text-sm">{announcement.title}</p>
                   {timeRemaining && (
-                    <span className="flex items-center gap-1 text-xs opacity-70 bg-background/30 px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs opacity-70 bg-white/20 px-2 py-0.5 rounded-full">
                       <Clock className="h-3 w-3" />
                       {timeRemaining}
                     </span>
@@ -153,7 +220,7 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-8 w-8 hover:bg-background/50"
+              className="shrink-0 h-8 w-8 hover:bg-white/20"
               onClick={() => handleDismiss(announcement.id)}
             >
               <X className="h-4 w-4" />

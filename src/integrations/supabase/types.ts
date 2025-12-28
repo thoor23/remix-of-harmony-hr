@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcement_banner_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          html_content: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          priority_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          priority_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          priority_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       announcement_templates: {
         Row: {
           content: string
