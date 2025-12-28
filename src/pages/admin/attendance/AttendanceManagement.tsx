@@ -93,11 +93,7 @@ export default function AttendanceManagement() {
       <PageHeader
         title="Attendance Management"
         description="Track and manage employee attendance"
-      >
-        <Link to="/admin/attendance/regularization">
-          <Button variant="outline">Regularization Requests</Button>
-        </Link>
-      </PageHeader>
+      />
 
       {/* Today's Stats */}
       <div className="grid gap-4 md:grid-cols-5 mb-6">
