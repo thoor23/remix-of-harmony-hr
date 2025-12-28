@@ -3,7 +3,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
-interface Designation {
+export interface Designation {
   id: string;
   name: string;
   code: string;
