@@ -27,6 +27,12 @@ verify_jwt = false
 [functions.api-announcements]
 verify_jwt = false
 
+[functions.api-settings]
+verify_jwt = false
+
+[functions.setup-admin]
+verify_jwt = false
+
 [functions.create-employee-account]
 verify_jwt = false
 

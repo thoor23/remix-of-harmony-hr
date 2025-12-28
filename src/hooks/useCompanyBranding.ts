@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import api, { getAccessToken } from "@/lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export interface CompanyBranding {
   companyName: string;
@@ -38,7 +38,7 @@ export function useCompanyBranding() {
     queryFn: async () => {
       try {
         // Use public endpoint that doesn't require authentication
-        const response = await fetch(`${API_URL}/settings/public/branding`);
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/public/branding`);
         if (!response.ok) {
           throw new Error("Failed to fetch branding");
         }
@@ -92,7 +92,7 @@ export function useUploadCompanyLogo() {
       formData.append("file", file);
       formData.append("type", "logo");
 
-      const response = await fetch(`${API_URL}/settings/branding/upload`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/branding/upload`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${getAccessToken()}`,
@@ -144,7 +144,7 @@ export function useUploadFavicon() {
       formData.append("file", file);
       formData.append("type", "favicon");
 
-      const response = await fetch(`${API_URL}/settings/branding/upload`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/branding/upload`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${getAccessToken()}`,

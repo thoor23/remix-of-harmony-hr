@@ -4,7 +4,7 @@ import { useCurrentEmployee } from "./useCurrentEmployee";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface Document {
   id: string;
@@ -88,7 +88,7 @@ export function useUploadFile() {
 
       const token = localStorage.getItem("access_token");
       // Backend expects POST to /documents (not /documents/upload)
-      const response = await fetch(`${API_URL}/documents`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-documents`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -138,14 +138,14 @@ export function useDeleteDocument() {
 }
 
 export function getDocumentDownloadUrl(documentId: string): string {
-  return `${API_URL}/documents/download/${documentId}`;
+  return `${SUPABASE_URL}/functions/v1/api-documents/download/${documentId}`;
 }
 
 export async function downloadDocument(documentId: string, fileName: string) {
   try {
     const token = localStorage.getItem("access_token");
     // Backend expects document ID, not file path
-    const response = await fetch(`${API_URL}/documents/download/${documentId}`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-documents/download/${documentId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
