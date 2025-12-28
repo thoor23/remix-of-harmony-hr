@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -23,13 +24,25 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Search, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { toast } from "sonner";
 import {
   useDepartmentsData,
   useCreateDepartment,
   useUpdateDepartment,
   useDeleteDepartment,
+  Department,
 } from "@/hooks/useDepartments";
 
 interface DepartmentForm {
@@ -38,17 +51,33 @@ interface DepartmentForm {
   description: string;
 }
 
+const getInitialColumns = (): ColumnDef[] => [
+  { id: "id", header: "ID", accessor: "id", visible: false },
+  { id: "name", header: "Name", accessor: "name", visible: true },
+  { id: "code", header: "Code", accessor: "code", visible: true },
+  { id: "employee_count", header: "Employees", accessor: "employee_count", visible: true },
+  { id: "description", header: "Description", accessor: "description", visible: true },
+  { id: "created_at", header: "Created At", accessor: "created_at", visible: false },
+  { id: "updated_at", header: "Updated At", accessor: "updated_at", visible: false },
+];
+
 export default function DepartmentsPage() {
-  const { data: departments = [], isLoading } = useDepartmentsData();
+  const { data: departments = [], isLoading, refetch, isFetching } = useDepartmentsData();
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
 
   const [deptSearch, setDeptSearch] = useState("");
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
-  const [editingDept, setEditingDept] = useState<typeof departments[0] | null>(null);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [deptForm, setDeptForm] = useState<DepartmentForm>({ name: "", code: "", description: "" });
-  const [deleteDeptDialog, setDeleteDeptDialog] = useState<typeof departments[0] | null>(null);
+  const [deleteDeptDialog, setDeleteDeptDialog] = useState<Department | null>(null);
+  
+  const [showFilter, setShowFilter] = useState(true);
+  const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const filteredDepartments = useMemo(() => 
     departments.filter(d => 
@@ -56,7 +85,47 @@ export default function DepartmentsPage() {
       d.code.toLowerCase().includes(deptSearch.toLowerCase())
     ), [departments, deptSearch]);
 
-  const openDeptDialog = (dept?: typeof departments[0]) => {
+  const sortedDepartments = useMemo(() => {
+    if (!sortColumn) return filteredDepartments;
+    
+    return [...filteredDepartments].sort((a, b) => {
+      const column = columns.find(c => c.id === sortColumn);
+      if (!column) return 0;
+      
+      const aValue = (a as any)[column.accessor as string];
+      const bValue = (b as any)[column.accessor as string];
+      
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortDirection === 'asc' ? 1 : -1;
+      if (bValue == null) return sortDirection === 'asc' ? -1 : 1;
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+      
+      return sortDirection === 'asc' 
+        ? (aValue > bValue ? 1 : -1) 
+        : (aValue < bValue ? 1 : -1);
+    });
+  }, [filteredDepartments, sortColumn, sortDirection, columns]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedDepartments, defaultPageSize: 10 });
+
+  const visibleColumns = useMemo(() => 
+    columns.filter(col => col.visible !== false), 
+    [columns]
+  );
+
+  const openDeptDialog = (dept?: Department) => {
     if (dept) {
       setEditingDept(dept);
       setDeptForm({ name: dept.name, code: dept.code, description: dept.description || "" });
@@ -96,6 +165,85 @@ export default function DepartmentsPage() {
     }
   };
 
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev =>
+      prev.map(col =>
+        col.id === columnId ? { ...col, visible } : col
+      )
+    );
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? filteredDepartments.filter(dept => selectedRows.has(dept.id))
+      : filteredDepartments;
+    
+    exportToCSV(dataToExport, columns, "departments");
+    toast.success(`Exported ${dataToExport.length} records to CSV`);
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success("Data refreshed");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map(dept => dept.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const isAllSelected = paginatedData.length > 0 && 
+    paginatedData.every(dept => selectedRows.has(dept.id));
+
+  const handleSort = (columnId: string) => {
+    if (sortColumn === columnId) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnId);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderCellValue = (dept: Department, column: ColumnDef) => {
+    const value = (dept as any)[column.accessor as string];
+
+    if (column.id === 'code') {
+      return <Badge variant="secondary" className="font-mono">{value}</Badge>;
+    }
+
+    if (column.id === 'employee_count') {
+      return (
+        <div className="flex items-center gap-1">
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          {value || 0}
+        </div>
+      );
+    }
+
+    if (column.id === 'description') {
+      return <span className="text-muted-foreground max-w-[200px] truncate block">{value || "—"}</span>;
+    }
+
+    if (column.id === 'id') {
+      return <span className="font-mono text-xs">{value?.substring(0, 8)}...</span>;
+    }
+
+    return value || "—";
+  };
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -121,81 +269,124 @@ export default function DepartmentsPage() {
       />
 
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle>Departments</CardTitle>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onAddRow={() => openDeptDialog()}
+          onToggleFilter={() => setShowFilter(!showFilter)}
+          showFilter={showFilter}
+          isRefreshing={isFetching}
+          addRowLabel="Add Department"
+        />
+
+        {showFilter && (
+          <div className="p-4 border-b bg-muted/30">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search departments..."
                 value={deptSearch}
                 onChange={(e) => setDeptSearch(e.target.value)}
-                className="pl-8 w-full sm:w-[200px]"
+                className="pl-9"
               />
             </div>
-            <Button onClick={() => openDeptDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add
-            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                {visibleColumns.map((column) => (
+                  <TableHead 
+                    key={column.id} 
+                    className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => handleSort(column.id)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {column.header}
+                      {sortColumn === column.id ? (
+                        sortDirection === 'asc' 
+                          ? <ArrowUp className="h-4 w-4" /> 
+                          : <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead className="hidden md:table-cell">Employees</TableHead>
-                  <TableHead className="hidden lg:table-cell">Description</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
+                  <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                    No departments found
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredDepartments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No departments found
+              ) : (
+                paginatedData.map((dept) => (
+                  <TableRow key={dept.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedRows.has(dept.id)}
+                        onCheckedChange={(checked) => handleSelectRow(dept.id, !!checked)}
+                        aria-label={`Select ${dept.name}`}
+                      />
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredDepartments.map((dept) => (
-                    <TableRow key={dept.id}>
-                      <TableCell className="font-medium">{dept.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="font-mono">{dept.code}</Badge>
+                    {visibleColumns.map((column) => (
+                      <TableCell key={column.id} className="whitespace-nowrap">
+                        {renderCellValue(dept, column)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                          {dept.employee_count || 0}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground max-w-[200px] truncate">
-                        {dept.description}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openDeptDialog(dept)}>
-                            <Edit className="h-4 w-4" />
+                    ))}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openDeptDialog(dept)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
                             onClick={() => setDeleteDeptDialog(dept)}
                             disabled={(dept.employee_count || 0) > 0}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
 
       <Dialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen}>
