@@ -62,6 +62,7 @@ import ShiftPolicyPage from "./pages/admin/shifts/ShiftPolicyPage";
 import NotificationSettingsPage from "./pages/admin/settings/NotificationSettingsPage";
 import SystemSettingsPage from "./pages/admin/settings/SystemSettingsPage";
 import AppearancePage from "./pages/admin/settings/AppearancePage";
+import EmailSettingsPage from "./pages/admin/settings/EmailSettingsPage";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/Dashboard";
@@ -142,6 +143,7 @@ const App = () => (
                 <Route path="settings/roles" element={<RolesPage />} />
                 <Route path="settings/company" element={<CompanySettingsPage />} />
                 <Route path="settings/notifications" element={<NotificationSettingsPage />} />
+                <Route path="settings/email" element={<EmailSettingsPage />} />
                 <Route path="settings/system" element={<SystemSettingsPage />} />
                 <Route path="settings/appearance" element={<AppearancePage />} />
               </Route>
