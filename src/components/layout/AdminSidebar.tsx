@@ -151,6 +151,7 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
       { title: "Announcement Templates", href: "/admin/announcements/templates", icon: LayoutTemplate },
+      { title: "Banner Templates", href: "/admin/announcements/banner-templates", icon: Palette },
     ],
   },
   {
