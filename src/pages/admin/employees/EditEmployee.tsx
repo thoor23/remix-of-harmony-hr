@@ -13,11 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
-import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee } from "@/hooks/useEmployees";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
+import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
@@ -32,6 +33,8 @@ const employeeSchema = z.object({
   designation: z.string().min(1, "Designation is required"),
   employmentType: z.string().min(1, "Employment type is required"),
   reportingTo: z.string().optional(),
+  status: z.string().min(1, "Status is required"),
+  role: z.string().min(1, "Role is required"),
   street: z.string().min(1, "Street address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
@@ -44,6 +47,24 @@ const employeeSchema = z.object({
   accountHolder: z.string().min(1, "Account holder name is required"),
   accountNumber: z.string().min(1, "Account number is required"),
   routingNumber: z.string().min(1, "Routing number is required"),
+  newPassword: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (data.newPassword && data.newPassword.length > 0 && data.newPassword.length < 6) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Password must be at least 6 characters",
+  path: ["newPassword"],
+}).refine((data) => {
+  if (data.newPassword && data.newPassword !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type FormErrors = Partial<Record<keyof z.infer<typeof employeeSchema>, string>>;
@@ -53,6 +74,8 @@ export default function EditEmployee() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("personal");
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -66,6 +89,8 @@ export default function EditEmployee() {
     designation: "",
     employmentType: "",
     reportingTo: "",
+    status: "active",
+    role: "employee",
     street: "",
     city: "",
     state: "",
@@ -78,18 +103,23 @@ export default function EditEmployee() {
     accountHolder: "",
     accountNumber: "",
     routingNumber: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const { data: employee, isLoading: employeeLoading } = useEmployee(id || "");
   const { data: departments = [] } = useDepartments();
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
+  const { data: employeeRole, isLoading: roleLoading } = useEmployeeRole(employee?.user_id || null);
   const updateEmployee = useUpdateEmployee();
+  const updateEmployeeAccount = useUpdateEmployeeAccount();
 
   // Load employee data into form
   useEffect(() => {
     if (employee) {
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         firstName: employee.profile?.first_name || "",
         lastName: employee.profile?.last_name || "",
         email: employee.profile?.email || "",
@@ -102,6 +132,7 @@ export default function EditEmployee() {
         designation: employee.designation?.id || "",
         employmentType: employee.employment_type,
         reportingTo: employee.reporting_to || "",
+        status: employee.status || "active",
         street: employee.address_street || "",
         city: employee.address_city || "",
         state: employee.address_state || "",
@@ -114,9 +145,19 @@ export default function EditEmployee() {
         accountHolder: employee.bank_account_holder_name || "",
         accountNumber: employee.bank_account_number || "",
         routingNumber: employee.bank_ifsc_code || "",
-      });
+      }));
     }
   }, [employee]);
+
+  // Load role when available
+  useEffect(() => {
+    if (employeeRole) {
+      setFormData((prev) => ({
+        ...prev,
+        role: employeeRole,
+      }));
+    }
+  }, [employeeRole]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -142,17 +183,14 @@ export default function EditEmployee() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!id || !employee) return;
     
     if (validateForm()) {
+      // First update employee table data
       updateEmployee.mutate({
         id,
         data: {
           employee_id: formData.employeeId,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
           date_of_birth: formData.dateOfBirth || null,
           date_of_joining: formData.joiningDate,
           department_id: formData.department || null,
@@ -174,7 +212,28 @@ export default function EditEmployee() {
         }
       }, {
         onSuccess: () => {
-          navigate("/admin/employees");
+          // If employee has a user account, update account-related data
+          if (employee.user_id) {
+            updateEmployeeAccount.mutate({
+              employee_id: id,
+              user_id: employee.user_id,
+              profile: {
+                first_name: formData.firstName,
+                last_name: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
+              },
+              role: formData.role as "admin" | "hr" | "manager" | "employee",
+              status: formData.status as "active" | "inactive",
+              password: formData.newPassword || undefined,
+            }, {
+              onSuccess: () => {
+                navigate("/admin/employees");
+              }
+            });
+          } else {
+            navigate("/admin/employees");
+          }
         }
       });
     } else {
@@ -183,7 +242,7 @@ export default function EditEmployee() {
   };
 
   const handleNext = () => {
-    const tabs = ["personal", "work", "contact", "bank"];
+    const tabs = ["personal", "work", "contact", "bank", "account"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex < tabs.length - 1) {
       setActiveTab(tabs[currentIndex + 1]);
@@ -191,7 +250,7 @@ export default function EditEmployee() {
   };
 
   const handlePrevious = () => {
-    const tabs = ["personal", "work", "contact", "bank"];
+    const tabs = ["personal", "work", "contact", "bank", "account"];
     const currentIndex = tabs.indexOf(activeTab);
     if (currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1]);
@@ -214,7 +273,10 @@ export default function EditEmployee() {
     )
   );
 
-  if (employeeLoading) {
+  const isLoading = employeeLoading || roleLoading;
+  const isPending = updateEmployee.isPending || updateEmployeeAccount.isPending;
+
+  if (isLoading) {
     return (
       <PageContainer>
         <div className="space-y-6">
@@ -237,6 +299,8 @@ export default function EditEmployee() {
       </PageContainer>
     );
   }
+
+  const hasUserAccount = !!employee.user_id;
 
   return (
     <PageContainer>
@@ -270,6 +334,10 @@ export default function EditEmployee() {
             <TabsTrigger value="bank" className="gap-2">
               <CreditCard className="h-4 w-4" />
               Bank
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-2">
+              <KeyRound className="h-4 w-4" />
+              Account
             </TabsTrigger>
           </TabsList>
 
@@ -445,6 +513,22 @@ export default function EditEmployee() {
                       </SelectContent>
                     </Select>
                     {renderError("employmentType")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Employee Status *</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => handleInputChange("status", value)}
+                    >
+                      <SelectTrigger className={errors.status ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("status")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reportingTo">Reporting To</Label>
@@ -643,8 +727,122 @@ export default function EditEmployee() {
                   <Button type="button" variant="outline" onClick={handlePrevious}>
                     Previous
                   </Button>
-                  <Button type="submit" disabled={updateEmployee.isPending}>
-                    {updateEmployee.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="button" onClick={handleNext}>
+                    Next: Account Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Account Settings */}
+          <TabsContent value="account">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!hasUserAccount && (
+                  <Alert>
+                    <AlertDescription>
+                      This employee does not have a user account. Role and password settings are only available for employees with linked accounts.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleInputChange("role", value)}
+                      disabled={!hasUserAccount}
+                    >
+                      <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("role")}
+                  </div>
+                </div>
+
+                {hasUserAccount && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-4">Change Password</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Leave blank to keep the current password.
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showPassword ? "text" : "password"}
+                            value={formData.newPassword}
+                            onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                            className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
+                            placeholder="Enter new password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        {renderError("newPassword")}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={formData.confirmPassword}
+                            onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                            className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                            placeholder="Confirm new password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        {renderError("confirmPassword")}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Update Employee
                   </Button>
                 </div>

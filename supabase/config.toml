@@ -1,1 +1,7 @@
 project_id = "gdfaemouuvmovtsecgif"
+
+[functions.create-employee-account]
+verify_jwt = false
+
+[functions.update-employee-account]
+verify_jwt = false
