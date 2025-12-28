@@ -104,13 +104,16 @@ serve(async (req) => {
           designation:designations(id, name, code)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!employee) {
+        return errorResponse('Employee not found', 404);
+      }
 
       // Fetch profile separately
       let profile = null;
-      if (employee?.user_id) {
+      if (employee.user_id) {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('first_name, last_name, email, phone, avatar_url')
