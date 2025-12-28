@@ -58,6 +58,22 @@ serve(async (req) => {
       return jsonResponse(employee);
     }
 
+    // GET /role/:userId - Get employee role by user ID
+    const roleMatch = path.match(/^\/role\/([a-f0-9-]+)$/);
+    if (method === 'GET' && roleMatch) {
+      const userId = roleMatch[1];
+      
+      const { data: userRole, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      return jsonResponse({ role: userRole?.role || 'employee' });
+    }
+
     // GET /:id - Get specific employee
     const idMatch = path.match(/^\/([a-f0-9-]+)$/);
     if (method === 'GET' && idMatch) {
