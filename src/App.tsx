@@ -63,6 +63,7 @@ import NotificationSettingsPage from "./pages/admin/settings/NotificationSetting
 import SystemSettingsPage from "./pages/admin/settings/SystemSettingsPage";
 import AppearancePage from "./pages/admin/settings/AppearancePage";
 import EmailSettingsPage from "./pages/admin/settings/EmailSettingsPage";
+import EmailTemplatesPage from "./pages/admin/settings/EmailTemplatesPage";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/Dashboard";
@@ -144,6 +145,7 @@ const App = () => (
                 <Route path="settings/company" element={<CompanySettingsPage />} />
                 <Route path="settings/notifications" element={<NotificationSettingsPage />} />
                 <Route path="settings/email" element={<EmailSettingsPage />} />
+                <Route path="settings/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="settings/system" element={<SystemSettingsPage />} />
                 <Route path="settings/appearance" element={<AppearancePage />} />
               </Route>

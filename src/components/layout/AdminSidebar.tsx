@@ -167,6 +167,7 @@ const adminNavItems: NavItem[] = [
       { title: "Company", href: "/admin/settings/company", icon: Building2 },
       { title: "Notifications", href: "/admin/settings/notifications", icon: Bell },
       { title: "Email", href: "/admin/settings/email", icon: Mail },
+      { title: "Email Templates", href: "/admin/settings/email-templates", icon: LayoutTemplate },
       { title: "System", href: "/admin/settings/system", icon: Settings2 },
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
     ],
