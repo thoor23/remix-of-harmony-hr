@@ -25,6 +25,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { useMyTickets, useCreateTicket } from "@/hooks/useHelpdesk";
+import { TicketMessaging } from "@/components/helpdesk/TicketMessaging";
 import { Tables } from "@/integrations/supabase/types";
 
 type Ticket = Tables<"helpdesk_tickets">;
@@ -248,56 +249,14 @@ export default function EmployeeHelpdesk() {
           </Tabs>
         </div>
 
-        {/* Ticket Detail / Quick Help */}
+        {/* Ticket Detail / Messages */}
         <div>
           {selectedTicket ? (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Ticket Details</CardTitle>
-                  <StatusBadge status={selectedTicket.status as any} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-medium">{selectedTicket.subject}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedTicket.description || "No description provided"}
-                  </p>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Category:</span>
-                    <span>{categoryLabels[selectedTicket.category] || selectedTicket.category}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Priority:</span>
-                    <Badge className={priorityColors[selectedTicket.priority]}>
-                      {selectedTicket.priority}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created:</span>
-                    <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
-                  </div>
-                  {selectedTicket.resolved_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Resolved:</span>
-                      <span>{new Date(selectedTicket.resolved_at).toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setSelectedTicket(null)}
-                >
-                  Close
-                </Button>
-              </CardContent>
-            </Card>
+            <TicketMessaging
+              ticket={selectedTicket}
+              onClose={() => setSelectedTicket(null)}
+              isAdmin={false}
+            />
           ) : (
             <Card>
               <CardHeader>
@@ -308,7 +267,7 @@ export default function EmployeeHelpdesk() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Select a ticket to view details or create a new one for support.
+                  Select a ticket to view details and messages, or create a new one for support.
                 </p>
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Common Topics:</p>
