@@ -232,19 +232,21 @@ export default function AuthPage() {
           </div>
 
           {/* Right Panel */}
-          <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12">
-            <div className="w-full max-w-sm">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-ml-2 mb-6 text-muted-foreground"
-                onClick={() => setView("login")}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
-              </Button>
+          <div className="flex-1 flex flex-col p-8 md:p-12">
+            {/* Back to login - Top left */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 mb-4 text-primary hover:text-primary/80 self-start"
+              onClick={() => setView("login")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to login
+            </Button>
 
-              <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="w-full max-w-sm">
+                <div className="flex items-center justify-center gap-2 mb-8">
                 <Avatar className="h-9 w-9 rounded-lg">
                   <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
                   <AvatarFallback className="rounded-lg bg-primary">
@@ -285,6 +287,7 @@ export default function AuthPage() {
                   )}
                 </Button>
               </form>
+              </div>
             </div>
           </div>
         </div>
