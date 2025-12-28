@@ -36,7 +36,8 @@ export function useMyDocuments() {
     queryKey: ["my-documents", employee?.id],
     queryFn: async () => {
       if (!employee?.id) return [];
-      return api.get<Document[]>(`/documents/employee/${employee.id}`);
+      // Use query param filter instead of dedicated endpoint
+      return api.get<Document[]>(`/documents?employee_id=${employee.id}`);
     },
     enabled: !!employee?.id,
   });
@@ -55,7 +56,8 @@ export function useCompanyDocuments() {
   return useQuery({
     queryKey: ["company-documents"],
     queryFn: async () => {
-      return api.get<Document[]>("/documents/company");
+      // Use query param filter for company documents
+      return api.get<Document[]>("/documents?is_company_document=true");
     },
   });
 }
@@ -85,7 +87,8 @@ export function useUploadFile() {
       formData.append("is_company_document", String(is_company_document));
 
       const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/documents/upload`, {
+      // Backend expects POST to /documents (not /documents/upload)
+      const response = await fetch(`${API_URL}/documents`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -134,14 +137,15 @@ export function useDeleteDocument() {
   });
 }
 
-export function getDocumentDownloadUrl(filePath: string): string {
-  return `${API_URL}/documents/download/${encodeURIComponent(filePath)}`;
+export function getDocumentDownloadUrl(documentId: string): string {
+  return `${API_URL}/documents/download/${documentId}`;
 }
 
-export async function downloadDocument(filePath: string, fileName: string) {
+export async function downloadDocument(documentId: string, fileName: string) {
   try {
     const token = localStorage.getItem("access_token");
-    const response = await fetch(`${API_URL}/documents/download/${encodeURIComponent(filePath)}`, {
+    // Backend expects document ID, not file path
+    const response = await fetch(`${API_URL}/documents/download/${documentId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
