@@ -468,7 +468,7 @@ export default function PayslipTemplatesPage() {
             </TabsContent>
 
             <TabsContent value="preview" className="mt-4">
-              <div className="border rounded-lg p-4 bg-white">
+              <div className="border rounded-lg p-4 bg-white text-gray-900">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: getPreviewHtml({
@@ -505,7 +505,7 @@ export default function PayslipTemplatesPage() {
             <DialogTitle>Preview: {previewTemplate?.name}</DialogTitle>
           </DialogHeader>
           {previewTemplate && (
-            <div className="border rounded-lg p-4 bg-white">
+            <div className="border rounded-lg p-4 bg-white text-gray-900">
               <div dangerouslySetInnerHTML={{ __html: getPreviewHtml(previewTemplate) }} />
             </div>
           )}

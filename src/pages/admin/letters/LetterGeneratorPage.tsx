@@ -246,7 +246,7 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
           <CardContent>
             {showPreview && previewContent ? (
               <div
-                className="border rounded-lg p-6 bg-white min-h-[500px] overflow-auto"
+                className="border rounded-lg p-6 bg-white text-gray-900 min-h-[500px] overflow-auto prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: previewContent }}
               />
             ) : (

@@ -425,7 +425,7 @@ export default function LetterTemplatesPage() {
             <DialogTitle>Template Preview</DialogTitle>
           </DialogHeader>
           <div
-            className="border rounded-lg p-6 bg-white"
+            className="border rounded-lg p-6 bg-white text-gray-900 prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: previewContent }}
           />
         </DialogContent>
