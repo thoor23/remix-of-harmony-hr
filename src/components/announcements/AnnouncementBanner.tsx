@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, Megaphone, Calendar, Shield, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, Megaphone, Calendar, Shield, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ interface Announcement {
   priority: string;
   type?: string;
   published_at: string;
+  expires_at?: string | null;
 }
 
 interface AnnouncementBannerProps {
@@ -41,8 +42,26 @@ const getPriorityStyles = (priority: string) => {
   }
 };
 
+const getTimeRemaining = (expiresAt: string): string | null => {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diff = expiry.getTime() - now.getTime();
+
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
+};
+
 export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBannerProps) {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [expiredIds, setExpiredIds] = useState<string[]>([]);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const stored = localStorage.getItem("dismissed-announcements");
@@ -55,6 +74,37 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
     }
   }, []);
 
+  // Check for expired announcements and update countdown every minute
+  const checkExpiredAnnouncements = useCallback(() => {
+    const now = new Date();
+    const newExpiredIds: string[] = [];
+    
+    announcements.forEach((a) => {
+      if (a.expires_at) {
+        const expiryDate = new Date(a.expires_at);
+        if (expiryDate <= now) {
+          newExpiredIds.push(a.id);
+        }
+      }
+    });
+    
+    if (newExpiredIds.length > 0) {
+      setExpiredIds((prev) => [...new Set([...prev, ...newExpiredIds])]);
+    }
+  }, [announcements]);
+
+  useEffect(() => {
+    checkExpiredAnnouncements();
+    
+    // Update every 30 seconds to refresh countdown timers
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+      checkExpiredAnnouncements();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [checkExpiredAnnouncements]);
+
   const handleDismiss = (id: string) => {
     const newDismissed = [...dismissedIds, id];
     setDismissedIds(newDismissed);
@@ -64,7 +114,7 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
   if (isLoading) return null;
 
   const visibleAnnouncements = announcements.filter(
-    (a) => !dismissedIds.includes(a.id)
+    (a) => !dismissedIds.includes(a.id) && !expiredIds.includes(a.id)
   );
 
   if (visibleAnnouncements.length === 0) return null;
@@ -73,6 +123,8 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
     <div className="space-y-2 mb-6">
       {visibleAnnouncements.map((announcement) => {
         const Icon = getTypeIcon(announcement.type);
+        const timeRemaining = announcement.expires_at ? getTimeRemaining(announcement.expires_at) : null;
+        
         return (
           <div
             key={announcement.id}
@@ -84,7 +136,15 @@ export function AnnouncementBanner({ announcements, isLoading }: AnnouncementBan
             <div className="flex items-start gap-3 min-w-0">
               <Icon className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="font-semibold text-sm">{announcement.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm">{announcement.title}</p>
+                  {timeRemaining && (
+                    <span className="flex items-center gap-1 text-xs opacity-70 bg-background/30 px-2 py-0.5 rounded-full">
+                      <Clock className="h-3 w-3" />
+                      {timeRemaining}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm opacity-80 line-clamp-2 mt-0.5">
                   {announcement.content}
                 </p>

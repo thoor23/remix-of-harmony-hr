@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   AlertCircle,
   Search,
+  CalendarIcon,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +41,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -49,6 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
 import { useTargetedNotifications, useSendTargetedNotification, useDeleteTargetedNotification } from "@/hooks/useTargetedNotifications";
 import { useDepartmentsData } from "@/hooks/useDepartments";
@@ -91,6 +100,8 @@ export default function NotificationCentre() {
     type: "general",
     priority: "medium",
     target_audience: "all",
+    scheduled_at: null as Date | null,
+    expires_at: null as Date | null,
   });
 
   // Targeted notification state
@@ -134,6 +145,8 @@ export default function NotificationCentre() {
       type: "general",
       priority: "medium",
       target_audience: "all",
+      scheduled_at: null,
+      expires_at: null,
     });
     setAnnouncementDialogOpen(true);
   };
@@ -146,20 +159,43 @@ export default function NotificationCentre() {
       type: announcement.type,
       priority: announcement.priority,
       target_audience: announcement.target_audience,
+      scheduled_at: announcement.scheduled_at ? new Date(announcement.scheduled_at) : null,
+      expires_at: announcement.expires_at ? new Date(announcement.expires_at) : null,
     });
     setAnnouncementDialogOpen(true);
   };
 
   const handleSaveAnnouncement = async () => {
+    const formData = {
+      title: announcementForm.title,
+      content: announcementForm.content,
+      type: announcementForm.type,
+      priority: announcementForm.priority,
+      target_audience: announcementForm.target_audience,
+      scheduled_at: announcementForm.scheduled_at?.toISOString() || null,
+      expires_at: announcementForm.expires_at?.toISOString() || null,
+    };
+    
     if (editingAnnouncement) {
       await updateAnnouncement.mutateAsync({
         id: editingAnnouncement,
-        ...announcementForm,
+        ...formData,
       });
     } else {
-      await createAnnouncement.mutateAsync(announcementForm);
+      await createAnnouncement.mutateAsync(formData);
     }
     setAnnouncementDialogOpen(false);
+  };
+  
+  const getAnnouncementStatus = (announcement: any) => {
+    const now = new Date();
+    if (announcement.scheduled_at && new Date(announcement.scheduled_at) > now) {
+      return { label: "Scheduled", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300" };
+    }
+    if (announcement.expires_at && new Date(announcement.expires_at) <= now) {
+      return { label: "Expired", color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300" };
+    }
+    return { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" };
   };
 
   const handleDeleteAnnouncement = async () => {
@@ -254,50 +290,70 @@ export default function NotificationCentre() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {announcements?.map(announcement => (
-                    <div
-                      key={announcement.id}
-                      className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{announcement.title}</h4>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {announcement.content}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="secondary" className={typeColors[announcement.type]}>
-                              {announcement.type}
-                            </Badge>
-                            <Badge variant="secondary" className={priorityColors[announcement.priority]}>
-                              {announcement.priority}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(announcement.published_at), "MMM d, yyyy")}
-                            </span>
+                  {announcements?.map(announcement => {
+                    const status = getAnnouncementStatus(announcement);
+                    return (
+                      <div
+                        key={announcement.id}
+                        className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium truncate">{announcement.title}</h4>
+                              <Badge variant="secondary" className={status.color}>
+                                {status.label}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {announcement.content}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <Badge variant="secondary" className={typeColors[announcement.type]}>
+                                {announcement.type}
+                              </Badge>
+                              <Badge variant="secondary" className={priorityColors[announcement.priority]}>
+                                {announcement.priority}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(announcement.published_at), "MMM d, yyyy")}
+                              </span>
+                              {announcement.scheduled_at && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  Starts: {format(new Date(announcement.scheduled_at), "MMM d, h:mm a")}
+                                </span>
+                              )}
+                              {announcement.expires_at && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  Expires: {format(new Date(announcement.expires_at), "MMM d, h:mm a")}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleEditAnnouncement(announcement)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteAnnouncementId(announcement.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditAnnouncement(announcement)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => setDeleteAnnouncementId(announcement.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
@@ -464,6 +520,122 @@ export default function NotificationCentre() {
                   <SelectItem value="hr">HR Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Schedule Start (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !announcementForm.scheduled_at && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {announcementForm.scheduled_at 
+                        ? format(announcementForm.scheduled_at, "PPP p") 
+                        : "Immediate"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={announcementForm.scheduled_at || undefined}
+                      onSelect={(date) => setAnnouncementForm({ ...announcementForm, scheduled_at: date || null })}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                    <div className="p-3 border-t">
+                      <Input
+                        type="time"
+                        value={announcementForm.scheduled_at 
+                          ? format(announcementForm.scheduled_at, "HH:mm") 
+                          : ""}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const [hours, minutes] = e.target.value.split(":");
+                            const newDate = announcementForm.scheduled_at 
+                              ? new Date(announcementForm.scheduled_at) 
+                              : new Date();
+                            newDate.setHours(parseInt(hours), parseInt(minutes));
+                            setAnnouncementForm({ ...announcementForm, scheduled_at: newDate });
+                          }
+                        }}
+                      />
+                      {announcementForm.scheduled_at && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="mt-2 w-full"
+                          onClick={() => setAnnouncementForm({ ...announcementForm, scheduled_at: null })}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Expiry Date (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !announcementForm.expires_at && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {announcementForm.expires_at 
+                        ? format(announcementForm.expires_at, "PPP p") 
+                        : "Never"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={announcementForm.expires_at || undefined}
+                      onSelect={(date) => setAnnouncementForm({ ...announcementForm, expires_at: date || null })}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                    <div className="p-3 border-t">
+                      <Input
+                        type="time"
+                        value={announcementForm.expires_at 
+                          ? format(announcementForm.expires_at, "HH:mm") 
+                          : ""}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const [hours, minutes] = e.target.value.split(":");
+                            const newDate = announcementForm.expires_at 
+                              ? new Date(announcementForm.expires_at) 
+                              : new Date();
+                            newDate.setHours(parseInt(hours), parseInt(minutes));
+                            setAnnouncementForm({ ...announcementForm, expires_at: newDate });
+                          }
+                        }}
+                      />
+                      {announcementForm.expires_at && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="mt-2 w-full"
+                          onClick={() => setAnnouncementForm({ ...announcementForm, expires_at: null })}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
           <DialogFooter>

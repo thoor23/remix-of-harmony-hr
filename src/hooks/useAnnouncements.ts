@@ -14,6 +14,8 @@ export interface Announcement {
   is_active: boolean | null;
   created_by: string;
   created_at: string;
+  scheduled_at: string | null;
+  expires_at: string | null;
 }
 
 export function useAnnouncements() {
@@ -37,6 +39,8 @@ interface CreateAnnouncementData {
   type: string;
   priority: string;
   target_audience: string;
+  scheduled_at?: string | null;
+  expires_at?: string | null;
 }
 
 export function useCreateAnnouncement() {
