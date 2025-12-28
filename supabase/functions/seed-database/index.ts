@@ -312,6 +312,8 @@ Deno.serve(async (req) => {
     }> = [];
 
     let employeeCounter = 1;
+    let adminCounter = 1;
+    let hrCounter = 1;
     const usedNames = new Set<string>();
 
     for (const dept of employeeDistribution) {
@@ -332,16 +334,19 @@ Deno.serve(async (req) => {
         } while (usedNames.has(fullName));
         usedNames.add(fullName);
 
-        // Generate email based on role and count
+        // Generate email based on role with separate counters
         let email: string;
-        if (role === 'admin' && employeeCounter <= 2) {
-          email = employeeCounter === 1 ? 'admin@company.com' : 'admin2@company.com';
+        if (role === 'admin') {
+          email = adminCounter === 1 ? 'admin@company.com' : `admin${adminCounter}@company.com`;
+          adminCounter++;
         } else if (role === 'hr') {
-          email = `hr${employeeCounter}@company.com`;
+          email = `hr${hrCounter}@company.com`;
+          hrCounter++;
         } else if (role === 'manager') {
           email = `manager.${dept.department.toLowerCase().replace(' ', '')}@company.com`;
         } else {
           email = `emp${String(employeeCounter).padStart(3, '0')}@company.com`;
+          employeeCounter++;
         }
 
         // Create user
@@ -442,8 +447,7 @@ Deno.serve(async (req) => {
           joiningDate
         });
 
-        employeeCounter++;
-        console.log(`Created employee ${employeeCounter - 1}: ${firstName} ${lastName} (${email})`);
+        console.log(`Created employee: ${firstName} ${lastName} (${email}) - ${role}`);
       }
     }
 
