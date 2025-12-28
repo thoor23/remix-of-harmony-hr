@@ -24,11 +24,11 @@ import { useAuditLogs } from "@/hooks/useAuditLogs";
 import { format } from "date-fns";
 
 const actionColors: Record<string, string> = {
-  CREATE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  UPDATE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  DELETE: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  LOGIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  LOGOUT: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+  CREATE: "bg-success/10 text-success",
+  UPDATE: "bg-warning/10 text-warning",
+  DELETE: "bg-destructive/10 text-destructive",
+  LOGIN: "bg-info/10 text-info",
+  LOGOUT: "bg-muted text-muted-foreground",
 };
 
 const modules = ["Employee", "Leave", "Payroll", "Announcement", "Settings", "Auth", "Documents", "Departments", "Designations"];

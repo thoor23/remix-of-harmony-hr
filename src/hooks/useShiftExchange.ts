@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyAdmins, notifyEmployee } from "@/lib/notificationHelper";
 
 export interface ShiftExchangeRequest {
   id: string;
@@ -174,11 +175,30 @@ export function useCreateShiftExchangeRequest() {
         .insert(request);
 
       if (error) throw error;
+      
+      return request;
     },
-    onSuccess: () => {
+    onSuccess: async (request) => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-shift-exchange-requests"] });
       toast.success("Shift exchange request submitted successfully");
+      
+      // Notify the target employee about the request
+      await notifyEmployee(
+        request.target_employee_id,
+        "New Shift Exchange Request",
+        "You have received a shift exchange request from a colleague.",
+        "info",
+        "/employee/shift-exchange"
+      );
+      
+      // Also notify admins
+      await notifyAdmins(
+        "New Shift Exchange Request",
+        "An employee has submitted a shift exchange request.",
+        "info",
+        "/admin/shifts/exchange"
+      );
     },
     onError: (error: Error) => {
       toast.error(`Failed to submit request: ${error.message}`);
@@ -194,10 +214,12 @@ export function useUpdateShiftExchangeRequest() {
       id,
       status,
       response_note,
+      requester_id,
     }: {
       id: string;
       status: string;
       response_note?: string;
+      requester_id?: string;
     }) => {
       const { error } = await supabase
         .from("shift_exchange_requests")
@@ -209,11 +231,27 @@ export function useUpdateShiftExchangeRequest() {
         .eq("id", id);
 
       if (error) throw error;
+      
+      return { id, status, requester_id };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-shift-exchange-requests"] });
-      toast.success(`Request ${variables.status} successfully`);
+      toast.success(`Request ${result.status} successfully`);
+      
+      // Notify the requester about the status update
+      if (result.requester_id && (result.status === "approved" || result.status === "rejected")) {
+        const statusText = result.status === "approved" ? "accepted" : "declined";
+        const notificationType = result.status === "approved" ? "success" : "warning";
+        
+        await notifyEmployee(
+          result.requester_id,
+          `Shift Exchange ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`,
+          `Your shift exchange request has been ${statusText}.`,
+          notificationType,
+          "/employee/shift-exchange"
+        );
+      }
     },
     onError: (error: Error) => {
       toast.error(`Failed to update request: ${error.message}`);

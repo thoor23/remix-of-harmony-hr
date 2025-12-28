@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentEmployee } from "./useCurrentEmployee";
 import { toast } from "sonner";
+import { notifyAdmins } from "@/lib/notificationHelper";
 
 export function useMyTickets() {
   const { data: employee } = useCurrentEmployee();
@@ -51,10 +52,20 @@ export function useCreateTicket() {
       });
 
       if (error) throw error;
+      
+      return { subject, category, priority };
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
       toast.success("Ticket created successfully");
+      
+      // Notify admins about new ticket
+      await notifyAdmins(
+        "New Helpdesk Ticket",
+        `A new ${data.priority} priority ticket has been submitted: "${data.subject}"`,
+        data.priority === "high" || data.priority === "urgent" ? "warning" : "info",
+        "/admin/helpdesk"
+      );
     },
     onError: (error: Error) => {
       toast.error(`Failed to create ticket: ${error.message}`);
