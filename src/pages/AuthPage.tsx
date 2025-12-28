@@ -431,10 +431,10 @@ export default function AuthPage() {
             {/* Welcome text */}
             <div className="text-center mb-8">
               <h1 className="text-2xl font-semibold mb-2">
-                Welcome to <span className="font-bold">{companyName}</span>
+                Welcome Back
               </h1>
               <p className="text-muted-foreground text-sm">
-                Sign in to continue to {companyName}.
+                Sign in to continue to your account.
               </p>
             </div>
 
