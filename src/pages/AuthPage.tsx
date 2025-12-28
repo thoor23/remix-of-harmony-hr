@@ -5,10 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Building2, Loader2, ArrowLeft, Shield, Users, Clock, BarChart3 } from "lucide-react";
+import { Building2, Loader2, ArrowLeft, Lock, Mail } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -53,16 +52,13 @@ export default function AuthPage() {
     password: "",
   });
 
-  // Check if this is a password reset callback
   const hashParams = new URLSearchParams(location.hash.substring(1));
   const isPasswordReset = hashParams.get("type") === "recovery";
 
-  // Show reset password form if it's a recovery callback
   if (isPasswordReset && view !== "reset-password") {
     setView("reset-password");
   }
 
-  // Redirect if already logged in (but not during password reset)
   if (user && !isPasswordReset) {
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/admin";
     navigate(from, { replace: true });
@@ -163,128 +159,105 @@ export default function AuthPage() {
 
   const renderError = (field: string) => {
     if (errors[field]) {
-      return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
+      return <p className="text-sm text-destructive mt-1.5">{errors[field]}</p>;
     }
     return null;
   };
-
-  const features = [
-    {
-      icon: Users,
-      title: "Employee Management",
-      description: "Complete employee lifecycle management"
-    },
-    {
-      icon: Clock,
-      title: "Attendance Tracking",
-      description: "Real-time attendance and time management"
-    },
-    {
-      icon: BarChart3,
-      title: "Analytics & Reports",
-      description: "Comprehensive HR analytics and insights"
-    },
-    {
-      icon: Shield,
-      title: "Secure & Compliant",
-      description: "Enterprise-grade security for your data"
-    }
-  ];
 
   // Forgot Password View
   if (view === "forgot-password") {
     return (
       <div className="min-h-screen flex">
-        {/* Left Panel - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-12">
-              <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
+        {/* Left - Visual Panel */}
+        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+          </div>
+          <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20">
                 <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
                 <AvatarFallback className="rounded-xl bg-primary-foreground/10">
-                  <Building2 className="h-7 w-7 text-primary-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
-                <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
-              </div>
-            </div>
-            <div className="space-y-8">
-              <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
-                Reset Your<br />Password
-              </h2>
-              <p className="text-lg text-primary-foreground/80 max-w-md">
-                Enter your email address and we'll send you instructions to reset your password.
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-primary-foreground/60">
-            © {new Date().getFullYear()} {companyName}. All rights reserved.
-          </p>
-        </div>
-
-        {/* Right Panel - Form */}
-        <div className="flex-1 flex items-center justify-center p-8 bg-background">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden flex items-center gap-3 mb-8">
-              <Avatar className="h-10 w-10 rounded-xl">
-                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-                <AvatarFallback className="rounded-xl bg-primary">
                   <Building2 className="h-6 w-6 text-primary-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xl font-semibold">{companyName}</span>
+              <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
+            </div>
+            <div className="space-y-6 max-w-lg">
+              <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
+                Reset Your Password
+              </h1>
+              <p className="text-xl text-primary-foreground/80">
+                Enter your email address and we'll send you instructions to reset your password.
+              </p>
+            </div>
+            <p className="text-sm text-primary-foreground/50">
+              © {new Date().getFullYear()} {companyName}
+            </p>
+          </div>
+        </div>
+
+        {/* Right - Form */}
+        <div className="flex-1 flex items-center justify-center p-8 bg-background">
+          <div className="w-full max-w-sm">
+            <div className="lg:hidden flex items-center gap-3 mb-10">
+              <Avatar className="h-10 w-10 rounded-xl">
+                <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+                <AvatarFallback className="rounded-xl bg-primary">
+                  <Building2 className="h-5 w-5 text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-lg font-semibold">{companyName}</span>
             </div>
 
-            <Card className="border-0 shadow-none lg:border lg:shadow-sm">
-              <CardHeader className="space-y-1 pb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-fit -ml-2 mb-2"
-                  onClick={() => setView("login")}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to login
-                </Button>
-                <h2 className="text-2xl font-semibold tracking-tight">Forgot password?</h2>
-                <CardDescription>
-                  Enter your email address and we'll send you a link to reset your password.
-                </CardDescription>
-              </CardHeader>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 mb-6 text-muted-foreground"
+              onClick={() => setView("login")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to sign in
+            </Button>
 
-              <form onSubmit={handleForgotPassword}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      className={errors.email ? "border-destructive" : ""}
-                      disabled={isLoading}
-                    />
-                    {renderError("email")}
-                  </div>
-                </CardContent>
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold tracking-tight mb-2">Forgot password?</h2>
+              <p className="text-muted-foreground">
+                No worries, we'll send you reset instructions.
+              </p>
+            </div>
 
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      "Send Reset Link"
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email" className="text-sm font-medium">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="name@company.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className={`pl-10 h-11 ${errors.email ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {renderError("email")}
+              </div>
+
+              <Button type="submit" className="w-full h-11" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+            </form>
           </div>
         </div>
       </div>
@@ -296,232 +269,261 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex">
         {/* Left Panel */}
-        <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-12">
-              <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
+        <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+          </div>
+          <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20">
                 <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
                 <AvatarFallback className="rounded-xl bg-primary-foreground/10">
-                  <Building2 className="h-7 w-7 text-primary-foreground" />
+                  <Building2 className="h-6 w-6 text-primary-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
-                <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
-              </div>
+              <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
             </div>
-            <div className="space-y-8">
-              <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
-                Create New<br />Password
-              </h2>
-              <p className="text-lg text-primary-foreground/80 max-w-md">
+            <div className="space-y-6 max-w-lg">
+              <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
+                Create New Password
+              </h1>
+              <p className="text-xl text-primary-foreground/80">
                 Choose a strong password to secure your account.
               </p>
             </div>
+            <p className="text-sm text-primary-foreground/50">
+              © {new Date().getFullYear()} {companyName}
+            </p>
           </div>
-          <p className="text-sm text-primary-foreground/60">
-            © {new Date().getFullYear()} {companyName}. All rights reserved.
-          </p>
         </div>
 
         {/* Right Panel */}
         <div className="flex-1 flex items-center justify-center p-8 bg-background">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden flex items-center gap-3 mb-8">
+          <div className="w-full max-w-sm">
+            <div className="lg:hidden flex items-center gap-3 mb-10">
               <Avatar className="h-10 w-10 rounded-xl">
                 <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
                 <AvatarFallback className="rounded-xl bg-primary">
-                  <Building2 className="h-6 w-6 text-primary-foreground" />
+                  <Building2 className="h-5 w-5 text-primary-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xl font-semibold">{companyName}</span>
+              <span className="text-lg font-semibold">{companyName}</span>
             </div>
 
-            <Card className="border-0 shadow-none lg:border lg:shadow-sm">
-              <CardHeader className="space-y-1 pb-4">
-                <h2 className="text-2xl font-semibold tracking-tight">Set new password</h2>
-                <CardDescription>
-                  Enter your new password below.
-                </CardDescription>
-              </CardHeader>
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold tracking-tight mb-2">Set new password</h2>
+              <p className="text-muted-foreground">
+                Must be at least 6 characters.
+              </p>
+            </div>
 
-              <form onSubmit={handleResetPassword}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className={errors.password ? "border-destructive" : ""}
-                      disabled={isLoading}
-                    />
-                    {renderError("password")}
-                  </div>
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="new-password" className="text-sm font-medium">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={`pl-10 h-11 ${errors.password ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {renderError("password")}
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-new-password">Confirm New Password</Label>
-                    <Input
-                      id="confirm-new-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className={errors.confirmPassword ? "border-destructive" : ""}
-                      disabled={isLoading}
-                    />
-                    {renderError("confirmPassword")}
-                  </div>
-                </CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password" className="text-sm font-medium">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirm-new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className={`pl-10 h-11 ${errors.confirmPassword ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {renderError("confirmPassword")}
+              </div>
 
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </>
-                    ) : (
-                      "Update Password"
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
+              <Button type="submit" className="w-full h-11" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Reset Password"
+                )}
+              </Button>
+            </form>
           </div>
         </div>
       </div>
     );
   }
 
-  // Main Login View - Premium 2 Column Layout
+  // Main Login View
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Branding & Features */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-12">
-            <Avatar className="h-12 w-12 rounded-xl border-2 border-primary-foreground/20">
-              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary-foreground/10">
-                <Building2 className="h-7 w-7 text-primary-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">{companyName}</h1>
-              <p className="text-sm text-primary-foreground/70">Human Resource Management</p>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            <h2 className="text-4xl font-bold text-primary-foreground leading-tight">
-              Welcome to your<br />HR Management<br />Platform
-            </h2>
-            <p className="text-lg text-primary-foreground/80 max-w-md">
-              Streamline your workforce management with our comprehensive HRMS solution.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 mt-12">
-            {features.map((feature, index) => (
-              <div key={index} className="space-y-2">
-                <div className="h-10 w-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
-                  <feature.icon className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h3 className="font-medium text-primary-foreground">{feature.title}</h3>
-                <p className="text-sm text-primary-foreground/70">{feature.description}</p>
-              </div>
-            ))}
-          </div>
+      {/* Left - Visual Panel with gradient and decorative elements */}
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+        
+        {/* Decorative blurred circles */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/5 rounded-full" />
         </div>
 
-        <p className="text-sm text-primary-foreground/60">
-          © {new Date().getFullYear()} {companyName}. All rights reserved.
-        </p>
-      </div>
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }} />
 
-      {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <Avatar className="h-10 w-10 rounded-xl">
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <Avatar className="h-11 w-11 rounded-xl border border-primary-foreground/20 shadow-lg">
               <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
-              <AvatarFallback className="rounded-xl bg-primary">
+              <AvatarFallback className="rounded-xl bg-primary-foreground/10 backdrop-blur-sm">
                 <Building2 className="h-6 w-6 text-primary-foreground" />
               </AvatarFallback>
             </Avatar>
-            <span className="text-xl font-semibold">{companyName}</span>
+            <span className="text-xl font-semibold text-primary-foreground">{companyName}</span>
           </div>
 
-          <Card className="border-0 shadow-none lg:border lg:shadow-sm">
-            <CardHeader className="space-y-1 pb-4">
-              <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
-              <CardDescription>
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
+          {/* Main headline */}
+          <div className="space-y-6 max-w-lg">
+            <h1 className="text-5xl font-bold text-primary-foreground leading-tight">
+              Manage Your Workforce with Confidence
+            </h1>
+            <p className="text-xl text-primary-foreground/80">
+              Streamline HR operations, empower your team, and drive business success with our comprehensive platform.
+            </p>
+            
+            {/* Stats */}
+            <div className="flex gap-8 pt-6">
+              <div>
+                <div className="text-3xl font-bold text-primary-foreground">99.9%</div>
+                <div className="text-sm text-primary-foreground/60">Uptime</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-primary-foreground">24/7</div>
+                <div className="text-sm text-primary-foreground/60">Support</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-primary-foreground">256-bit</div>
+                <div className="text-sm text-primary-foreground/60">Encryption</div>
+              </div>
+            </div>
+          </div>
 
-            <form onSubmit={handleLogin}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                    className={errors.email ? "border-destructive" : ""}
-                    disabled={isLoading}
-                  />
-                  {renderError("email")}
-                </div>
+          {/* Footer */}
+          <p className="text-sm text-primary-foreground/50">
+            © {new Date().getFullYear()} {companyName}. All rights reserved.
+          </p>
+        </div>
+      </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="px-0 h-auto font-normal text-muted-foreground hover:text-primary"
-                      onClick={() => setView("forgot-password")}
-                    >
-                      Forgot password?
-                    </Button>
-                  </div>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginData.password}
-                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    className={errors.password ? "border-destructive" : ""}
-                    disabled={isLoading}
-                  />
-                  {renderError("password")}
-                </div>
-              </CardContent>
+      {/* Right - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <Avatar className="h-10 w-10 rounded-xl">
+              <AvatarImage src={branding?.companyLogo || undefined} alt={companyName} />
+              <AvatarFallback className="rounded-xl bg-primary">
+                <Building2 className="h-5 w-5 text-primary-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-lg font-semibold">{companyName}</span>
+          </div>
 
-              <CardFooter className="flex-col gap-4">
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
+          {/* Welcome text */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold tracking-tight mb-2">Welcome back</h2>
+            <p className="text-muted-foreground">
+              Enter your credentials to access your account
+            </p>
+          </div>
+
+          {/* Login form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  className={`pl-10 h-11 ${errors.email ? "border-destructive" : ""}`}
+                  disabled={isLoading}
+                />
+              </div>
+              {renderError("email")}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
+                  onClick={() => setView("forgot-password")}
+                >
+                  Forgot password?
                 </Button>
-                <p className="text-sm text-muted-foreground text-center">
-                  Contact your administrator if you need an account
-                </p>
-              </CardFooter>
-            </form>
-          </Card>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  className={`pl-10 h-11 ${errors.password ? "border-destructive" : ""}`}
+                  disabled={isLoading}
+                />
+              </div>
+              {renderError("password")}
+            </div>
+
+            <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </form>
+
+          {/* Footer note */}
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            Need an account?{" "}
+            <span className="text-foreground">Contact your administrator</span>
+          </p>
         </div>
       </div>
     </div>
