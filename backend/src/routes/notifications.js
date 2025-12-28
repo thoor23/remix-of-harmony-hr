@@ -40,12 +40,58 @@ router.put('/read-all', async (req, res) => {
   try {
     await query(
       'UPDATE notifications SET is_read = true WHERE user_id = ?',
-      [req.user.id]
+      [req.user.userId]
     );
     res.json({ success: true });
   } catch (error) {
     console.error('Mark all read error:', error);
     res.status(500).json({ error: 'Failed to mark all as read' });
+  }
+});
+
+// POST /api/notifications - Create a notification
+router.post('/', async (req, res) => {
+  try {
+    const { user_id, title, message, type, link } = req.body;
+    const id = uuidv4();
+    
+    await query(
+      'INSERT INTO notifications (id, user_id, title, message, type, link) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, user_id, title, message, type || 'info', link || null]
+    );
+    
+    res.status(201).json({ id, user_id, title, message, type: type || 'info', link, is_read: false });
+  } catch (error) {
+    console.error('Create notification error:', error);
+    res.status(500).json({ error: 'Failed to create notification' });
+  }
+});
+
+// DELETE /api/notifications/:id - Delete a notification
+router.delete('/:id', async (req, res) => {
+  try {
+    await query(
+      'DELETE FROM notifications WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete notification error:', error);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+// DELETE /api/notifications/all - Delete all notifications for user
+router.delete('/all', async (req, res) => {
+  try {
+    await query(
+      'DELETE FROM notifications WHERE user_id = ?',
+      [req.user.userId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete all notifications error:', error);
+    res.status(500).json({ error: 'Failed to delete all notifications' });
   }
 });
 
