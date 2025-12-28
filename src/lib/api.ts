@@ -19,8 +19,11 @@ const clearTokens = () => {
 
 // Map endpoint to edge function name
 function getEdgeFunctionUrl(endpoint: string): string {
+  // Separate path from query string
+  const [pathPart, queryString] = endpoint.split('?');
+  
   // Remove leading slash
-  const path = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const path = pathPart.startsWith('/') ? pathPart.slice(1) : pathPart;
   const parts = path.split('/');
   const resource = parts[0];
   const subPath = parts.slice(1).join('/');
@@ -28,8 +31,9 @@ function getEdgeFunctionUrl(endpoint: string): string {
   // Map resource to edge function
   const functionName = `api-${resource}`;
   const fullPath = subPath ? `/${subPath}` : '';
+  const query = queryString ? `?${queryString}` : '';
   
-  return `${SUPABASE_URL}/functions/v1/${functionName}${fullPath}`;
+  return `${SUPABASE_URL}/functions/v1/${functionName}${fullPath}${query}`;
 }
 
 // Request helper with auth
