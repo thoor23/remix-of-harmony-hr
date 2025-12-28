@@ -1,0 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const { query } = require('../config/database');
+const { authenticate } = require('../middleware/auth');
+router.use(authenticate);
+router.get('/letters', async (req, res) => { res.json(await query('SELECT * FROM letter_templates WHERE is_active = true')); });
+router.get('/emails', async (req, res) => { res.json(await query('SELECT * FROM email_templates WHERE is_active = true')); });
+router.get('/payslips', async (req, res) => { res.json(await query('SELECT * FROM payslip_templates WHERE is_active = true')); });
+router.get('/announcements', async (req, res) => { res.json(await query('SELECT * FROM announcement_templates WHERE is_active = true')); });
+router.get('/banners', async (req, res) => { res.json(await query('SELECT * FROM announcement_banner_templates WHERE is_active = true')); });
+module.exports = router;
