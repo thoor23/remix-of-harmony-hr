@@ -227,7 +227,7 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="flex items-center gap-2 px-2 bg-indigo-500 hover:bg-indigo-600 text-white">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-accent">
               <Avatar className="h-8 w-8">
                 <AvatarFallback>
                   {displayName

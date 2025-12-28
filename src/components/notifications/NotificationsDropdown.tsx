@@ -56,14 +56,7 @@ export const NotificationsDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          size="icon" 
-          className={`relative ${
-            unreadCount > 0 
-              ? "bg-amber-500 hover:bg-amber-600 text-white"
-              : "bg-violet-500 hover:bg-violet-600 text-white"
-          }`}
-        >
+        <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge

@@ -271,14 +271,9 @@ export const AttendanceWidget = () => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          variant="outline"
           size="sm"
-          className={`gap-2 ${
-            isClockedIn 
-              ? "bg-emerald-500 hover:bg-emerald-600 text-white" 
-              : isClockedOut 
-                ? "bg-slate-400 hover:bg-slate-500 text-white"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
+          className="gap-2"
         >
           <Clock className="h-4 w-4" />
           <span className="hidden sm:inline">
