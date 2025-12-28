@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -154,19 +154,16 @@ export default function AuthPage() {
     }
 
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
-    setIsLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await api.post("/auth/forgot-password", { email: resetEmail });
+      toast.success("Password reset email sent! Check your inbox.");
+      setView("login");
+      setResetEmail("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset email");
+    } finally {
+      setIsLoading(false);
     }
-
-    toast.success("Password reset email sent! Check your inbox.");
-    setView("login");
-    setResetEmail("");
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -186,19 +183,28 @@ export default function AuthPage() {
       return;
     }
 
-    setIsLoading(true);
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    setIsLoading(false);
+    // Get token from URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const resetToken = hashParams.get("token");
 
-    if (error) {
-      toast.error(error.message);
+    if (!resetToken) {
+      toast.error("Invalid or expired reset link");
       return;
     }
 
-    toast.success("Password updated successfully!");
-    window.location.href = "/auth";
+    setIsLoading(true);
+    try {
+      await api.post("/auth/reset-password", {
+        token: resetToken,
+        password: newPassword,
+      });
+      toast.success("Password updated successfully!");
+      window.location.href = "/auth";
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderError = (field: string) => {

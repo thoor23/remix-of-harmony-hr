@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 interface CreateEmployeeAccountData {
   email: string;
@@ -37,14 +37,7 @@ export function useCreateEmployeeAccount() {
 
   return useMutation({
     mutationFn: async (data: CreateEmployeeAccountData) => {
-      const { data: result, error } = await supabase.functions.invoke("create-employee-account", {
-        body: data,
-      });
-
-      if (error) throw error;
-      if (result.error) throw new Error(result.error);
-
-      return result;
+      return api.post<{ userId: string; employeeId: string }>("/employees/create-account", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
