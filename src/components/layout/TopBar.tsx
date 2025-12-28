@@ -218,8 +218,8 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
 
       {/* Right side */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Clock In/Out for employees */}
-        {!isAdmin && <AttendanceWidget />}
+        {/* Clock In/Out for all users */}
+        <AttendanceWidget />
         
         {/* Notifications */}
         <NotificationsDropdown />
