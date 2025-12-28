@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import api, { getAccessToken } from "@/lib/api";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export interface EmailConfig {
   enabled: boolean;
@@ -91,10 +93,17 @@ export function useSendTestEmail() {
 
   return useMutation({
     mutationFn: async ({ recipientEmail, config }: { recipientEmail: string; config: EmailConfig }) => {
-      const result = await api.post<{ success: boolean; error?: string }>("/email/test", {
-        recipientEmail,
-        config,
+      const token = getAccessToken();
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-test-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ recipientEmail, config }),
       });
+
+      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || "Failed to send test email");
