@@ -16,6 +16,8 @@ import {
   Search,
   CalendarIcon,
   Clock,
+  Save,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +64,12 @@ import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDele
 import { useTargetedNotifications, useSendTargetedNotification, useDeleteTargetedNotification } from "@/hooks/useTargetedNotifications";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useEmployees } from "@/hooks/useEmployees";
+import { 
+  useAnnouncementTemplates, 
+  useCreateAnnouncementTemplate, 
+  useDeleteAnnouncementTemplate,
+  AnnouncementTemplate 
+} from "@/hooks/useAnnouncementTemplates";
 
 const typeColors: Record<string, string> = {
   general: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
@@ -104,6 +112,11 @@ export default function NotificationCentre() {
     expires_at: null as Date | null,
   });
 
+  // Template state
+  const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+
   // Targeted notification state
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [deleteNotificationId, setDeleteNotificationId] = useState<string | null>(null);
@@ -122,6 +135,10 @@ export default function NotificationCentre() {
   const createAnnouncement = useCreateAnnouncement();
   const updateAnnouncement = useUpdateAnnouncement();
   const deleteAnnouncement = useDeleteAnnouncement();
+
+  const { data: templates } = useAnnouncementTemplates();
+  const createTemplate = useCreateAnnouncementTemplate();
+  const deleteTemplate = useDeleteAnnouncementTemplate();
 
   const { data: targetedNotifications, isLoading: notificationsLoading } = useTargetedNotifications();
   const sendNotification = useSendTargetedNotification();
@@ -202,6 +219,42 @@ export default function NotificationCentre() {
     if (deleteAnnouncementId) {
       await deleteAnnouncement.mutateAsync(deleteAnnouncementId);
       setDeleteAnnouncementId(null);
+    }
+  };
+
+  // Template handlers
+  const handleLoadTemplate = (template: AnnouncementTemplate) => {
+    setAnnouncementForm({
+      title: template.title,
+      content: template.content,
+      type: template.type,
+      priority: template.priority,
+      target_audience: template.target_audience,
+      scheduled_at: null,
+      expires_at: null,
+    });
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) return;
+    
+    await createTemplate.mutateAsync({
+      name: templateName,
+      title: announcementForm.title,
+      content: announcementForm.content,
+      type: announcementForm.type,
+      priority: announcementForm.priority,
+      target_audience: announcementForm.target_audience,
+    });
+    
+    setTemplateName("");
+    setSaveTemplateDialogOpen(false);
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (deleteTemplateId) {
+      await deleteTemplate.mutateAsync(deleteTemplateId);
+      setDeleteTemplateId(null);
     }
   };
 
@@ -439,6 +492,56 @@ export default function NotificationCentre() {
         </Card>
       </div>
 
+      {/* Templates Section */}
+      {templates && templates.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Saved Templates</CardTitle>
+                <CardDescription>Manage your announcement templates</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  className="p-4 rounded-lg border bg-card hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium truncate">{template.name}</h4>
+                      <p className="text-sm text-muted-foreground truncate mt-1">
+                        {template.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary" className={typeColors[template.type]}>
+                          {template.type}
+                        </Badge>
+                        <Badge variant="secondary" className={priorityColors[template.priority]}>
+                          {template.priority}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => setDeleteTemplateId(template.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Announcement Dialog */}
       <Dialog open={announcementDialogOpen} onOpenChange={setAnnouncementDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -451,6 +554,31 @@ export default function NotificationCentre() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Template selector */}
+            {!editingAnnouncement && templates && templates.length > 0 && (
+              <div className="space-y-2">
+                <Label>Load from Template</Label>
+                <Select onValueChange={(value) => {
+                  const template = templates.find(t => t.id === value);
+                  if (template) handleLoadTemplate(template);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          {template.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
@@ -638,7 +766,16 @@ export default function NotificationCentre() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setSaveTemplateDialogOpen(true)}
+              disabled={!announcementForm.title || !announcementForm.content}
+              className="sm:mr-auto"
+            >
+              <Save className="h-4 w-4 mr-1" />
+              Save as Template
+            </Button>
             <Button variant="outline" onClick={() => setAnnouncementDialogOpen(false)}>
               Cancel
             </Button>
@@ -647,6 +784,45 @@ export default function NotificationCentre() {
               disabled={createAnnouncement.isPending || updateAnnouncement.isPending}
             >
               {editingAnnouncement ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Template Dialog */}
+      <Dialog open={saveTemplateDialogOpen} onOpenChange={setSaveTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+            <DialogDescription>
+              Save this announcement as a reusable template
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Monthly Newsletter, Leave Reminder"
+              />
+            </div>
+            <div className="p-3 rounded-md bg-muted">
+              <p className="text-sm font-medium mb-1">Will save:</p>
+              <p className="text-sm text-muted-foreground">Title: {announcementForm.title}</p>
+              <p className="text-sm text-muted-foreground truncate">Content: {announcementForm.content.substring(0, 50)}...</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveTemplateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveAsTemplate} 
+              disabled={!templateName.trim() || createTemplate.isPending}
+            >
+              Save Template
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -847,6 +1023,24 @@ export default function NotificationCentre() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteNotification} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Template Confirmation */}
+      <AlertDialog open={!!deleteTemplateId} onOpenChange={() => setDeleteTemplateId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this template? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTemplate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
