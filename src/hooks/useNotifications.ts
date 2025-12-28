@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export interface Notification {
@@ -17,10 +17,28 @@ export interface Notification {
 export const useNotifications = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user ID
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const query = useQuery({
-    queryKey: ["notifications"],
+    queryKey: ["notifications", userId],
     queryFn: async () => {
+      if (!userId) return [];
+      
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
@@ -30,20 +48,27 @@ export const useNotifications = () => {
       if (error) throw error;
       return data as Notification[];
     },
+    enabled: !!userId,
   });
 
-  // Subscribe to realtime notifications
+  // Subscribe to realtime notifications for current user
   useEffect(() => {
+    if (!userId) return;
+
+    console.log("Setting up realtime subscription for user:", userId);
+
     const channel = supabase
-      .channel("notifications-realtime")
+      .channel(`notifications-${userId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "notifications",
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          console.log("New notification received:", payload);
           const newNotification = payload.new as Notification;
           
           // Show toast for new notification
@@ -53,8 +78,88 @@ export const useNotifications = () => {
             variant: newNotification.type === 'error' ? 'destructive' : 'default',
           });
 
-          // Invalidate query to refresh list
-          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+          // Optimistically update the cache
+          queryClient.setQueryData<Notification[]>(
+            ["notifications", userId],
+            (old) => {
+              if (!old) return [newNotification];
+              return [newNotification, ...old];
+            }
+          );
+
+          // Also invalidate unread count
+          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          console.log("Notification updated:", payload);
+          const updatedNotification = payload.new as Notification;
+          
+          // Update the cache
+          queryClient.setQueryData<Notification[]>(
+            ["notifications", userId],
+            (old) => {
+              if (!old) return [];
+              return old.map((n) =>
+                n.id === updatedNotification.id ? updatedNotification : n
+              );
+            }
+          );
+
+          // Also invalidate unread count
+          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+        }
+      )
+      .subscribe((status) => {
+        console.log("Realtime subscription status:", status);
+      });
+
+    return () => {
+      console.log("Cleaning up realtime subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient, toast]);
+
+  return query;
+};
+
+export const useUnreadNotificationCount = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+  }, []);
+
+  // Subscribe to realtime for unread count updates
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`notifications-count-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          // Invalidate the count query on any change
+          queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
         }
       )
       .subscribe();
@@ -62,12 +167,8 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient, toast]);
+  }, [userId, queryClient]);
 
-  return query;
-};
-
-export const useUnreadNotificationCount = () => {
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: async () => {
@@ -79,6 +180,7 @@ export const useUnreadNotificationCount = () => {
       if (error) throw error;
       return count || 0;
     },
+    enabled: !!userId,
   });
 };
 
