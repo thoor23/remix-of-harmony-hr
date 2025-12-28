@@ -159,7 +159,8 @@ export default function ShiftExchange() {
     });
   }, [filteredExchanges, sortColumn, sortDirection]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedExchanges, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedExchanges, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const stats = {
     total: exchanges.length,
@@ -517,7 +518,7 @@ export default function ShiftExchange() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>

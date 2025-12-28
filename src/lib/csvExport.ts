@@ -1,7 +1,7 @@
 export interface ColumnDef {
   id: string;
   header: string;
-  accessor: string | ((row: any) => any);
+  accessor?: string | ((row: any) => any);
   visible?: boolean;
 }
 
@@ -37,8 +37,11 @@ export function exportToCSV<T>(
       let value: any;
       if (typeof col.accessor === 'function') {
         value = col.accessor(row);
-      } else {
+      } else if (col.accessor) {
         value = getNestedValue(row, col.accessor);
+      } else {
+        // Use id as fallback accessor
+        value = getNestedValue(row, col.id);
       }
       return escapeCSVValue(value);
     });

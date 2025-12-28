@@ -148,7 +148,8 @@ export default function PayslipsList() {
     });
   }, [filteredPayslips, sortColumn, sortDirection, employees]);
 
-  const { paginatedItems, ...pagination } = usePagination(sortedPayslips, { defaultPageSize: 10 });
+  const pagination = usePagination({ data: sortedPayslips, defaultPageSize: 10 });
+  const paginatedItems = pagination.paginatedData;
 
   const getMonthOptions = () => {
     const options = [];
@@ -498,7 +499,7 @@ export default function PayslipsList() {
           totalPages={pagination.totalPages}
           totalItems={pagination.totalItems}
           pageSize={pagination.pageSize}
-          onPageChange={pagination.goToPage}
+          onPageChange={pagination.setCurrentPage}
           onPageSizeChange={pagination.setPageSize}
         />
       </Card>
