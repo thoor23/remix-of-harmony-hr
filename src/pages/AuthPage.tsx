@@ -264,13 +264,14 @@ export default function AuthPage() {
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-5">
-                <div>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="email"
                     placeholder="Email"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className={`h-12 px-4 border-border ${errors.email ? "border-destructive" : ""}`}
+                    className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
                     disabled={isLoading}
                   />
                   {renderError("email")}
