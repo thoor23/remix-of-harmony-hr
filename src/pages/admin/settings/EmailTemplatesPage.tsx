@@ -173,8 +173,13 @@ export default function EmailTemplatesPage() {
   };
 
   const handlePreview = (content: string) => {
+    const companyLogoHtml = branding?.companyLogo 
+      ? `<img src="${branding.companyLogo}" alt="${branding?.companyName || 'Company'}" style="max-height: 60px; max-width: 200px;" />`
+      : `<span style="font-size: 24px; font-weight: bold; color: #333;">${branding?.companyName || 'Company Name'}</span>`;
+    
     let previewHtml = content
       .replace(/\{\{company_name\}\}/g, branding?.companyName || "Company Name")
+      .replace(/\{\{company_logo\}\}/g, companyLogoHtml)
       .replace(/\{\{recipient_name\}\}/g, "John Doe")
       .replace(/\{\{recipient_email\}\}/g, "john.doe@example.com")
       .replace(/\{\{employee_name\}\}/g, "Jane Smith")

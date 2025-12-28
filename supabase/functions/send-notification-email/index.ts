@@ -161,9 +161,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("key", "company_branding")
       .maybeSingle();
 
-    const branding = brandingData?.value as { companyName?: string; logoUrl?: string } | null;
+    const branding = brandingData?.value as { companyName?: string; companyLogo?: string } | null;
     const companyName = branding?.companyName || "HRMS";
-    const companyLogoUrl = branding?.logoUrl || "";
+    const companyLogoUrl = branding?.companyLogo || "";
     const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "";
     
     // Generate company logo HTML tag
