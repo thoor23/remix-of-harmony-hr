@@ -47,13 +47,13 @@ export function useEmployees() {
         ...emp,
         department: emp.department_name ? { id: emp.department_id, name: emp.department_name, code: '' } : null,
         designation: emp.designation_name ? { id: emp.designation_id, name: emp.designation_name, code: '' } : null,
-        profile: {
-          first_name: emp.first_name,
-          last_name: emp.last_name,
-          email: emp.email,
-          phone: emp.phone,
-          avatar_url: emp.avatar_url,
-        }
+        profile: emp.profile ? {
+          first_name: emp.profile.first_name,
+          last_name: emp.profile.last_name,
+          email: emp.profile.email,
+          phone: emp.profile.phone,
+          avatar_url: emp.profile.avatar_url,
+        } : null
       })) as EmployeeWithDetails[];
     },
   });
@@ -69,13 +69,13 @@ export function useEmployee(id: string) {
         ...emp,
         department: emp.department_name ? { id: emp.department_id, name: emp.department_name, code: '' } : null,
         designation: emp.designation_name ? { id: emp.designation_id, name: emp.designation_name, code: '' } : null,
-        profile: {
-          first_name: emp.first_name,
-          last_name: emp.last_name,
-          email: emp.email,
-          phone: emp.phone,
-          avatar_url: emp.avatar_url,
-        }
+        profile: emp.profile ? {
+          first_name: emp.profile.first_name,
+          last_name: emp.profile.last_name,
+          email: emp.profile.email,
+          phone: emp.profile.phone,
+          avatar_url: emp.profile.avatar_url,
+        } : null
       };
     },
     enabled: !!id,
