@@ -154,21 +154,29 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get company branding for company_name
+    // Get company branding for company_name and logo
     const { data: brandingData } = await supabase
       .from("system_settings")
       .select("value")
       .eq("key", "company_branding")
       .maybeSingle();
 
-    const companyName = (brandingData?.value as { companyName?: string })?.companyName || "HRMS";
+    const branding = brandingData?.value as { companyName?: string; logoUrl?: string } | null;
+    const companyName = branding?.companyName || "HRMS";
+    const companyLogoUrl = branding?.logoUrl || "";
     const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "";
+    
+    // Generate company logo HTML tag
+    const companyLogoHtml = companyLogoUrl 
+      ? `<img src="${companyLogoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px;" />`
+      : `<span style="font-size: 24px; font-weight: bold; color: #333;">${companyName}</span>`;
 
     // Replace placeholders in subject and content
     const allData: Record<string, string> = {
       recipient_name: recipientName,
       recipient_email: recipientEmail,
       company_name: companyName,
+      company_logo: companyLogoHtml,
       app_url: appUrl,
       current_date: new Date().toLocaleDateString("en-US", { 
         year: "numeric", 
