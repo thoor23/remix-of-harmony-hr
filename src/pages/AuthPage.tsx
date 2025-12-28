@@ -264,16 +264,18 @@ export default function AuthPage() {
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-5">
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
-                    disabled={isLoading}
-                  />
+                <div>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
+                      disabled={isLoading}
+                    />
+                  </div>
                   {renderError("email")}
                 </div>
 
@@ -438,36 +440,40 @@ export default function AuthPage() {
 
             {/* Login form */}
             <form onSubmit={handleLogin} className="space-y-5">
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                  className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
-                  disabled={isLoading}
-                />
+              <div>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                    className={`h-12 pl-11 pr-4 border-border ${errors.email ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                </div>
                 {renderError("email")}
               </div>
 
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className={`h-12 pl-11 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    className={`h-12 pl-11 pr-12 border-border ${errors.password ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {renderError("password")}
               </div>
 
