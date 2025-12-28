@@ -68,6 +68,7 @@ import SystemSettingsPage from "./pages/admin/settings/SystemSettingsPage";
 import AppearancePage from "./pages/admin/settings/AppearancePage";
 import EmailSettingsPage from "./pages/admin/settings/EmailSettingsPage";
 import EmailTemplatesPage from "./pages/admin/settings/EmailTemplatesPage";
+import DataSeederPage from "./pages/admin/settings/DataSeederPage";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/Dashboard";
@@ -156,6 +157,7 @@ const App = () => (
                 <Route path="settings/email-templates" element={<EmailTemplatesPage />} />
                 <Route path="settings/system" element={<SystemSettingsPage />} />
                 <Route path="settings/appearance" element={<AppearancePage />} />
+                <Route path="settings/seeder" element={<DataSeederPage />} />
               </Route>
 
               {/* Employee Routes - Protected */}
