@@ -13,17 +13,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
-import { useDepartments, useDesignations, useEmployees, useCreateEmployee } from "@/hooks/useEmployees";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound } from "lucide-react";
+import { useDepartments, useDesignations, useEmployees } from "@/hooks/useEmployees";
+import { useCreateEmployeeAccount } from "@/hooks/useCreateEmployeeAccount";
 import { z } from "zod";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
   lastName: z.string().min(1, "Last name is required").max(50),
   email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   gender: z.string().optional(),
+  role: z.enum(["admin", "hr", "manager", "employee"]),
   employeeId: z.string().min(1, "Employee ID is required"),
   joiningDate: z.string().min(1, "Joining date is required"),
   department: z.string().min(1, "Department is required"),
@@ -54,9 +57,11 @@ export default function AddEmployee() {
     firstName: "",
     lastName: "",
     email: "",
+    password: "",
     phone: "",
     dateOfBirth: "",
     gender: "",
+    role: "employee" as "admin" | "hr" | "manager" | "employee",
     employeeId: "",
     joiningDate: "",
     department: "",
@@ -80,7 +85,7 @@ export default function AddEmployee() {
   const { data: departments = [] } = useDepartments();
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
-  const createEmployee = useCreateEmployee();
+  const createEmployeeAccount = useCreateEmployeeAccount();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -107,30 +112,34 @@ export default function AddEmployee() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      createEmployee.mutate({
-        employee_id: formData.employeeId,
+      createEmployeeAccount.mutate({
+        email: formData.email,
+        password: formData.password,
         first_name: formData.firstName,
         last_name: formData.lastName,
-        email: formData.email,
         phone: formData.phone,
-        date_of_birth: formData.dateOfBirth || null,
-        date_of_joining: formData.joiningDate,
-        department_id: formData.department || null,
-        designation_id: formData.designation || null,
-        employment_type: formData.employmentType,
-        reporting_to: formData.reportingTo || null,
-        address_street: formData.street || null,
-        address_city: formData.city || null,
-        address_state: formData.state || null,
-        address_zip_code: formData.zipCode || null,
-        address_country: formData.country || null,
-        emergency_contact_name: formData.emergencyName || null,
-        emergency_contact_relationship: formData.emergencyRelation || null,
-        emergency_contact_phone: formData.emergencyPhone || null,
-        bank_name: formData.bankName || null,
-        bank_account_holder_name: formData.accountHolder || null,
-        bank_account_number: formData.accountNumber || null,
-        bank_ifsc_code: formData.routingNumber || null,
+        role: formData.role,
+        employee_data: {
+          employee_id: formData.employeeId,
+          date_of_birth: formData.dateOfBirth || undefined,
+          date_of_joining: formData.joiningDate,
+          department_id: formData.department || undefined,
+          designation_id: formData.designation || undefined,
+          employment_type: formData.employmentType,
+          reporting_to: formData.reportingTo || undefined,
+          address_street: formData.street || undefined,
+          address_city: formData.city || undefined,
+          address_state: formData.state || undefined,
+          address_zip_code: formData.zipCode || undefined,
+          address_country: formData.country || undefined,
+          emergency_contact_name: formData.emergencyName || undefined,
+          emergency_contact_relationship: formData.emergencyRelation || undefined,
+          emergency_contact_phone: formData.emergencyPhone || undefined,
+          bank_name: formData.bankName || undefined,
+          bank_account_holder_name: formData.accountHolder || undefined,
+          bank_account_number: formData.accountNumber || undefined,
+          bank_ifsc_code: formData.routingNumber || undefined,
+        },
       }, {
         onSuccess: () => {
           navigate("/admin/employees");
@@ -247,6 +256,18 @@ export default function AddEmployee() {
                     {renderError("email")}
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      className={errors.password ? "border-destructive" : ""}
+                    />
+                    {renderError("password")}
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number *</Label>
                     <Input
                       id="phone"
@@ -256,6 +277,24 @@ export default function AddEmployee() {
                       className={errors.phone ? "border-destructive" : ""}
                     />
                     {renderError("phone")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleInputChange("role", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("role")}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth *</Label>
@@ -591,8 +630,8 @@ export default function AddEmployee() {
                   <Button type="button" variant="outline" onClick={handlePrevious}>
                     Previous
                   </Button>
-                  <Button type="submit" disabled={createEmployee.isPending}>
-                    {createEmployee.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={createEmployeeAccount.isPending}>
+                    {createEmployeeAccount.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Employee
                   </Button>
                 </div>
