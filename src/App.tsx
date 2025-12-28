@@ -43,6 +43,7 @@ import BannerTemplatesPage from "./pages/admin/announcements/BannerTemplatesPage
 import NotificationCentre from "./pages/admin/notification-centre/NotificationCentre";
 import NotificationsPage from "./pages/admin/notifications/NotificationsPage";
 import AuditLogs from "./pages/admin/audit/AuditLogs";
+import ProfileChangeRequestsPage from "./pages/admin/employees/ProfileChangeRequestsPage";
 import ReportsOverview from "./pages/admin/reports/ReportsOverview";
 import EmployeeReports from "./pages/admin/reports/EmployeeReports";
 import AttendanceReports from "./pages/admin/reports/AttendanceReports";
@@ -109,6 +110,7 @@ const App = () => (
                 <Route path="employees/new" element={<AddEmployee />} />
                 <Route path="employees/:id" element={<EmployeeDetails />} />
                 <Route path="employees/:id/edit" element={<EditEmployee />} />
+                <Route path="employees/change-requests" element={<ProfileChangeRequestsPage />} />
                 <Route path="attendance" element={<AttendanceManagement />} />
                 <Route path="attendance/policy" element={<AttendancePolicyPage />} />
                 <Route path="leaves" element={<LeaveManagement />} />

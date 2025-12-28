@@ -72,7 +72,7 @@ export function useCreateProfileChangeRequest() {
   });
 }
 
-export function useUpdateProfileChangeRequest() {
+export function useReviewProfileChangeRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -82,7 +82,7 @@ export function useUpdateProfileChangeRequest() {
       review_comments,
     }: {
       id: string;
-      status: string;
+      status: "approved" | "rejected";
       review_comments?: string;
     }) => {
       return api.patch(`/profile-requests/${id}`, {
@@ -93,10 +93,10 @@ export function useUpdateProfileChangeRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-profile-change-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-profile-change-requests"] });
-      toast.success("Request updated successfully");
+      toast.success("Request reviewed successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update request: ${error.message}`);
+      toast.error(`Failed to review request: ${error.message}`);
     },
   });
 }
