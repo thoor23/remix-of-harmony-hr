@@ -185,7 +185,7 @@ export function useEmployeeAttendance(employeeId: string) {
 export function useEmployeeLeaves(employeeId: string) {
   return useQuery({
     queryKey: ["employee-leaves", employeeId],
-    queryFn: () => api.get<any[]>(`/leaves/employee/${employeeId}`),
+    queryFn: () => api.get<any[]>(`/leaves/requests/employee/${employeeId}`),
     enabled: !!employeeId,
   });
 }

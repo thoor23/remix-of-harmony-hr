@@ -59,11 +59,14 @@ const statusConfig: Record<string, { label: string; icon: typeof Clock; classNam
 
 export default function EmployeeShiftExchange() {
   const { data: currentEmployee, isLoading: isLoadingEmployee } = useCurrentEmployee();
-  const { data: myShiftAssignment } = useMyShiftAssignment(currentEmployee?.id);
+  const { data: myShiftAssignments = [] } = useMyShiftAssignment(currentEmployee?.id);
   const { data: allExchanges = [], isLoading: isLoadingExchanges } = useMyShiftExchangeRequests(currentEmployee?.id);
   const { data: shiftAssignments = [] } = useShiftAssignments();
   const { data: shifts = [] } = useShifts();
   const { data: employees = [] } = useEmployees();
+  
+  // Get the first active assignment (current shift)
+  const myShiftAssignment = Array.isArray(myShiftAssignments) ? myShiftAssignments[0] : myShiftAssignments;
   
   const createExchange = useCreateShiftExchangeRequest();
   const updateExchange = useUpdateShiftExchangeRequest();
@@ -89,8 +92,14 @@ export default function EmployeeShiftExchange() {
     reason: "",
   });
 
-  // Get current shift
-  const currentShift = myShiftAssignment?.shift;
+  // Get current shift from assignment data (backend returns shift_name, start_time, end_time, color directly)
+  const currentShift = myShiftAssignment ? {
+    id: myShiftAssignment.shift_id,
+    name: myShiftAssignment.shift_name || '',
+    color: myShiftAssignment.shift_color || myShiftAssignment.color || '#3B82F6',
+    start_time: myShiftAssignment.start_time || '',
+    end_time: myShiftAssignment.end_time || '',
+  } : null;
 
   // Helper to get employee name
   const getEmployeeName = (exchange: ShiftExchangeRequest, type: "requester" | "target") => {

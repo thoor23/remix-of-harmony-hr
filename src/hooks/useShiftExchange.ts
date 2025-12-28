@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 export interface ShiftExchangeRequest {
@@ -15,6 +15,17 @@ export interface ShiftExchangeRequest {
   responded_at: string | null;
   created_at: string;
   updated_at: string;
+  // Flattened backend fields
+  requester_emp_code?: string;
+  requester_first_name?: string;
+  requester_last_name?: string;
+  target_emp_code?: string;
+  target_first_name?: string;
+  target_last_name?: string;
+  requester_shift_name?: string;
+  requester_shift_color?: string;
+  target_shift_name?: string;
+  target_shift_color?: string;
   requester?: {
     id: string;
     employee_id: string;
@@ -65,7 +76,8 @@ export function useMyShiftExchangeRequests(employeeId?: string) {
     queryKey: ["my-shift-exchange-requests", employeeId],
     queryFn: async () => {
       if (!employeeId) return [];
-      return api.get<ShiftExchangeRequest[]>(`/shifts/exchange-requests/employee/${employeeId}`);
+      // Use /my endpoint which uses auth context
+      return api.get<ShiftExchangeRequest[]>('/shifts/exchange-requests/my');
     },
     enabled: !!employeeId,
   });
@@ -110,7 +122,8 @@ export function useUpdateShiftExchangeRequest() {
       response_note?: string;
       requester_id?: string;
     }) => {
-      return api.patch<ShiftExchangeRequest>(`/shifts/exchange-requests/${id}`, {
+      // Backend uses PUT, not PATCH
+      return api.put<ShiftExchangeRequest>(`/shifts/exchange-requests/${id}`, {
         status,
         response_note,
       });
@@ -131,7 +144,8 @@ export function useCancelShiftExchangeRequest() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.patch(`/shifts/exchange-requests/${id}`, { status: "cancelled" });
+      // Backend uses PUT, not PATCH
+      return api.put(`/shifts/exchange-requests/${id}`, { status: "cancelled" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });
