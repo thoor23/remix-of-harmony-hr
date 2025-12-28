@@ -157,3 +157,103 @@ For password reset emails to work, configure SMTP in the admin settings:
 2. Configure SMTP host, port, user, and password
 3. Enable email sending
 4. Test with the "Send Test Email" button
+
+## Production Deployment
+
+### Important: Backend Must Be Accessible
+
+The backend **must be publicly accessible** from wherever the frontend is hosted. Here are deployment options:
+
+### Option 1: Railway (Recommended)
+1. Push your code to GitHub
+2. Create account at [railway.app](https://railway.app)
+3. Create new project → Deploy from GitHub
+4. Add MySQL database service
+5. Set environment variables in Railway dashboard
+6. Railway provides a public URL automatically
+
+### Option 2: Render
+1. Create account at [render.com](https://render.com)
+2. New → Web Service → Connect GitHub repo
+3. Set root directory to `backend`
+4. Build command: `npm install`
+5. Start command: `npm start`
+6. Add MySQL database (use external provider like PlanetScale)
+
+### Option 3: Docker
+```dockerfile
+# backend/Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3001
+CMD ["npm", "start"]
+```
+
+```bash
+docker build -t hrms-backend ./backend
+docker run -p 3001:3001 --env-file ./backend/.env hrms-backend
+```
+
+### Option 4: VPS (DigitalOcean, Linode, AWS EC2)
+1. SSH into your server
+2. Install Node.js 18+ and MySQL
+3. Clone repository
+4. Setup PM2 for process management:
+```bash
+npm install -g pm2
+cd backend
+npm install
+pm2 start src/index.js --name hrms-backend
+pm2 save
+pm2 startup
+```
+
+### Environment Variables for Production
+```env
+PORT=3001
+NODE_ENV=production
+
+# MySQL (use your cloud database URL)
+DB_HOST=your-db-host.com
+DB_PORT=3306
+DB_NAME=hrms
+DB_USER=your_db_user
+DB_PASSWORD=your_secure_password
+
+# JWT (use long, random strings)
+JWT_ACCESS_SECRET=generate-a-64-char-random-string
+JWT_REFRESH_SECRET=generate-another-64-char-random-string
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_EXPIRES=7d
+
+# Frontend URL (your production frontend URL)
+FRONTEND_URL=https://your-app.lovable.app
+
+# Optional: Additional CORS origins (comma-separated)
+ALLOWED_ORIGINS=https://your-custom-domain.com,https://another-domain.com
+```
+
+### Frontend Environment for Production
+Set your production API URL:
+```env
+VITE_API_URL=https://your-backend.railway.app/api
+```
+
+## Troubleshooting
+
+### "Failed to fetch" errors
+1. Check if backend is running: `curl http://localhost:3001/health`
+2. Verify CORS is configured for your frontend URL
+3. Check browser console for specific error messages
+
+### Login not working
+1. Ensure database is seeded: `mysql -u root -p hrms < database/seed.sql`
+2. Verify password hash is valid bcrypt format
+3. Check backend logs for authentication errors
+
+### CORS errors
+1. Add your frontend URL to `FRONTEND_URL` env variable
+2. Or add to `ALLOWED_ORIGINS` for multiple domains
