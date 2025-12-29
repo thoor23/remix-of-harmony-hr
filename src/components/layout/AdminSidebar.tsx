@@ -24,22 +24,13 @@ import {
   Users,
   Users2,
   UserPlus,
-  CalendarDays,
-  CalendarCheck,
-  Wallet,
   FileText,
   Megaphone,
-  Settings,
-  ClipboardList,
   BarChart3,
   ChevronDown,
-  Clock,
   ClipboardCheck,
   ClipboardEdit,
-  UserCog,
-  RefreshCw,
   ArrowLeftRight,
-  Calendar,
   Banknote,
   Receipt,
   PieChart,
@@ -69,6 +60,14 @@ import {
   ListChecks,
   ChartPie,
   FileSpreadsheet,
+  ScrollText,
+  TimerReset,
+  CalendarOff,
+  FileSignature,
+  Cog,
+  BellRing,
+  CalendarDays,
+  CalendarCheck,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -100,17 +99,17 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Attendance Management",
-    icon: CalendarDays,
+    icon: Fingerprint,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: ChartPie },
-      { title: "All Attendance", href: "/admin/attendance/all", icon: Fingerprint },
+      { title: "All Attendance", href: "/admin/attendance/all", icon: CalendarClock },
       { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardEdit },
       { title: "Policy & Rules", href: "/admin/attendance/policy", icon: Gavel },
     ],
   },
   {
     title: "Leave Management",
-    icon: CalendarCheck,
+    icon: CalendarOff,
     children: [
       { title: "Overview", href: "/admin/leaves", icon: PieChart },
       { title: "All Leaves", href: "/admin/leaves/all", icon: CalendarClock },
@@ -120,7 +119,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Shift Management",
-    icon: Clock,
+    icon: TimerReset,
     children: [
       { title: "All Shifts", href: "/admin/shifts", icon: ListChecks },
       { title: "Assignments", href: "/admin/shifts/assignments", icon: UserCheck },
@@ -132,7 +131,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Payroll",
-    icon: Wallet,
+    icon: Banknote,
     children: [
       { title: "Salary Structure", href: "/admin/payroll/structure", icon: FileSpreadsheet },
       { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
@@ -148,7 +147,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Generate Letters",
-    icon: Mail,
+    icon: FileSignature,
     children: [
       { title: "Offer Letter", href: "/admin/letters/offer", icon: FilePlus },
       { title: "Experience Letter", href: "/admin/letters/experience", icon: Award },
@@ -158,7 +157,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Announcements",
-    icon: Megaphone,
+    icon: BellRing,
     children: [
       { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
     ],
@@ -187,7 +186,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     title: "Settings",
-    icon: Settings,
+    icon: Cog,
     children: [
       { title: "Departments", href: "/admin/settings/departments", icon: Building },
       { title: "Designations", href: "/admin/settings/designations", icon: BadgeCheck },
@@ -199,7 +198,7 @@ const adminNavItems: NavItem[] = [
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
     ],
   },
-  { title: "Audit Logs", href: "/admin/audit-logs", icon: ClipboardList },
+  { title: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
 ];
 
 interface AdminSidebarProps {
