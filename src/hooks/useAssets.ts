@@ -36,10 +36,15 @@ export function useCreateAssetCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: Partial<AssetCategory>) => {
+    mutationFn: async (input: { name: string; code: string; description?: string; icon?: string }) => {
       const { data, error } = await supabase
         .from('asset_categories')
-        .insert(input)
+        .insert({
+          name: input.name,
+          code: input.code,
+          description: input.description,
+          icon: input.icon,
+        })
         .select()
         .single();
 
@@ -174,7 +179,21 @@ export function useCreateAsset() {
     mutationFn: async (input: CreateAssetInput) => {
       const { data, error } = await supabase
         .from('assets')
-        .insert(input)
+        .insert({
+          asset_tag: input.asset_tag,
+          name: input.name,
+          category_id: input.category_id,
+          brand: input.brand,
+          model: input.model,
+          serial_number: input.serial_number,
+          purchase_date: input.purchase_date,
+          purchase_cost: input.purchase_cost,
+          warranty_expiry: input.warranty_expiry,
+          status: input.status,
+          condition: input.condition,
+          location_id: input.location_id,
+          notes: input.notes,
+        })
         .select()
         .single();
 
@@ -196,9 +215,24 @@ export function useUpdateAsset() {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateAssetInput) => {
+      const updateData: Record<string, unknown> = {};
+      if (input.asset_tag !== undefined) updateData.asset_tag = input.asset_tag;
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.category_id !== undefined) updateData.category_id = input.category_id;
+      if (input.brand !== undefined) updateData.brand = input.brand;
+      if (input.model !== undefined) updateData.model = input.model;
+      if (input.serial_number !== undefined) updateData.serial_number = input.serial_number;
+      if (input.purchase_date !== undefined) updateData.purchase_date = input.purchase_date;
+      if (input.purchase_cost !== undefined) updateData.purchase_cost = input.purchase_cost;
+      if (input.warranty_expiry !== undefined) updateData.warranty_expiry = input.warranty_expiry;
+      if (input.status !== undefined) updateData.status = input.status;
+      if (input.condition !== undefined) updateData.condition = input.condition;
+      if (input.location_id !== undefined) updateData.location_id = input.location_id;
+      if (input.notes !== undefined) updateData.notes = input.notes;
+
       const { data, error } = await supabase
         .from('assets')
-        .update(input)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

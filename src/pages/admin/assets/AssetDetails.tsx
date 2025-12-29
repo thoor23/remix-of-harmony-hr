@@ -8,12 +8,12 @@ import {
   UserPlus,
   UserMinus,
   ArrowRightLeft,
-  Wrench,
   Package,
   Laptop,
   Smartphone,
   Armchair,
   Car,
+  Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useAsset,
@@ -143,7 +143,8 @@ export default function AssetDetails() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Asset Details">
+      <PageContainer>
+        <PageHeader title="Asset Details" />
         <Card>
           <CardContent className="p-6">
             <Skeleton className="h-8 w-1/3 mb-4" />
@@ -157,7 +158,8 @@ export default function AssetDetails() {
 
   if (!asset) {
     return (
-      <PageContainer title="Asset Not Found">
+      <PageContainer>
+        <PageHeader title="Asset Not Found" />
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">The requested asset was not found.</p>
@@ -171,26 +173,22 @@ export default function AssetDetails() {
   }
 
   return (
-    <PageContainer
-      title={asset.name}
-      description={`Asset Tag: ${asset.asset_tag}`}
-      action={
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/admin/assets')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-        </div>
-      }
-    >
+    <PageContainer>
+      <PageHeader title={asset.name}>
+        <Button variant="outline" onClick={() => navigate('/admin/assets')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}/edit`)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit
+        </Button>
+        <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </Button>
+      </PageHeader>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info Card */}
         <Card className="lg:col-span-2">
