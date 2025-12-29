@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { 
   Building2, MapPin, Phone, Mail, Clock, Users, Edit, UserPlus, 
   Trash2, ArrowLeft, Globe, Calendar, DollarSign
@@ -55,6 +55,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 
 export default function StoreDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
@@ -96,14 +97,13 @@ export default function StoreDetails() {
   if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="Store Details" description="Loading...">
-          <Button variant="outline" asChild>
-            <Link to="/admin/locations/stores">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Link>
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Stores
           </Button>
-        </PageHeader>
+        </div>
+        <PageHeader title="Store Details" description="Loading..." />
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
@@ -122,33 +122,35 @@ export default function StoreDetails() {
   if (!store) {
     return (
       <PageContainer>
-        <PageHeader title="Store Not Found" description="The requested store could not be found">
-          <Button asChild>
-            <Link to="/admin/locations/stores">Back to Stores</Link>
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Stores
           </Button>
-        </PageHeader>
+        </div>
+        <PageHeader title="Store Not Found" description="The requested store could not be found" />
       </PageContainer>
     );
   }
 
   return (
     <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Stores
+        </Button>
+      </div>
+
       <PageHeader title={store.name} description={`Store Code: ${store.code}`}>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/admin/locations/stores">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to={`/admin/locations/stores/${id}/edit`}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Store
-            </Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link to={`/admin/locations/stores/${id}/edit`}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Store
+          </Link>
+        </Button>
       </PageHeader>
+
       <div className="space-y-6">
         {/* Store Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

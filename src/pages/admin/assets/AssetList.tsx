@@ -253,12 +253,7 @@ export default function AssetList() {
 
   return (
     <PageContainer>
-      <PageHeader title="Asset Management">
-        <Button onClick={() => navigate("/admin/assets/add")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Asset
-        </Button>
-      </PageHeader>
+      <PageHeader title="Asset Management" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateLocation, CreateLocationInput } from "@/hooks/useLocations";
-import { useEmployees } from "@/hooks/useEmployees";
 import { ArrowLeft, Save } from "lucide-react";
 
 const TIMEZONES = [{ value: "Asia/Kolkata", label: "India (IST)" }, { value: "America/New_York", label: "USA Eastern" }, { value: "Europe/London", label: "UK (GMT)" }];
@@ -18,7 +17,6 @@ const CURRENCIES = [{ value: "INR", label: "₹ INR" }, { value: "USD", label: "
 export default function AddOffice() {
   const navigate = useNavigate();
   const createOffice = useCreateLocation();
-  const { data: employees } = useEmployees();
   const [formData, setFormData] = useState<CreateLocationInput>({ name: "", code: "", type: "office", address_street: "", address_city: "", address_state: "", address_zip_code: "", address_country: "", phone: "", email: "", manager_id: undefined, opening_time: "09:00", closing_time: "18:00", is_active: true, timezone: "Asia/Kolkata", date_format: "DD/MM/YYYY", currency: "INR" });
 
   const handleChange = (field: keyof CreateLocationInput, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
@@ -27,7 +25,15 @@ export default function AddOffice() {
 
   return (
     <PageContainer>
-      <PageHeader title="Add Office" description="Create a new office location"><Button variant="outline" onClick={() => navigate("/admin/locations/offices")}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></PageHeader>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Offices
+        </Button>
+      </div>
+
+      <PageHeader title="Add Office" description="Create a new office location" />
+
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         <Card><CardHeader><CardTitle>Basic Information</CardTitle></CardHeader><CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Office Name *</Label><Input value={formData.name} onChange={(e) => handleChange("name", e.target.value)} onBlur={generateCode} required /></div><div className="space-y-2"><Label>Office Code *</Label><Input value={formData.code} onChange={(e) => handleChange("code", e.target.value.toUpperCase())} required /></div></div>
