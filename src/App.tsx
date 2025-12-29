@@ -58,12 +58,17 @@ import ShiftAssignments from "./pages/admin/shifts/ShiftAssignments";
 import ShiftRotations from "./pages/admin/shifts/ShiftRotations";
 import ShiftCalendar from "./pages/admin/shifts/ShiftCalendar";
 import ShiftExchange from "./pages/admin/shifts/ShiftExchange";
-import StoreList from "./pages/admin/stores/StoreList";
-import AddStore from "./pages/admin/stores/AddStore";
-import EditStore from "./pages/admin/stores/EditStore";
-import StoreDetails from "./pages/admin/stores/StoreDetails";
-import StoreManagerDashboard from "./pages/admin/stores/StoreManagerDashboard";
-import EmployeeTransfers from "./pages/admin/stores/EmployeeTransfers";
+import StoreList from "./pages/admin/locations/stores/StoreList";
+import AddStore from "./pages/admin/locations/stores/AddStore";
+import EditStore from "./pages/admin/locations/stores/EditStore";
+import StoreDetails from "./pages/admin/locations/stores/StoreDetails";
+import StoreManagerDashboard from "./pages/admin/locations/stores/StoreManagerDashboard";
+import OfficeList from "./pages/admin/locations/offices/OfficeList";
+import AddOffice from "./pages/admin/locations/offices/AddOffice";
+import EditOffice from "./pages/admin/locations/offices/EditOffice";
+import OfficeDetails from "./pages/admin/locations/offices/OfficeDetails";
+import OfficeDashboard from "./pages/admin/locations/offices/OfficeDashboard";
+import EmployeeTransfers from "./pages/admin/locations/EmployeeTransfers";
 
 // Settings Pages
 import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
@@ -159,7 +164,21 @@ const App = () => (
                 <Route path="shifts/exchange" element={<ShiftExchange />} />
                 <Route path="shifts/calendar" element={<ShiftCalendar />} />
                 <Route path="shifts/policy" element={<ShiftPolicyPage />} />
-                {/* Store Routes */}
+                {/* Location Routes - Stores */}
+                <Route path="locations/stores" element={<StoreList />} />
+                <Route path="locations/stores/add" element={<AddStore />} />
+                <Route path="locations/stores/dashboard" element={<StoreManagerDashboard />} />
+                <Route path="locations/stores/:id" element={<StoreDetails />} />
+                <Route path="locations/stores/:id/edit" element={<EditStore />} />
+                {/* Location Routes - Offices */}
+                <Route path="locations/offices" element={<OfficeList />} />
+                <Route path="locations/offices/add" element={<AddOffice />} />
+                <Route path="locations/offices/dashboard" element={<OfficeDashboard />} />
+                <Route path="locations/offices/:id" element={<OfficeDetails />} />
+                <Route path="locations/offices/:id/edit" element={<EditOffice />} />
+                {/* Location Routes - Transfers */}
+                <Route path="locations/transfers" element={<EmployeeTransfers />} />
+                {/* Legacy Store Routes - Redirects */}
                 <Route path="stores" element={<StoreList />} />
                 <Route path="stores/add" element={<AddStore />} />
                 <Route path="stores/dashboard" element={<StoreManagerDashboard />} />

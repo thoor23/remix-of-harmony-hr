@@ -41,6 +41,7 @@ import {
   Bell,
   Palette,
   Store,
+  MapPin,
   FolderOpen,
   Folders,
   FileStack,
@@ -132,12 +133,14 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Stores",
-    icon: Store,
+    title: "Locations",
+    icon: MapPin,
     children: [
-      { title: "All Stores", href: "/admin/stores", icon: Store },
-      { title: "Store Dashboard", href: "/admin/stores/dashboard", icon: LayoutGrid },
-      { title: "Employee Transfers", href: "/admin/stores/transfers", icon: ArrowLeftRight },
+      { title: "All Stores", href: "/admin/locations/stores", icon: Store },
+      { title: "Store Dashboard", href: "/admin/locations/stores/dashboard", icon: LayoutGrid },
+      { title: "All Offices", href: "/admin/locations/offices", icon: Building2 },
+      { title: "Office Dashboard", href: "/admin/locations/offices/dashboard", icon: LayoutGrid },
+      { title: "Employee Transfers", href: "/admin/locations/transfers", icon: ArrowLeftRight },
     ],
   },
   {
