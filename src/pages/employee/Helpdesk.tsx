@@ -179,8 +179,18 @@ export default function EmployeeHelpdesk() {
                   </Card>
                 )) : (
                   <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No open tickets
+                    <CardContent className="py-12 px-4">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                          <Clock className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div className="text-center">
+                          <h3 className="text-lg font-medium">No open tickets</h3>
+                          <p className="text-muted-foreground text-sm">
+                            All your tickets have been resolved
+                          </p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -209,8 +219,18 @@ export default function EmployeeHelpdesk() {
                   </Card>
                 )) : (
                   <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No resolved tickets
+                    <CardContent className="py-12 px-4">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                          <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div className="text-center">
+                          <h3 className="text-lg font-medium">No resolved tickets</h3>
+                          <p className="text-muted-foreground text-sm">
+                            Resolved tickets will appear here
+                          </p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -239,8 +259,18 @@ export default function EmployeeHelpdesk() {
                   </Card>
                 )) : (
                   <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                      No tickets found
+                    <CardContent className="py-12 px-4">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                          <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div className="text-center">
+                          <h3 className="text-lg font-medium">No tickets yet</h3>
+                          <p className="text-muted-foreground text-sm">
+                            Create a new ticket to get support
+                          </p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}

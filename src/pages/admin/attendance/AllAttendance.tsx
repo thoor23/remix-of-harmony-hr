@@ -442,9 +442,21 @@ export default function AllAttendance() {
           </Table>
         </div>
 
-        {filteredRecords.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground">
-            No attendance records found matching your criteria.
+        {paginatedData.length === 0 && (
+          <div className="py-12 px-4 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <CalendarIcon className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">No attendance records found</h3>
+                <p className="text-muted-foreground text-sm">
+                  {search || statusFilter !== "all" || storeFilter !== "all" 
+                    ? "Try adjusting your filters" 
+                    : "No attendance records have been logged yet"}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

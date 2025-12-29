@@ -352,8 +352,18 @@ export default function ShiftRotations() {
           </Table>
 
           {filteredRotations.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No rotations found
+            <div className="py-12 px-4 text-center">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <RefreshCw className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium">No rotations found</h3>
+                  <p className="text-muted-foreground text-sm">
+                    {search ? "Try adjusting your search" : "Get started by creating your first rotation"}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
