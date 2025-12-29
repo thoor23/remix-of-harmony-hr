@@ -217,125 +217,120 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
 
         {showFilter && (
           <div className="px-4 py-3 border-b bg-muted/30">
-            <div className="flex flex-col gap-4">
-              {/* Row 1: Search and Date Range */}
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search logs..." 
-                    className="pl-9" 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                
-                {/* Date Range Picker */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full md:w-[280px] justify-start text-left font-normal",
-                        !dateRange && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "LLL dd, y")
-                        )
-                      ) : (
-                        <span>Pick a date range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+            <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center flex-wrap">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search logs..." 
+                  className="pl-9" 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
               
-              {/* Row 2: Dropdowns and Clear Button */}
-              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center flex-wrap">
-                {/* Action Filter */}
-                <Select value={action} onValueChange={setAction}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <SelectValue placeholder="Action" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Actions</SelectItem>
-                    <SelectItem value="CREATE">Create</SelectItem>
-                    <SelectItem value="UPDATE">Update</SelectItem>
-                    <SelectItem value="DELETE">Delete</SelectItem>
-                    <SelectItem value="LOGIN">Login</SelectItem>
-                    <SelectItem value="LOGOUT">Logout</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {/* Performer Filter */}
-                <Select value={performerFilter} onValueChange={setPerformerFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Performer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Performers</SelectItem>
-                    {uniquePerformers.map((performer) => (
-                      <SelectItem key={performer} value={performer}>{performer}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                {/* Module Filter (only when not viewing module-specific logs) */}
-                {!module && (
-                  <Select value={moduleFilter} onValueChange={setModuleFilter}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Module" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Modules</SelectItem>
-                      <SelectItem value="Employee">Employee</SelectItem>
-                      <SelectItem value="Attendance">Attendance</SelectItem>
-                      <SelectItem value="Leave">Leave</SelectItem>
-                      <SelectItem value="Shift">Shift</SelectItem>
-                      <SelectItem value="Payroll">Payroll</SelectItem>
-                      <SelectItem value="Asset">Asset</SelectItem>
-                      <SelectItem value="Helpdesk">Helpdesk</SelectItem>
-                      <SelectItem value="Documents">Documents</SelectItem>
-                      <SelectItem value="Letters">Letters</SelectItem>
-                      <SelectItem value="Announcement">Announcement</SelectItem>
-                      <SelectItem value="Templates">Templates</SelectItem>
-                      <SelectItem value="Settings">Settings</SelectItem>
-                      <SelectItem value="Auth">Auth</SelectItem>
-                      <SelectItem value="Departments">Departments</SelectItem>
-                      <SelectItem value="Designations">Designations</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                
-                {/* Clear Filters Button */}
-                {hasActiveFilters && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleClearFilters} 
-                    className="text-muted-foreground hover:text-foreground"
+              {/* Date Range Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full lg:w-[240px] justify-start text-left font-normal",
+                      !dateRange && "text-muted-foreground"
+                    )}
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Clear Filters
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Date range</span>
+                    )}
                   </Button>
-                )}
-              </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              {/* Action Filter */}
+              <Select value={action} onValueChange={setAction}>
+                <SelectTrigger className="w-full lg:w-36">
+                  <SelectValue placeholder="Action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Actions</SelectItem>
+                  <SelectItem value="CREATE">Create</SelectItem>
+                  <SelectItem value="UPDATE">Update</SelectItem>
+                  <SelectItem value="DELETE">Delete</SelectItem>
+                  <SelectItem value="LOGIN">Login</SelectItem>
+                  <SelectItem value="LOGOUT">Logout</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Performer Filter */}
+              <Select value={performerFilter} onValueChange={setPerformerFilter}>
+                <SelectTrigger className="w-full lg:w-44">
+                  <SelectValue placeholder="Performer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Performers</SelectItem>
+                  {uniquePerformers.map((performer) => (
+                    <SelectItem key={performer} value={performer}>{performer}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Module Filter (only when not viewing module-specific logs) */}
+              {!module && (
+                <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                  <SelectTrigger className="w-full lg:w-36">
+                    <SelectValue placeholder="Module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Modules</SelectItem>
+                    <SelectItem value="Employee">Employee</SelectItem>
+                    <SelectItem value="Attendance">Attendance</SelectItem>
+                    <SelectItem value="Leave">Leave</SelectItem>
+                    <SelectItem value="Shift">Shift</SelectItem>
+                    <SelectItem value="Payroll">Payroll</SelectItem>
+                    <SelectItem value="Asset">Asset</SelectItem>
+                    <SelectItem value="Helpdesk">Helpdesk</SelectItem>
+                    <SelectItem value="Documents">Documents</SelectItem>
+                    <SelectItem value="Letters">Letters</SelectItem>
+                    <SelectItem value="Announcement">Announcement</SelectItem>
+                    <SelectItem value="Templates">Templates</SelectItem>
+                    <SelectItem value="Settings">Settings</SelectItem>
+                    <SelectItem value="Auth">Auth</SelectItem>
+                    <SelectItem value="Departments">Departments</SelectItem>
+                    <SelectItem value="Designations">Designations</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleClearFilters} 
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         )}
