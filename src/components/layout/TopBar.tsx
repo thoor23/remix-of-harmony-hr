@@ -231,10 +231,10 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
       {/* Right side */}
       <div className="flex items-center gap-3 flex-shrink-0">
         {/* Current Date/Time */}
-        <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground border-r pr-3 mr-1">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{format(currentTime, "dd MMM")}</span>
-          <span className="text-foreground font-medium">{format(currentTime, "hh:mm a")}</span>
+        <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{format(currentTime, "EEE, dd MMM yyyy")}</span>
+          <span className="text-foreground font-medium">{format(currentTime, "hh:mm:ss a")}</span>
         </div>
 
         {/* Clock In/Out for all users */}
