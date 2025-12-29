@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { useEmailConfig, useUpdateEmailConfig, useSendTestEmail, smtpPresets, type EmailConfig, type SmtpPresetKey } from "@/hooks/useEmailSettings";
 import { format } from "date-fns";
-import { WaveLoader } from "@/components/shared/LoadingSkeletons";
 
 export default function EmailSettingsPage() {
   const { data: emailConfig, isLoading } = useEmailConfig();
@@ -57,7 +56,7 @@ export default function EmailSettingsPage() {
     return (
       <PageContainer>
         <div className="flex items-center justify-center h-64">
-          <WaveLoader size="lg" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );

@@ -27,7 +27,6 @@ import {
   CompanyBranding,
 } from "@/hooks/useCompanyBranding";
 import { Loader2, Upload, X, Building2, Image, Italic } from "lucide-react";
-import { WaveLoader } from "@/components/shared/LoadingSkeletons";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toggle } from "@/components/ui/toggle";
@@ -177,7 +176,7 @@ export default function CompanySettingsPage() {
     return (
       <PageContainer>
         <div className="flex items-center justify-center h-64">
-          <WaveLoader size="lg" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );
