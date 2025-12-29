@@ -1540,13 +1540,18 @@ export type Database = {
           closing_time: string | null
           code: string
           created_at: string
+          currency: string | null
+          date_format: string | null
           email: string | null
           id: string
           is_active: boolean | null
+          locale: string | null
           manager_id: string | null
           name: string
           opening_time: string | null
           phone: string | null
+          timezone: string | null
+          type: string | null
           updated_at: string
         }
         Insert: {
@@ -1558,13 +1563,18 @@ export type Database = {
           closing_time?: string | null
           code: string
           created_at?: string
+          currency?: string | null
+          date_format?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          locale?: string | null
           manager_id?: string | null
           name: string
           opening_time?: string | null
           phone?: string | null
+          timezone?: string | null
+          type?: string | null
           updated_at?: string
         }
         Update: {
@@ -1576,13 +1586,18 @@ export type Database = {
           closing_time?: string | null
           code?: string
           created_at?: string
+          currency?: string | null
+          date_format?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
+          locale?: string | null
           manager_id?: string | null
           name?: string
           opening_time?: string | null
           phone?: string | null
+          timezone?: string | null
+          type?: string | null
           updated_at?: string
         }
         Relationships: [
