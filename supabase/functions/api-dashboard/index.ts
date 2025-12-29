@@ -25,10 +25,11 @@ serve(async (req) => {
       const thisMonth = new Date().toISOString().slice(0, 7);
       const firstOfMonth = `${thisMonth}-01`;
       
-      const [employees, pendingLeaves, todayAttendance, departments, newJoiners, openTickets] = await Promise.all([
+      const [employees, pendingLeaves, todayAttendance, todayLeaves, departments, newJoiners, openTickets] = await Promise.all([
         supabase.from('employees').select('*', { count: 'exact' }).eq('status', 'active'),
         supabase.from('leave_requests').select('*', { count: 'exact' }).eq('status', 'pending'),
         supabase.from('attendance_records').select('*').eq('date', today),
+        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('status', 'approved').lte('start_date', today).gte('end_date', today),
         supabase.from('departments').select('id, name, employee_count'),
         supabase.from('employees').select('*', { count: 'exact' }).gte('date_of_joining', firstOfMonth),
         supabase.from('helpdesk_tickets').select('*', { count: 'exact' }).in('status', ['open', 'in_progress']),
@@ -50,6 +51,7 @@ serve(async (req) => {
         pendingLeaveRequests: pendingLeaves.count || 0,
         todayAttendance: presentToday,
         attendancePercentage,
+        onLeaveToday: todayLeaves.count || 0,
         newJoinersThisMonth: newJoiners.count || 0,
         openTickets: openTickets.count || 0,
         departmentWiseCount,
@@ -196,6 +198,40 @@ serve(async (req) => {
       ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       return jsonResponse(events);
+    }
+
+    // GET /birthdays - Employee birthdays by month
+    if (method === 'GET' && path === '/birthdays') {
+      if (!isAdminOrHR) return errorResponse('Admin or HR access required', 403);
+
+      const month = parseInt(url.searchParams.get('month') || (new Date().getMonth() + 1).toString());
+
+      // Get employees with birthdays in selected month
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, avatar_url, date_of_birth, department:departments(name)')
+        .eq('status', 'active')
+        .not('date_of_birth', 'is', null);
+
+      // Filter by month
+      const birthdaysInMonth = employees?.filter(emp => {
+        if (!emp.date_of_birth) return false;
+        const dob = new Date(emp.date_of_birth);
+        return dob.getMonth() + 1 === month;
+      }).map(emp => ({
+        id: emp.id,
+        first_name: emp.first_name,
+        last_name: emp.last_name,
+        avatar_url: emp.avatar_url,
+        date_of_birth: emp.date_of_birth,
+        department_name: (emp.department as { name?: string } | null)?.name || null,
+      })).sort((a, b) => {
+        const dayA = new Date(a.date_of_birth).getDate();
+        const dayB = new Date(b.date_of_birth).getDate();
+        return dayA - dayB;
+      }) || [];
+
+      return jsonResponse(birthdaysInMonth);
     }
 
     // GET /leave-breakdown - Leave requests by type
