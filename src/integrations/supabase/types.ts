@@ -151,6 +151,335 @@ export type Database = {
           },
         ]
       }
+      asset_assignments: {
+        Row: {
+          asset_id: string
+          assigned_by: string | null
+          assigned_date: string
+          condition_on_assign: string | null
+          condition_on_return: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          location_id: string | null
+          notes: string | null
+          returned_date: string | null
+        }
+        Insert: {
+          asset_id: string
+          assigned_by?: string | null
+          assigned_date?: string
+          condition_on_assign?: string | null
+          condition_on_return?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          returned_date?: string | null
+        }
+        Update: {
+          asset_id?: string
+          assigned_by?: string | null
+          assigned_date?: string
+          condition_on_assign?: string | null
+          condition_on_return?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          returned_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_assignments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      asset_maintenance: {
+        Row: {
+          asset_id: string
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          scheduled_date: string | null
+          status: string
+          type: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          asset_id: string
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          asset_id?: string
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_maintenance_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_transfers: {
+        Row: {
+          asset_id: string
+          created_at: string
+          from_location_id: string | null
+          id: string
+          notes: string | null
+          reason: string | null
+          status: string
+          to_location_id: string
+          transfer_date: string
+          transferred_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          to_location_id: string
+          transfer_date?: string
+          transferred_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          from_location_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          to_location_id?: string
+          transfer_date?: string
+          transferred_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_transfers_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_transferred_by_fkey"
+            columns: ["transferred_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_tag: string
+          assigned_date: string | null
+          assigned_to: string | null
+          brand: string | null
+          category_id: string | null
+          condition: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          location_id: string | null
+          model: string | null
+          name: string
+          notes: string | null
+          purchase_cost: number | null
+          purchase_date: string | null
+          serial_number: string | null
+          specifications: Json | null
+          status: string
+          updated_at: string
+          warranty_expiry: string | null
+        }
+        Insert: {
+          asset_tag: string
+          assigned_date?: string | null
+          assigned_to?: string | null
+          brand?: string | null
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          location_id?: string | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          specifications?: Json | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Update: {
+          asset_tag?: string
+          assigned_date?: string | null
+          assigned_to?: string | null
+          brand?: string | null
+          category_id?: string | null
+          condition?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          location_id?: string | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          specifications?: Json | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           check_in: string | null
