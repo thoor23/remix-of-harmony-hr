@@ -21,6 +21,7 @@ import {
 import { useShifts, useShiftAssignments, useCreateShiftAssignment, useUpdateShiftAssignment, useDeleteShiftAssignment } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useDepartments } from "@/hooks/useDashboard";
+import { useStores } from "@/hooks/useStores";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -76,6 +77,7 @@ const getInitialColumns = (): ColumnDef[] => [
   }, visible: true },
   { id: "employee_id", header: "Emp ID", accessor: (row: any) => row.employee?.employee_id, visible: true },
   { id: "department", header: "Department", accessor: (row: any) => row.employee?.department?.name || "—", visible: true },
+  { id: "store", header: "Store", accessor: (row: any) => row.store?.name || "—", visible: true },
   { id: "shift_name", header: "Current Shift", accessor: (row: any) => row.shift?.name || "—", visible: true },
   { id: "start_date", header: "Effective From", accessor: "start_date", visible: true },
   { id: "end_date", header: "Effective To", accessor: "end_date", visible: true },
@@ -86,6 +88,7 @@ export default function ShiftAssignments() {
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [shiftFilter, setShiftFilter] = useState("");
+  const [storeFilter, setStoreFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
   const [deleteAssignmentId, setDeleteAssignmentId] = useState<string | null>(null);
@@ -106,6 +109,7 @@ export default function ShiftAssignments() {
   const { data: assignments = [], isLoading: assignmentsLoading, refetch, isFetching } = useShiftAssignments();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
+  const { data: stores = [] } = useStores();
   
   const createAssignment = useCreateShiftAssignment();
   const updateAssignment = useUpdateShiftAssignment();
@@ -126,8 +130,9 @@ export default function ShiftAssignments() {
       const matchesSearch = name.includes(search.toLowerCase()) || empId.includes(search.toLowerCase());
       const matchesDepartment = !departmentFilter || a.employee?.department?.id === departmentFilter;
       const matchesShift = !shiftFilter || a.shift_id === shiftFilter;
-      return matchesSearch && matchesDepartment && matchesShift;
-    }), [assignments, search, departmentFilter, shiftFilter]);
+      const matchesStore = !storeFilter || a.store_id === storeFilter;
+      return matchesSearch && matchesDepartment && matchesShift && matchesStore;
+    }), [assignments, search, departmentFilter, shiftFilter, storeFilter]);
 
   const getColumnValue = (assignment: any, column: ColumnDef): any => {
     if (typeof column.accessor === 'function') {
@@ -439,6 +444,17 @@ export default function ShiftAssignments() {
                   <SelectItem value="_all">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={storeFilter || "_all"} onValueChange={(v) => setStoreFilter(v === "_all" ? "" : v)}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_all">All Stores</SelectItem>
+                  {stores.map((store) => (
+                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
