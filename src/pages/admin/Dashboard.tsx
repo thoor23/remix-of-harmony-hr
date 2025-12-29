@@ -2,26 +2,43 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { StatCard } from "@/components/shared/StatCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
+import { EnhancedStatCard } from "@/components/dashboard/EnhancedStatCard";
+import { LiveAttendanceFeed } from "@/components/dashboard/LiveAttendanceFeed";
+import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline";
+import { QuickActionsGrid } from "@/components/dashboard/QuickActionsGrid";
+import { UpcomingEventsCard } from "@/components/dashboard/UpcomingEventsCard";
+import { AreaChartCard } from "@/components/reports/charts/AreaChartCard";
+import { PieChartCard } from "@/components/reports/charts/PieChartCard";
 import {
   Users,
   CalendarCheck,
   Clock,
   UserPlus,
-  TrendingUp,
   ArrowRight,
+  Ticket,
+  DollarSign,
 } from "lucide-react";
-import { useAdminDashboardStats, usePendingLeaveRequests, useRecentAnnouncements } from "@/hooks/useDashboard";
+import { 
+  useAdminDashboardStats, 
+  usePendingLeaveRequests, 
+  useRecentAnnouncements,
+  useAttendanceTrend,
+  useLeaveBreakdown,
+  usePayrollSummary,
+} from "@/hooks/useDashboard";
 import { useUpdateLeaveRequest } from "@/hooks/useLeaves";
 import { format } from "date-fns";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: loadingStats } = useAdminDashboardStats();
-  const { data: pendingRequests = [], isLoading: loadingRequests } = usePendingLeaveRequests();
+  const { data: pendingRequests = [], isLoading: loadingRequests } = usePendingLeaveRequests(5);
   const { data: announcements = [], isLoading: loadingAnnouncements } = useRecentAnnouncements();
+  const { data: attendanceTrend = [], isLoading: loadingTrend } = useAttendanceTrend(7);
+  const { data: leaveBreakdown = [], isLoading: loadingLeaveBreakdown } = useLeaveBreakdown();
+  const { data: payrollSummary } = usePayrollSummary();
   const updateLeaveRequest = useUpdateLeaveRequest();
 
   const handleApprove = (id: string) => {
@@ -32,17 +49,27 @@ export default function AdminDashboard() {
     updateLeaveRequest.mutate({ id, status: "rejected" });
   };
 
+  // Transform department data for pie chart
+  const departmentChartData = stats?.departmentWiseCount?.map(dept => ({
+    name: dept.department,
+    value: dept.count,
+  })) || [];
+
   if (loadingStats) {
     return (
       <PageContainer>
         <PageHeader title="Dashboard" description="Welcome back! Here's what's happening today." />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-6">
+          {[...Array(6)].map((_, i) => (
             <Card key={i} className="p-6">
               <Skeleton className="h-4 w-24 mb-2" />
               <Skeleton className="h-8 w-16" />
             </Card>
           ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
         </div>
       </PageContainer>
     );
@@ -58,41 +85,83 @@ export default function AdminDashboard() {
       {/* Announcement Banner */}
       <AnnouncementBanner announcements={announcements} isLoading={loadingAnnouncements} />
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
+      {/* Stats Grid - 6 columns on xl */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6 mb-6">
+        <EnhancedStatCard
           title="Total Employees"
           value={stats?.totalEmployees || 0}
           subtitle={`${stats?.activeEmployees || 0} active`}
           icon={Users}
-          trend={{ value: 5, isPositive: true }}
+          variant="primary"
         />
-        <StatCard
-          title="Pending Leave Requests"
+        <EnhancedStatCard
+          title="Present Today"
+          value={`${stats?.attendancePercentage || 0}%`}
+          subtitle={`${stats?.todayAttendance || 0} employees`}
+          icon={Clock}
+          variant="success"
+        />
+        <EnhancedStatCard
+          title="Pending Leaves"
           value={stats?.pendingLeaveRequests || 0}
           subtitle="Awaiting approval"
           icon={CalendarCheck}
+          variant={stats?.pendingLeaveRequests && stats.pendingLeaveRequests > 0 ? "warning" : "default"}
         />
-        <StatCard
-          title="Today's Attendance"
-          value={`${stats?.attendancePercentage || 0}%`}
-          subtitle={`${stats?.todayAttendance || 0} employees present`}
-          icon={Clock}
+        <EnhancedStatCard
+          title="Open Tickets"
+          value={stats?.openTickets || 0}
+          subtitle="Need attention"
+          icon={Ticket}
+          variant={stats?.openTickets && stats.openTickets > 0 ? "danger" : "default"}
         />
-        <StatCard
+        <EnhancedStatCard
           title="New Joiners"
           value={stats?.newJoinersThisMonth || 0}
           subtitle="This month"
           icon={UserPlus}
-          trend={{ value: 12, isPositive: true }}
+        />
+        <EnhancedStatCard
+          title="Payroll"
+          value={payrollSummary?.payslipsGenerated || 0}
+          subtitle="Payslips generated"
+          icon={DollarSign}
+          trend={payrollSummary?.change ? { value: Math.abs(payrollSummary.change), isPositive: payrollSummary.change >= 0 } : undefined}
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Pending Leave Requests */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        {/* Attendance Trend Chart */}
+        <AreaChartCard
+          title="Attendance Trend (Last 7 Days)"
+          data={attendanceTrend.map(item => ({
+            name: item.name,
+            present: item.present,
+            late: item.late,
+            absent: item.absent,
+          }))}
+          areas={[
+            { dataKey: "present", name: "Present", color: "hsl(var(--success))" },
+            { dataKey: "late", name: "Late", color: "hsl(var(--warning))" },
+            { dataKey: "absent", name: "Absent", color: "hsl(var(--destructive))" },
+          ]}
+          className="dark:border-border/50"
+        />
+        
+        {/* Department Distribution */}
+        <PieChartCard
+          title="Department Distribution"
+          data={departmentChartData}
+          className="dark:border-border/50"
+        />
+      </div>
+
+      {/* Main Content Grid - 3 columns */}
+      <div className="grid gap-6 lg:grid-cols-3 mb-6">
+        {/* Pending Leave Requests - spans 2 columns */}
+        <Card className="lg:col-span-2 dark:border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle className="text-lg">Pending Leave Requests</CardTitle>
               <CardDescription>Requests awaiting your approval</CardDescription>
@@ -106,13 +175,13 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {loadingRequests ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-20 w-full" />
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {pendingRequests.map((request) => {
                   const profile = request.employee_profile;
                   const name = profile 
@@ -125,7 +194,7 @@ export default function AdminDashboard() {
                   return (
                     <div
                       key={request.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-4 rounded-lg border dark:border-border/50 bg-card hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <Avatar>
@@ -163,56 +232,30 @@ export default function AdminDashboard() {
                   );
                 })}
                 {pendingRequests.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
-                    No pending requests
-                  </p>
+                  <div className="text-center text-muted-foreground py-8">
+                    <CalendarCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No pending requests</p>
+                  </div>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Department Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Department Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {stats?.departmentWiseCount?.slice(0, 5).map((dept) => (
-                  <div key={dept.department} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm">{dept.department}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {dept.count}
-                        </span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{
-                            width: `${stats?.totalEmployees ? (dept.count / stats.totalEmployees) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {(!stats?.departmentWiseCount || stats.departmentWiseCount.length === 0) && (
-                  <p className="text-center text-muted-foreground py-4">
-                    No department data
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Actions */}
+        <QuickActionsGrid />
+      </div>
+
+      {/* Bottom Row - 3 columns */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Live Attendance Feed */}
+        <LiveAttendanceFeed />
+
+        {/* Activity Timeline */}
+        <ActivityTimeline />
+
+        {/* Upcoming Events */}
+        <UpcomingEventsCard />
       </div>
     </PageContainer>
   );
