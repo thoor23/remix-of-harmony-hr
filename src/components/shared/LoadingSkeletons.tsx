@@ -9,9 +9,9 @@ interface WaveLoaderProps {
 
 export function WaveLoader({ size = "md", className }: WaveLoaderProps) {
   const sizeClasses = {
-    sm: "h-4 gap-0.5",
-    md: "h-8 gap-1",
-    lg: "h-12 gap-1.5",
+    sm: "h-4 gap-1",
+    md: "h-6 gap-1.5",
+    lg: "h-10 gap-2",
   };
 
   const barSizes = {
@@ -22,15 +22,15 @@ export function WaveLoader({ size = "md", className }: WaveLoaderProps) {
 
   return (
     <div className={cn("flex items-center justify-center", sizeClasses[size], className)}>
-      {[0, 1, 2, 3, 4].map((i) => (
+      {[0, 1, 2].map((i) => (
         <div
           key={i}
           className={cn(
-            "bg-primary rounded-full animate-wave-bar",
+            "bg-primary rounded-sm animate-wave-bar",
             barSizes[size]
           )}
           style={{
-            animationDelay: `${i * 0.1}s`,
+            animationDelay: `${i * 0.15}s`,
             height: "100%",
           }}
         />
