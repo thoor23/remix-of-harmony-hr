@@ -53,14 +53,18 @@ export function PieChartCard({ title, data, className }: PieChartCardProps) {
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
+                  color: "hsl(var(--card-foreground))",
                 }}
+                labelStyle={{ color: "hsl(var(--card-foreground))" }}
+                itemStyle={{ color: "hsl(var(--muted-foreground))" }}
               />
               <Legend
                 verticalAlign="bottom"
                 height={36}
                 formatter={(value) => (
-                  <span className="text-sm text-muted-foreground">{value}</span>
+                  <span style={{ color: "hsl(var(--muted-foreground))", fontSize: "14px" }}>{value}</span>
                 )}
+                wrapperStyle={{ paddingTop: "10px" }}
               />
             </PieChart>
           </ResponsiveContainer>
