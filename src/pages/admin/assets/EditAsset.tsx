@@ -130,7 +130,7 @@ export default function EditAsset() {
         </Button>
       </div>
 
-      <PageHeader title="Edit Asset" />
+      <PageHeader title="Edit Asset" description="Update asset information" />
 
       <Card>
         <CardHeader>

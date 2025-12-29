@@ -181,7 +181,7 @@ export default function AssetDetails() {
         </Button>
       </div>
 
-      <PageHeader title={asset.name}>
+      <PageHeader title={asset.name} description="View complete asset information">
         <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}/edit`)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit

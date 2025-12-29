@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { 
   Bell, 
   Megaphone, 
@@ -366,11 +367,8 @@ export default function NotificationCentre() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Notification Centre</h1>
-        <p className="text-muted-foreground">Manage announcements and send targeted notifications</p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Notification Centre" description="Manage announcements and send targeted notifications" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Announcements Column */}
@@ -1100,6 +1098,6 @@ export default function NotificationCentre() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageContainer>
   );
 }
