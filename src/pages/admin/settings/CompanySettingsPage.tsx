@@ -332,17 +332,20 @@ export default function CompanySettingsPage() {
                   <Slider
                     value={[formData.logoSize]}
                     onValueChange={handleLogoSizeChange}
-                    min={20}
-                    max={64}
+                    min={24}
+                    max={40}
                     step={2}
                     className="flex-1"
                   />
                   <Input
                     type="number"
                     value={formData.logoSize}
-                    onChange={(e) => handleLogoSizeChange([Number(e.target.value)])}
-                    min={20}
-                    max={64}
+                    onChange={(e) => {
+                      const val = Math.min(40, Math.max(24, Number(e.target.value)));
+                      handleLogoSizeChange([val]);
+                    }}
+                    min={24}
+                    max={40}
                     className="w-16"
                   />
                 </div>
@@ -356,16 +359,19 @@ export default function CompanySettingsPage() {
                     value={[formData.nameSize]}
                     onValueChange={handleNameSizeChange}
                     min={12}
-                    max={28}
+                    max={22}
                     step={1}
                     className="flex-1"
                   />
                   <Input
                     type="number"
                     value={formData.nameSize}
-                    onChange={(e) => handleNameSizeChange([Number(e.target.value)])}
+                    onChange={(e) => {
+                      const val = Math.min(22, Math.max(12, Number(e.target.value)));
+                      handleNameSizeChange([val]);
+                    }}
                     min={12}
-                    max={28}
+                    max={22}
                     className="w-16"
                   />
                 </div>
