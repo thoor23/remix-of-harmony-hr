@@ -174,11 +174,14 @@ export default function AssetDetails() {
 
   return (
     <PageContainer>
-      <PageHeader title={asset.name}>
-        <Button variant="outline" onClick={() => navigate('/admin/assets')}>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate('/admin/assets')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Back to Assets
         </Button>
+      </div>
+
+      <PageHeader title={asset.name}>
         <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}/edit`)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit

@@ -123,12 +123,14 @@ export default function EditAsset() {
 
   return (
     <PageContainer>
-      <PageHeader title="Edit Asset">
-        <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}`)}>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(`/admin/assets/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Back to Asset Details
         </Button>
-      </PageHeader>
+      </div>
+
+      <PageHeader title="Edit Asset" />
 
       <Card>
         <CardHeader>
