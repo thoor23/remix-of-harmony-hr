@@ -75,7 +75,7 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
         {!collapsed && (
           <span 
             className={cn(
-              "truncate",
+              "truncate leading-none",
               fontWeightClasses[branding?.nameFontWeight || "semibold"],
               branding?.nameItalic && "italic"
             )}
