@@ -195,7 +195,7 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
     queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
   };
 
-  const visibleColumnCount = columns.filter(c => c.visible).length + 2; // +1 for checkbox, +1 for expand button
+  const visibleColumnCount = columns.filter(c => c.visible).length + 1; // +1 for checkbox
 
   return (
     <PageContainer>
@@ -348,7 +348,6 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead>
                   <TableHead className="w-12">
                     <Checkbox
                       checked={paginatedItems.length > 0 && selectedRows.length === paginatedItems.length}
@@ -407,21 +406,6 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleToggleExpand(log.id)}
                         >
-                          <TableCell className="p-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleExpand(log.id);
-                              }}
-                            >
-                              <ChevronRight 
-                                className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-                              />
-                            </Button>
-                          </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedRows.includes(log.id)}
