@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/shared/StatCard";
 import { Wallet, TrendingUp, Receipt, CreditCard } from "lucide-react";
+import { useStores } from "@/hooks/useStores";
 
 const monthlyDisbursementData = [
   { name: "Jul", gross: 850000, net: 720000 },
@@ -51,11 +52,11 @@ const deductionsBreakdown = [
 ];
 
 const payrollDetails = [
-  { employee: "John Smith", department: "Engineering", gross: 85000, deductions: 12500, net: 72500 },
-  { employee: "Sarah Johnson", department: "Marketing", gross: 72000, deductions: 10800, net: 61200 },
-  { employee: "Mike Chen", department: "Sales", gross: 68000, deductions: 9500, net: 58500 },
-  { employee: "Emily Davis", department: "HR", gross: 55000, deductions: 8200, net: 46800 },
-  { employee: "Alex Wilson", department: "Finance", gross: 62000, deductions: 9300, net: 52700 },
+  { employee: "John Smith", department: "Engineering", store: "Main Store", gross: 85000, deductions: 12500, net: 72500 },
+  { employee: "Sarah Johnson", department: "Marketing", store: "Downtown Branch", gross: 72000, deductions: 10800, net: 61200 },
+  { employee: "Mike Chen", department: "Sales", store: "Main Store", gross: 68000, deductions: 9500, net: 58500 },
+  { employee: "Emily Davis", department: "HR", store: "West Side", gross: 55000, deductions: 8200, net: 46800 },
+  { employee: "Alex Wilson", department: "Finance", store: "Downtown Branch", gross: 62000, deductions: 9300, net: 52700 },
 ];
 
 const departments = ["Engineering", "Sales", "Marketing", "HR", "Finance"];
@@ -70,16 +71,21 @@ const formatCurrency = (value: number) => {
 
 export default function PayrollReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
+  const [filteredStore, setFilteredStore] = useState("all");
+  const { data: stores = [] } = useStores();
 
-  const filteredDetails = filteredDepartment === "all"
-    ? payrollDetails
-    : payrollDetails.filter(d => d.department === filteredDepartment);
+  const filteredDetails = payrollDetails.filter(d => {
+    const deptMatch = filteredDepartment === "all" || d.department === filteredDepartment;
+    const storeMatch = filteredStore === "all" || stores.find(s => s.id === filteredStore)?.name === d.store;
+    return deptMatch && storeMatch;
+  });
 
   const exportData = {
-    headers: ["Employee", "Department", "Gross Salary", "Deductions", "Net Salary"],
+    headers: ["Employee", "Department", "Store", "Gross Salary", "Deductions", "Net Salary"],
     rows: filteredDetails.map(d => [
       d.employee,
       d.department,
+      d.store,
       formatCurrency(d.gross),
       formatCurrency(d.deductions),
       formatCurrency(d.net),
@@ -96,7 +102,10 @@ export default function PayrollReports() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
           departments={departments}
+          stores={stores.map(s => ({ id: s.id, name: s.name }))}
           onDepartmentChange={setFilteredDepartment}
+          onStoreChange={setFilteredStore}
+          showStoreFilter={true}
         />
         <ReportExport data={exportData} title="Payroll Report" />
       </div>
@@ -161,6 +170,7 @@ export default function PayrollReports() {
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Store</TableHead>
                 <TableHead className="text-right">Gross Salary</TableHead>
                 <TableHead className="text-right">Deductions</TableHead>
                 <TableHead className="text-right">Net Salary</TableHead>
@@ -171,6 +181,7 @@ export default function PayrollReports() {
                 <TableRow key={index}>
                   <TableCell className="font-medium">{detail.employee}</TableCell>
                   <TableCell>{detail.department}</TableCell>
+                  <TableCell>{detail.store}</TableCell>
                   <TableCell className="text-right">{formatCurrency(detail.gross)}</TableCell>
                   <TableCell className="text-right text-destructive">
                     -{formatCurrency(detail.deductions)}

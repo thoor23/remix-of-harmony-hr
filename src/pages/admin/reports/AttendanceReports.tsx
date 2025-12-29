@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/shared/StatCard";
 import { Users, Clock, AlertTriangle, TrendingUp } from "lucide-react";
+import { useStores } from "@/hooks/useStores";
 
 const weeklyAttendanceData = [
   { name: "Mon", present: 115, late: 5, absent: 2 },
@@ -51,27 +52,32 @@ const lateArrivalsData = [
 ];
 
 const attendanceDetails = [
-  { employee: "John Smith", department: "Engineering", present: 22, late: 1, absent: 0, rate: "100%" },
-  { employee: "Sarah Johnson", department: "Marketing", present: 20, late: 2, absent: 1, rate: "95%" },
-  { employee: "Mike Chen", department: "Sales", present: 21, late: 0, absent: 2, rate: "91%" },
-  { employee: "Emily Davis", department: "HR", present: 23, late: 0, absent: 0, rate: "100%" },
-  { employee: "Alex Wilson", department: "Finance", present: 20, late: 3, absent: 0, rate: "100%" },
+  { employee: "John Smith", department: "Engineering", store: "Main Store", present: 22, late: 1, absent: 0, rate: "100%" },
+  { employee: "Sarah Johnson", department: "Marketing", store: "Downtown Branch", present: 20, late: 2, absent: 1, rate: "95%" },
+  { employee: "Mike Chen", department: "Sales", store: "Main Store", present: 21, late: 0, absent: 2, rate: "91%" },
+  { employee: "Emily Davis", department: "HR", store: "West Side", present: 23, late: 0, absent: 0, rate: "100%" },
+  { employee: "Alex Wilson", department: "Finance", store: "Downtown Branch", present: 20, late: 3, absent: 0, rate: "100%" },
 ];
 
 const departments = ["Engineering", "Sales", "Marketing", "HR", "Finance"];
 
 export default function AttendanceReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
+  const [filteredStore, setFilteredStore] = useState("all");
+  const { data: stores = [] } = useStores();
 
-  const filteredDetails = filteredDepartment === "all"
-    ? attendanceDetails
-    : attendanceDetails.filter(d => d.department === filteredDepartment);
+  const filteredDetails = attendanceDetails.filter(d => {
+    const deptMatch = filteredDepartment === "all" || d.department === filteredDepartment;
+    const storeMatch = filteredStore === "all" || stores.find(s => s.id === filteredStore)?.name === d.store;
+    return deptMatch && storeMatch;
+  });
 
   const exportData = {
-    headers: ["Employee", "Department", "Present Days", "Late Days", "Absent Days", "Attendance Rate"],
+    headers: ["Employee", "Department", "Store", "Present Days", "Late Days", "Absent Days", "Attendance Rate"],
     rows: filteredDetails.map(d => [
       d.employee,
       d.department,
+      d.store,
       d.present,
       d.late,
       d.absent,
@@ -89,7 +95,10 @@ export default function AttendanceReports() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
           departments={departments}
+          stores={stores.map(s => ({ id: s.id, name: s.name }))}
           onDepartmentChange={setFilteredDepartment}
+          onStoreChange={setFilteredStore}
+          showStoreFilter={true}
         />
         <ReportExport data={exportData} title="Attendance Report" />
       </div>
@@ -161,6 +170,7 @@ export default function AttendanceReports() {
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Store</TableHead>
                 <TableHead className="text-center">Present Days</TableHead>
                 <TableHead className="text-center">Late Days</TableHead>
                 <TableHead className="text-center">Absent Days</TableHead>
@@ -172,6 +182,7 @@ export default function AttendanceReports() {
                 <TableRow key={index}>
                   <TableCell className="font-medium">{detail.employee}</TableCell>
                   <TableCell>{detail.department}</TableCell>
+                  <TableCell>{detail.store}</TableCell>
                   <TableCell className="text-center">{detail.present}</TableCell>
                   <TableCell className="text-center">{detail.late}</TableCell>
                   <TableCell className="text-center">{detail.absent}</TableCell>

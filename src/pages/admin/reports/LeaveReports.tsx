@@ -17,6 +17,7 @@ import {
 import { StatCard } from "@/components/shared/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Users, TrendingDown, Clock } from "lucide-react";
+import { useStores } from "@/hooks/useStores";
 
 const leaveByTypeData = [
   { name: "Casual Leave", value: 145 },
@@ -49,27 +50,32 @@ const leaveBalanceSummary = [
 ];
 
 const topLeaveRecords = [
-  { employee: "John Smith", department: "Engineering", type: "Annual Leave", days: 12, status: "Completed" },
-  { employee: "Sarah Johnson", department: "Marketing", type: "Sick Leave", days: 8, status: "Completed" },
-  { employee: "Mike Chen", department: "Sales", type: "Casual Leave", days: 5, status: "Approved" },
-  { employee: "Emily Davis", department: "HR", type: "Personal Leave", days: 3, status: "Pending" },
-  { employee: "Alex Wilson", department: "Finance", type: "Annual Leave", days: 10, status: "Completed" },
+  { employee: "John Smith", department: "Engineering", store: "Main Store", type: "Annual Leave", days: 12, status: "Completed" },
+  { employee: "Sarah Johnson", department: "Marketing", store: "Downtown Branch", type: "Sick Leave", days: 8, status: "Completed" },
+  { employee: "Mike Chen", department: "Sales", store: "Main Store", type: "Casual Leave", days: 5, status: "Approved" },
+  { employee: "Emily Davis", department: "HR", store: "West Side", type: "Personal Leave", days: 3, status: "Pending" },
+  { employee: "Alex Wilson", department: "Finance", store: "Downtown Branch", type: "Annual Leave", days: 10, status: "Completed" },
 ];
 
 const departments = ["Engineering", "Sales", "Marketing", "HR", "Finance"];
 
 export default function LeaveReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
+  const [filteredStore, setFilteredStore] = useState("all");
+  const { data: stores = [] } = useStores();
 
-  const filteredRecords = filteredDepartment === "all"
-    ? topLeaveRecords
-    : topLeaveRecords.filter(r => r.department === filteredDepartment);
+  const filteredRecords = topLeaveRecords.filter(r => {
+    const deptMatch = filteredDepartment === "all" || r.department === filteredDepartment;
+    const storeMatch = filteredStore === "all" || stores.find(s => s.id === filteredStore)?.name === r.store;
+    return deptMatch && storeMatch;
+  });
 
   const exportData = {
-    headers: ["Employee", "Department", "Leave Type", "Days", "Status"],
+    headers: ["Employee", "Department", "Store", "Leave Type", "Days", "Status"],
     rows: filteredRecords.map(r => [
       r.employee,
       r.department,
+      r.store,
       r.type,
       r.days,
       r.status,
@@ -99,7 +105,10 @@ export default function LeaveReports() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
           departments={departments}
+          stores={stores.map(s => ({ id: s.id, name: s.name }))}
           onDepartmentChange={setFilteredDepartment}
+          onStoreChange={setFilteredStore}
+          showStoreFilter={true}
         />
         <ReportExport data={exportData} title="Leave Report" />
       </div>
@@ -159,6 +168,7 @@ export default function LeaveReports() {
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Store</TableHead>
                 <TableHead>Leave Type</TableHead>
                 <TableHead className="text-center">Days</TableHead>
                 <TableHead>Status</TableHead>
@@ -169,6 +179,7 @@ export default function LeaveReports() {
                 <TableRow key={index}>
                   <TableCell className="font-medium">{record.employee}</TableCell>
                   <TableCell>{record.department}</TableCell>
+                  <TableCell>{record.store}</TableCell>
                   <TableCell>{record.type}</TableCell>
                   <TableCell className="text-center">{record.days}</TableCell>
                   <TableCell>
