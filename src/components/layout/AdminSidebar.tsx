@@ -306,7 +306,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
-  const [openItems, setOpenItems] = useState<string[]>(["Employee Management", "Leave Management"]);
+  const [openItems, setOpenItems] = useState<string[]>([]);
   const { data: branding } = useCompanyBranding();
 
   // Close all open items when sidebar is collapsed
