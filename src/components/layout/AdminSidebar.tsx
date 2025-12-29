@@ -97,12 +97,12 @@ interface NavItem {
 const adminNavItems: NavItem[] = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   {
-    title: "Employees",
+    title: "Employee Management",
     icon: Users,
     children: [
-      { title: "All Employees", href: "/admin/employees", icon: Users2 },
-      { title: "Add Employee", href: "/admin/employees/new", icon: UserPlus },
-      { title: "Profile Requests", href: "/admin/employees/change-requests", icon: ClipboardCheck },
+      { title: "Employee Directory", href: "/admin/employees", icon: Users2 },
+      { title: "Add New Employee", href: "/admin/employees/new", icon: UserPlus },
+      { title: "Profile Change Requests", href: "/admin/employees/change-requests", icon: ClipboardCheck },
     ],
   },
   {
@@ -110,9 +110,9 @@ const adminNavItems: NavItem[] = [
     icon: Fingerprint,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: ChartPie },
-      { title: "All Attendance", href: "/admin/attendance/all", icon: CalendarClock },
-      { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardEdit },
-      { title: "Policy & Rules", href: "/admin/attendance/policy", icon: Gavel },
+      { title: "Attendance Records", href: "/admin/attendance/all", icon: CalendarClock },
+      { title: "Regularization Requests", href: "/admin/attendance/regularization", icon: ClipboardEdit },
+      { title: "Attendance Policies", href: "/admin/attendance/policy", icon: Gavel },
     ],
   },
   {
@@ -120,30 +120,30 @@ const adminNavItems: NavItem[] = [
     icon: CalendarOff,
     children: [
       { title: "Overview", href: "/admin/leaves", icon: PieChart },
-      { title: "All Leaves", href: "/admin/leaves/all", icon: CalendarClock },
-      { title: "Leave Requests", href: "/admin/leaves/requests", icon: ClipboardPen },
-      { title: "Policy & Rules", href: "/admin/leaves/policy", icon: Scale },
+      { title: "Leave Records", href: "/admin/leaves/all", icon: CalendarClock },
+      { title: "Leave Applications", href: "/admin/leaves/requests", icon: ClipboardPen },
+      { title: "Leave Policies", href: "/admin/leaves/policy", icon: Scale },
     ],
   },
   {
     title: "Shift Management",
     icon: TimerReset,
     children: [
-      { title: "All Shifts", href: "/admin/shifts", icon: ListChecks },
-      { title: "Assignments", href: "/admin/shifts/assignments", icon: UserCheck },
-      { title: "Rotations", href: "/admin/shifts/rotations", icon: Repeat },
-      { title: "Exchange Requests", href: "/admin/shifts/exchange", icon: ArrowLeftRight },
-      { title: "Calendar", href: "/admin/shifts/calendar", icon: CalendarRange },
-      { title: "Policy & Rules", href: "/admin/shifts/policy", icon: Gavel },
+      { title: "Shift Schedule", href: "/admin/shifts", icon: ListChecks },
+      { title: "Shift Assignments", href: "/admin/shifts/assignments", icon: UserCheck },
+      { title: "Shift Rotations", href: "/admin/shifts/rotations", icon: Repeat },
+      { title: "Shift Exchange", href: "/admin/shifts/exchange", icon: ArrowLeftRight },
+      { title: "Shift Calendar", href: "/admin/shifts/calendar", icon: CalendarRange },
+      { title: "Shift Policies", href: "/admin/shifts/policy", icon: Gavel },
     ],
   },
   {
-    title: "Locations",
+    title: "Location Management",
     icon: MapPin,
     children: [
-      { title: "All Stores", href: "/admin/locations/stores", icon: Store },
+      { title: "Store Directory", href: "/admin/locations/stores", icon: Store },
       { title: "Store Dashboard", href: "/admin/locations/stores/dashboard", icon: LayoutGrid },
-      { title: "All Offices", href: "/admin/locations/offices", icon: Building2 },
+      { title: "Office Directory", href: "/admin/locations/offices", icon: Building2 },
       { title: "Office Dashboard", href: "/admin/locations/offices/dashboard", icon: LayoutGrid },
       { title: "Employee Transfers", href: "/admin/locations/transfers", icon: ArrowLeftRight },
     ],
@@ -152,33 +152,33 @@ const adminNavItems: NavItem[] = [
     title: "Asset Management",
     icon: Package,
     children: [
-      { title: "All Assets", href: "/admin/assets", icon: Package },
-      { title: "Add Asset", href: "/admin/assets/add", icon: PackagePlus },
-      { title: "Categories", href: "/admin/assets/categories", icon: Tags },
-      { title: "Assignments", href: "/admin/assets/assignments", icon: UserCheck },
-      { title: "Transfers", href: "/admin/assets/transfers", icon: ArrowLeftRight },
-      { title: "Maintenance", href: "/admin/assets/maintenance", icon: Wrench },
-      { title: "Reports", href: "/admin/assets/reports", icon: BarChart3 },
+      { title: "Asset Inventory", href: "/admin/assets", icon: Package },
+      { title: "Add New Asset", href: "/admin/assets/add", icon: PackagePlus },
+      { title: "Asset Categories", href: "/admin/assets/categories", icon: Tags },
+      { title: "Asset Assignments", href: "/admin/assets/assignments", icon: UserCheck },
+      { title: "Asset Transfers", href: "/admin/assets/transfers", icon: ArrowLeftRight },
+      { title: "Asset Maintenance", href: "/admin/assets/maintenance", icon: Wrench },
+      { title: "Asset Reports", href: "/admin/assets/reports", icon: BarChart3 },
     ],
   },
   {
-    title: "Payroll",
+    title: "Payroll Management",
     icon: Banknote,
     children: [
-      { title: "Salary Structure", href: "/admin/payroll/structure", icon: FileSpreadsheet },
-      { title: "Payslips", href: "/admin/payroll/payslips", icon: Receipt },
+      { title: "Salary Configuration", href: "/admin/payroll/structure", icon: FileSpreadsheet },
+      { title: "Payslip Records", href: "/admin/payroll/payslips", icon: Receipt },
     ],
   },
   {
-    title: "File Manager",
+    title: "Document Management",
     icon: FolderOpen,
     children: [
-      { title: "Employee Documents", href: "/admin/file-manager", icon: Folders },
+      { title: "Employee Files", href: "/admin/file-manager", icon: Folders },
       { title: "Document Policies", href: "/admin/file-manager/policies", icon: FileStack },
     ],
   },
   {
-    title: "Generate Letters",
+    title: "Letter Generation",
     icon: FileSignature,
     children: [
       { title: "Offer Letter", href: "/admin/letters/offer", icon: FilePlus },
@@ -188,14 +188,14 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Announcements",
+    title: "Announcement Centre",
     icon: BellRing,
     children: [
       { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
     ],
   },
   {
-    title: "Templates",
+    title: "Template Management",
     icon: LayoutTemplate,
     children: [
       { title: "Payslip Templates", href: "/admin/payroll/templates", icon: Receipt },
@@ -206,27 +206,27 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Reports",
+    title: "Reports & Analytics",
     icon: BarChart3,
     children: [
-      { title: "Overview", href: "/admin/reports", icon: ChartPie },
-      { title: "Employee", href: "/admin/reports/employee", icon: Users2 },
-      { title: "Attendance", href: "/admin/reports/attendance", icon: CalendarDays },
-      { title: "Leave", href: "/admin/reports/leave", icon: CalendarCheck },
-      { title: "Payroll", href: "/admin/reports/payroll", icon: PieChart },
+      { title: "Reports Overview", href: "/admin/reports", icon: ChartPie },
+      { title: "Employee Reports", href: "/admin/reports/employee", icon: Users2 },
+      { title: "Attendance Reports", href: "/admin/reports/attendance", icon: CalendarDays },
+      { title: "Leave Reports", href: "/admin/reports/leave", icon: CalendarCheck },
+      { title: "Payroll Reports", href: "/admin/reports/payroll", icon: PieChart },
     ],
   },
   {
-    title: "Settings",
+    title: "System Settings",
     icon: Cog,
     children: [
       { title: "Departments", href: "/admin/settings/departments", icon: Building },
       { title: "Designations", href: "/admin/settings/designations", icon: BadgeCheck },
-      { title: "Roles", href: "/admin/settings/roles", icon: Shield },
-      { title: "Company", href: "/admin/settings/company", icon: Building2 },
-      { title: "Notifications", href: "/admin/settings/notifications", icon: Bell },
-      { title: "Email", href: "/admin/settings/email", icon: Mail },
-      { title: "System", href: "/admin/settings/system", icon: Settings2 },
+      { title: "Roles & Permissions", href: "/admin/settings/roles", icon: Shield },
+      { title: "Company Settings", href: "/admin/settings/company", icon: Building2 },
+      { title: "Notification Settings", href: "/admin/settings/notifications", icon: Bell },
+      { title: "Email Settings", href: "/admin/settings/email", icon: Mail },
+      { title: "System Preferences", href: "/admin/settings/system", icon: Settings2 },
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
       { title: "Data Seeder", href: "/admin/settings/seeder", icon: Database },
     ],
@@ -241,7 +241,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
-  const [openItems, setOpenItems] = useState<string[]>(["Employees", "Leave Management"]);
+  const [openItems, setOpenItems] = useState<string[]>(["Employee Management", "Leave Management"]);
   const { data: branding } = useCompanyBranding();
 
   // Close all open items when sidebar is collapsed
