@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAssetAssignments } from '@/hooks/useAssets';
 
@@ -20,10 +20,9 @@ export default function AssetAssignments() {
   const { data: assignments, isLoading } = useAssetAssignments();
 
   return (
-    <PageContainer
-      title="Asset Assignments"
-      description="View all asset assignment history"
-    >
+    <PageContainer>
+      <PageHeader title="Asset Assignments" description="View all asset assignment history" />
+
       <Card>
         <CardContent className="p-0">
           <Table>

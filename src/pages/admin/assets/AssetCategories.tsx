@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useAssetCategories,
@@ -115,16 +115,14 @@ export default function AssetCategories() {
   };
 
   return (
-    <PageContainer
-      title="Asset Categories"
-      description="Manage asset categories for organization"
-      action={
+    <PageContainer>
+      <PageHeader title="Asset Categories">
         <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Add Category
         </Button>
-      }
-    >
+      </PageHeader>
+
       <Card>
         <CardContent className="p-0">
           <Table>

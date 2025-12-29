@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Plus, Package, Wrench } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAssetMaintenance, useCreateMaintenance, useAssets } from '@/hooks/useAssets';
 
@@ -91,16 +91,14 @@ export default function AssetMaintenance() {
   };
 
   return (
-    <PageContainer
-      title="Asset Maintenance"
-      description="Schedule and track asset maintenance"
-      action={
+    <PageContainer>
+      <PageHeader title="Asset Maintenance">
         <Button onClick={() => setShowDialog(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Schedule Maintenance
         </Button>
-      }
-    >
+      </PageHeader>
+
       <Card>
         <CardContent className="p-0">
           <Table>

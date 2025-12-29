@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAssetTransfers } from '@/hooks/useAssets';
 
@@ -26,10 +26,9 @@ export default function AssetTransfers() {
   const { data: transfers, isLoading } = useAssetTransfers();
 
   return (
-    <PageContainer
-      title="Asset Transfers"
-      description="View all asset transfer history between locations"
-    >
+    <PageContainer>
+      <PageHeader title="Asset Transfers" description="View all asset transfer history between locations" />
+
       <Card>
         <CardContent className="p-0">
           <Table>

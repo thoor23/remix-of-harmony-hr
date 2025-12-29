@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAsset, useUpdateAsset, useAssetCategories } from '@/hooks/useAssets';
 import { useAllLocations } from '@/hooks/useLocations';
@@ -86,9 +86,19 @@ export default function EditAsset() {
     try {
       await updateAsset.mutateAsync({
         id: id!,
-        ...data,
+        asset_tag: data.asset_tag,
+        name: data.name,
         category_id: data.category_id || undefined,
         location_id: data.location_id || undefined,
+        brand: data.brand,
+        model: data.model,
+        serial_number: data.serial_number,
+        purchase_date: data.purchase_date,
+        purchase_cost: data.purchase_cost,
+        warranty_expiry: data.warranty_expiry,
+        status: data.status,
+        condition: data.condition,
+        notes: data.notes,
       });
       navigate(`/admin/assets/${id}`);
     } catch (error) {
@@ -98,7 +108,8 @@ export default function EditAsset() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Edit Asset">
+      <PageContainer>
+        <PageHeader title="Edit Asset" />
         <Card>
           <CardContent className="p-6">
             <Skeleton className="h-8 w-1/3 mb-4" />
@@ -111,16 +122,14 @@ export default function EditAsset() {
   }
 
   return (
-    <PageContainer
-      title="Edit Asset"
-      description={`Editing: ${asset?.name}`}
-      action={
+    <PageContainer>
+      <PageHeader title="Edit Asset">
         <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-      }
-    >
+      </PageHeader>
+
       <Card>
         <CardHeader>
           <CardTitle>Asset Details</CardTitle>

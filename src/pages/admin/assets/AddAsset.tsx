@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useCreateAsset, useAssetCategories } from '@/hooks/useAssets';
 import { useAllLocations } from '@/hooks/useLocations';
 
@@ -53,6 +53,8 @@ export default function AddAsset() {
   const form = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
     defaultValues: {
+      asset_tag: '',
+      name: '',
       status: 'available',
       condition: 'new',
     },
@@ -61,9 +63,19 @@ export default function AddAsset() {
   const onSubmit = async (data: AssetFormData) => {
     try {
       await createAsset.mutateAsync({
-        ...data,
+        asset_tag: data.asset_tag,
+        name: data.name,
         category_id: data.category_id || undefined,
         location_id: data.location_id || undefined,
+        brand: data.brand,
+        model: data.model,
+        serial_number: data.serial_number,
+        purchase_date: data.purchase_date,
+        purchase_cost: data.purchase_cost,
+        warranty_expiry: data.warranty_expiry,
+        status: data.status,
+        condition: data.condition,
+        notes: data.notes,
       });
       navigate('/admin/assets');
     } catch (error) {
@@ -72,16 +84,14 @@ export default function AddAsset() {
   };
 
   return (
-    <PageContainer
-      title="Add New Asset"
-      description="Create a new asset record"
-      action={
+    <PageContainer>
+      <PageHeader title="Add New Asset">
         <Button variant="outline" onClick={() => navigate('/admin/assets')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-      }
-    >
+      </PageHeader>
+
       <Card>
         <CardHeader>
           <CardTitle>Asset Details</CardTitle>

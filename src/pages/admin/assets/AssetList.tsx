@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Package, Laptop, Smartphone, Armchair, Car, Wrench } from 'lucide-react';
+import { Plus, Search, Package, Laptop, Smartphone, Armchair, Car, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { PageContainer, PageHeader } from '@/components/layout/PageContainer';
 import { useAssets, useAssetCategories, useAssetStats } from '@/hooks/useAssets';
 import { useAllLocations } from '@/hooks/useLocations';
 import { format } from 'date-fns';
@@ -58,9 +58,9 @@ export default function AssetList() {
 
   const { data: assets, isLoading } = useAssets({
     search: search || undefined,
-    status: statusFilter || undefined,
-    category_id: categoryFilter || undefined,
-    location_id: locationFilter || undefined,
+    status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
+    category_id: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
+    location_id: locationFilter && locationFilter !== 'all' ? locationFilter : undefined,
   });
   const { data: categories } = useAssetCategories();
   const { data: locations } = useAllLocations();
@@ -72,16 +72,14 @@ export default function AssetList() {
   };
 
   return (
-    <PageContainer
-      title="Asset Management"
-      description="Track and manage company assets across all locations"
-      action={
+    <PageContainer>
+      <PageHeader title="Asset Management">
         <Button onClick={() => navigate('/admin/assets/add')}>
           <Plus className="mr-2 h-4 w-4" />
           Add Asset
         </Button>
-      }
-    >
+      </PageHeader>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
