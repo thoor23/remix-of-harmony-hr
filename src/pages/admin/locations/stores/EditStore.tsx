@@ -113,14 +113,13 @@ export default function EditStore() {
   if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="Edit Store" description="Loading...">
-          <Button variant="outline" asChild>
-            <Link to="/admin/locations/stores">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Stores
-            </Link>
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Store Details
           </Button>
-        </PageHeader>
+        </div>
+        <PageHeader title="Edit Store" description="Loading..." />
         <div className="max-w-3xl space-y-6">
           <Card>
             <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
@@ -137,23 +136,28 @@ export default function EditStore() {
   if (!store) {
     return (
       <PageContainer>
-        <PageHeader title="Store Not Found" description="The requested store could not be found">
-          <Button asChild>
-            <Link to="/admin/locations/stores">Back to Stores</Link>
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Stores
           </Button>
-        </PageHeader>
+        </div>
+        <PageHeader title="Store Not Found" description="The requested store could not be found" />
       </PageContainer>
     );
   }
 
   return (
     <PageContainer>
-      <PageHeader title={`Edit ${store.name}`} description="Update store information">
-        <Button variant="outline" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Store
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Store Details
         </Button>
-      </PageHeader>
+      </div>
+
+      <PageHeader title={`Edit ${store.name}`} description="Update store information" />
+
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         {/* Basic Information */}
         <Card>

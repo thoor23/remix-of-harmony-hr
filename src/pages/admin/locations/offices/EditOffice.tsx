@@ -27,12 +27,42 @@ export default function EditOffice() {
   const handleChange = (field: keyof CreateLocationInput, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
   const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); if (!id) return; await updateOffice.mutateAsync({ id, ...formData }); navigate(`/admin/locations/offices/${id}`); };
 
-  if (isLoading) return <PageContainer><PageHeader title="Edit Office" /><Skeleton className="h-64 w-full" /></PageContainer>;
-  if (!office) return <PageContainer><PageHeader title="Office Not Found" /><Button asChild><Link to="/admin/locations/offices">Back</Link></Button></PageContainer>;
+  if (isLoading) return (
+    <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(`/admin/locations/offices/${id}`)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Office Details
+        </Button>
+      </div>
+      <PageHeader title="Edit Office" />
+      <Skeleton className="h-64 w-full" />
+    </PageContainer>
+  );
+
+  if (!office) return (
+    <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Offices
+        </Button>
+      </div>
+      <PageHeader title="Office Not Found" />
+    </PageContainer>
+  );
 
   return (
     <PageContainer>
-      <PageHeader title={`Edit ${office.name}`}><Button variant="outline" onClick={() => navigate(`/admin/locations/offices/${id}`)}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button></PageHeader>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(`/admin/locations/offices/${id}`)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Office Details
+        </Button>
+      </div>
+
+      <PageHeader title={`Edit ${office.name}`} />
+
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         <Card><CardHeader><CardTitle>Basic Information</CardTitle></CardHeader><CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Name *</Label><Input value={formData.name} onChange={(e) => handleChange("name", e.target.value)} required /></div><div className="space-y-2"><Label>Code *</Label><Input value={formData.code} onChange={(e) => handleChange("code", e.target.value.toUpperCase())} required /></div></div>

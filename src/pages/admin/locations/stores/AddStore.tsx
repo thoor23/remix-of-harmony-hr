@@ -95,12 +95,15 @@ export default function AddStore() {
 
   return (
     <PageContainer>
-      <PageHeader title="Add Store" description="Create a new store location">
-        <Button variant="outline" onClick={() => navigate("/admin/locations/stores")}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Stores
         </Button>
-      </PageHeader>
+      </div>
+
+      <PageHeader title="Add Store" description="Create a new store location" />
+
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         {/* Basic Information */}
         <Card>

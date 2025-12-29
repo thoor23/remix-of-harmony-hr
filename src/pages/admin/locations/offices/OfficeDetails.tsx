@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Building2, MapPin, Phone, Mail, Globe, Calendar, DollarSign, ArrowLeft, Edit } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,52 @@ import { useLocation as useLocationData } from "@/hooks/useLocations";
 
 export default function OfficeDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: office, isLoading } = useLocationData(id || "");
 
-  if (isLoading) return <PageContainer><PageHeader title="Office Details" /><Skeleton className="h-64 w-full" /></PageContainer>;
-  if (!office) return <PageContainer><PageHeader title="Office Not Found" /><Button asChild><Link to="/admin/locations/offices">Back</Link></Button></PageContainer>;
+  if (isLoading) return (
+    <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Offices
+        </Button>
+      </div>
+      <PageHeader title="Office Details" />
+      <Skeleton className="h-64 w-full" />
+    </PageContainer>
+  );
+
+  if (!office) return (
+    <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Offices
+        </Button>
+      </div>
+      <PageHeader title="Office Not Found" />
+    </PageContainer>
+  );
 
   return (
     <PageContainer>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Offices
+        </Button>
+      </div>
+
       <PageHeader title={office.name} description={`Office Code: ${office.code}`}>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild><Link to="/admin/locations/offices"><ArrowLeft className="h-4 w-4 mr-2" />Back</Link></Button>
-          <Button asChild><Link to={`/admin/locations/offices/${id}/edit`}><Edit className="h-4 w-4 mr-2" />Edit</Link></Button>
-        </div>
+        <Button asChild>
+          <Link to={`/admin/locations/offices/${id}/edit`}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Link>
+        </Button>
       </PageHeader>
+
       <Card>
         <CardHeader><div className="flex justify-between"><CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />Office Information</CardTitle><Badge variant={office.is_active ? "default" : "secondary"}>{office.is_active ? "Active" : "Inactive"}</Badge></div></CardHeader>
         <CardContent className="space-y-4">
