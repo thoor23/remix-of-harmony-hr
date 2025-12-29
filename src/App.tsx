@@ -112,6 +112,7 @@ import AppearancePage from "./pages/admin/settings/AppearancePage";
 import EmailSettingsPage from "./pages/admin/settings/EmailSettingsPage";
 import EmailTemplatesPage from "./pages/admin/settings/EmailTemplatesPage";
 import DataSeederPage from "./pages/admin/settings/DataSeederPage";
+import PersonalSettingsPage from "./pages/admin/settings/PersonalSettingsPage";
 
 // Employee Pages
 import EmployeeDashboard from "./pages/employee/Dashboard";
@@ -151,6 +152,7 @@ const App = () => (
               >
                 <Route index element={<AdminDashboard />} />
                 <Route path="profile" element={<AdminProfilePage />} />
+                <Route path="personal-settings" element={<PersonalSettingsPage />} />
                 <Route path="employees" element={<EmployeeList />} />
                 <Route path="employees/new" element={<AddEmployee />} />
                 <Route path="employees/:id" element={<EmployeeDetails />} />
