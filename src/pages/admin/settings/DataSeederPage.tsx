@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Database, AlertTriangle, CheckCircle, Loader2, Users, Building2, Calendar, FileText, MapPin, Store } from "lucide-react";
+import { Database, AlertTriangle, CheckCircle, Loader2, Users, Building2, Calendar, FileText, MapPin, Store, Package, Wrench } from "lucide-react";
 
 export default function DataSeederPage() {
   const [isSeeding, setIsSeeding] = useState(false);
@@ -81,7 +81,7 @@ export default function DataSeederPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div className="p-4 border rounded-lg text-center">
                 <Users className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">50</div>
@@ -103,6 +103,16 @@ export default function DataSeederPage() {
                 <div className="text-sm text-muted-foreground">Offices</div>
               </div>
               <div className="p-4 border rounded-lg text-center">
+                <Package className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="text-2xl font-bold">100</div>
+                <div className="text-sm text-muted-foreground">Assets</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
+                <Wrench className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="text-2xl font-bold">5</div>
+                <div className="text-sm text-muted-foreground">Asset Categories</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
                 <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">60</div>
                 <div className="text-sm text-muted-foreground">Days Attendance</div>
@@ -122,6 +132,11 @@ export default function DataSeederPage() {
                 <li>7 stores (5 India, 2 USA) with regional settings (timezone, currency, date format)</li>
                 <li>5 offices (3 India, 2 USA) with regional settings</li>
                 <li>Employee-location assignments and 10 sample transfers</li>
+                <li><strong>5 asset categories</strong> (Laptops, Monitors, Phones, Furniture, Vehicles)</li>
+                <li><strong>100 assets</strong> with various statuses, conditions, and warranty info</li>
+                <li><strong>~40 asset assignments</strong> to employees</li>
+                <li><strong>15 asset transfers</strong> between locations</li>
+                <li><strong>30+ asset maintenance records</strong></li>
                 <li>6 leave types with balances for each employee</li>
                 <li>4 shifts with assignments linked to locations</li>
                 <li>60 days of attendance records with realistic patterns</li>
