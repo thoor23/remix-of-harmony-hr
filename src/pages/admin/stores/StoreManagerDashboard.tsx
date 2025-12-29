@@ -191,9 +191,9 @@ export default function StoreManagerDashboard() {
         <CardHeader>
           <CardTitle className="text-base">Store Employees ({totalEmployees})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loadingEmployees ? (
-            <div className="space-y-2">
+            <div className="p-4 space-y-2">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -203,46 +203,48 @@ export default function StoreManagerDashboard() {
               No employees assigned to this store
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Assignment</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeEmployees.map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">
-                      {assignment.employee?.employee_id}
-                    </TableCell>
-                    <TableCell>
-                      {`${assignment.employee?.first_name || ""} ${assignment.employee?.last_name || ""}`.trim() || "N/A"}
-                    </TableCell>
-                    <TableCell>{assignment.employee?.department?.name || "—"}</TableCell>
-                    <TableCell>{assignment.employee?.designation?.name || "—"}</TableCell>
-                    <TableCell>
-                      {assignment.is_primary ? (
-                        <Badge variant="default">Primary</Badge>
-                      ) : (
-                        <Badge variant="secondary">Secondary</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={assignment.employee?.status === "active" ? "default" : "secondary"}
-                      >
-                        {assignment.employee?.status || "Unknown"}
-                      </Badge>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Designation</TableHead>
+                    <TableHead>Assignment</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {activeEmployees.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">
+                        {assignment.employee?.employee_id}
+                      </TableCell>
+                      <TableCell>
+                        {`${assignment.employee?.first_name || ""} ${assignment.employee?.last_name || ""}`.trim() || "N/A"}
+                      </TableCell>
+                      <TableCell>{assignment.employee?.department?.name || "—"}</TableCell>
+                      <TableCell>{assignment.employee?.designation?.name || "—"}</TableCell>
+                      <TableCell>
+                        {assignment.is_primary ? (
+                          <Badge variant="default">Primary</Badge>
+                        ) : (
+                          <Badge variant="secondary">Secondary</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={assignment.employee?.status === "active" ? "default" : "secondary"}
+                        >
+                          {assignment.employee?.status || "Unknown"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
