@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.api-stores]
 verify_jwt = false
+
+[functions.api-assets]
+verify_jwt = false
