@@ -69,7 +69,7 @@ export default function AnnouncementsPage() {
     target_audience: "all",
     scheduled_at: "",
     expires_at: "",
-    banner_template_id: "",
+    banner_template_id: "none",
   });
 
   const resetForm = () => {
@@ -81,7 +81,7 @@ export default function AnnouncementsPage() {
       target_audience: "all",
       scheduled_at: "",
       expires_at: "",
-      banner_template_id: "",
+      banner_template_id: "none",
     });
     setEditingAnnouncement(null);
   };
@@ -97,7 +97,7 @@ export default function AnnouncementsPage() {
         target_audience: announcement.target_audience,
         scheduled_at: announcement.scheduled_at || "",
         expires_at: announcement.expires_at || "",
-        banner_template_id: announcement.banner_template_id || "",
+        banner_template_id: announcement.banner_template_id || "none",
       });
     } else {
       resetForm();
@@ -124,14 +124,14 @@ export default function AnnouncementsPage() {
       await updateAnnouncement.mutateAsync({
         id: editingAnnouncement.id,
         ...formData,
-        banner_template_id: formData.banner_template_id || null,
+        banner_template_id: formData.banner_template_id === "none" ? null : formData.banner_template_id,
       });
     } else {
       await createAnnouncement.mutateAsync({
         ...formData,
         scheduled_at: formData.scheduled_at || null,
         expires_at: formData.expires_at || null,
-        banner_template_id: formData.banner_template_id || null,
+        banner_template_id: formData.banner_template_id === "none" ? null : formData.banner_template_id,
       });
     }
     setIsDialogOpen(false);
@@ -550,7 +550,7 @@ export default function AnnouncementsPage() {
                     <SelectValue placeholder="Select a banner template..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Banner</SelectItem>
+                    <SelectItem value="none">No Banner</SelectItem>
                     {bannerTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
                     ))}
