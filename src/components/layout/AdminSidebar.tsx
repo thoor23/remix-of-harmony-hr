@@ -96,6 +96,7 @@ const adminNavItems: NavItem[] = [
     icon: CalendarDays,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: Eye },
+      { title: "All Attendance", href: "/admin/attendance/all", icon: Clock },
       { title: "Regularization", href: "/admin/attendance/regularization", icon: ClipboardEdit },
       { title: "Policy & Rules", href: "/admin/attendance/policy", icon: BookOpen },
     ],
