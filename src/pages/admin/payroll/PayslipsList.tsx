@@ -485,8 +485,18 @@ export default function PayslipsList() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No payslips found
+                  <TableCell colSpan={7} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">No payslips found</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {searchQuery ? "Try adjusting your search" : "Generate payslips to get started"}
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

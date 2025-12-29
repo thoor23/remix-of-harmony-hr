@@ -165,8 +165,18 @@ export default function HolidayCalendar() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            No holidays found for {selectedYear}
+          <CardContent className="py-12 px-4">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <Calendar className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium">No holidays found</h3>
+                <p className="text-muted-foreground text-sm">
+                  No holidays have been added for {selectedYear}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

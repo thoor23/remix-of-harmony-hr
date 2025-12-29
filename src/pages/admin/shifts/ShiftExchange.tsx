@@ -400,8 +400,18 @@ export default function ShiftExchange() {
             <TableBody>
               {paginatedItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No exchange requests found
+                  <TableCell colSpan={8} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <ArrowLeftRight className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">No exchange requests found</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {searchQuery ? "Try adjusting your search" : "No shift exchange requests yet"}
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

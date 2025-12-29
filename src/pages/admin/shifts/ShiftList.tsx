@@ -445,8 +445,18 @@ export default function ShiftList() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
-                    No shifts found
+                  <TableCell colSpan={visibleColumns.length + 2} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <Clock className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">No shifts found</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {search ? "Try adjusting your search" : "Get started by creating your first shift"}
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
