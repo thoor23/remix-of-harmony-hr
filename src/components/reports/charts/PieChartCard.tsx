@@ -36,15 +36,17 @@ export function PieChartCard({ title, data, className }: PieChartCardProps) {
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={80}
+                innerRadius={65}
+                outerRadius={90}
                 paddingAngle={2}
                 dataKey="value"
+                stroke="none"
               >
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.color || COLORS[index % COLORS.length]}
+                    stroke="none"
                   />
                 ))}
               </Pie>
