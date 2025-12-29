@@ -92,7 +92,7 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Attendance",
+    title: "Attendance Management",
     icon: CalendarDays,
     children: [
       { title: "Overview", href: "/admin/attendance", icon: Eye },
