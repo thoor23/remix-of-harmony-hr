@@ -76,6 +76,8 @@ import {
   Tags,
   Wrench,
   Database,
+  Headset,
+  Ticket,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -159,6 +161,13 @@ const adminNavItems: NavItem[] = [
       { title: "Asset Transfers", href: "/admin/assets/transfers", icon: ArrowLeftRight },
       { title: "Asset Maintenance", href: "/admin/assets/maintenance", icon: Wrench },
       { title: "Asset Reports", href: "/admin/assets/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Helpdesk",
+    icon: Headset,
+    children: [
+      { title: "All Tickets", href: "/admin/helpdesk", icon: Ticket },
     ],
   },
   {

@@ -81,6 +81,9 @@ import AssetTransfers from "./pages/admin/assets/AssetTransfers";
 import AssetMaintenance from "./pages/admin/assets/AssetMaintenance";
 import AssetReports from "./pages/admin/assets/AssetReports";
 
+// Helpdesk Pages
+import HelpdeskManagement from "./pages/admin/helpdesk/HelpdeskManagement";
+
 // Settings Pages
 import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
 import DesignationsPage from "./pages/admin/settings/DesignationsPage";
@@ -199,6 +202,8 @@ const App = () => (
                 <Route path="assets/transfers" element={<AssetTransfers />} />
                 <Route path="assets/maintenance" element={<AssetMaintenance />} />
                 <Route path="assets/reports" element={<AssetReports />} />
+                {/* Helpdesk Routes */}
+                <Route path="helpdesk" element={<HelpdeskManagement />} />
                 {/* Legacy Store Routes - Redirects */}
                 <Route path="stores" element={<StoreList />} />
                 <Route path="stores/add" element={<AddStore />} />
