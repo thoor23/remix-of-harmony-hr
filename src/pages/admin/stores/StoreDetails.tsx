@@ -4,7 +4,7 @@ import {
   Building2, MapPin, Phone, Mail, Clock, Users, Edit, UserPlus, 
   Trash2, ArrowLeft 
 } from "lucide-react";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +96,15 @@ export default function StoreDetails() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Store Details" subtitle="Loading...">
+      <PageContainer>
+        <PageHeader title="Store Details" description="Loading...">
+          <Button variant="outline" asChild>
+            <Link to="/admin/stores">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Link>
+          </Button>
+        </PageHeader>
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
@@ -114,19 +122,19 @@ export default function StoreDetails() {
 
   if (!store) {
     return (
-      <PageContainer title="Store Not Found" subtitle="The requested store could not be found">
-        <Button asChild>
-          <Link to="/admin/stores">Back to Stores</Link>
-        </Button>
+      <PageContainer>
+        <PageHeader title="Store Not Found" description="The requested store could not be found">
+          <Button asChild>
+            <Link to="/admin/stores">Back to Stores</Link>
+          </Button>
+        </PageHeader>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer
-      title={store.name}
-      subtitle={`Store Code: ${store.code}`}
-      actions={
+    <PageContainer>
+      <PageHeader title={store.name} description={`Store Code: ${store.code}`}>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/stores">
@@ -141,8 +149,7 @@ export default function StoreDetails() {
             </Link>
           </Button>
         </div>
-      }
-    >
+      </PageHeader>
       <div className="space-y-6">
         {/* Store Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

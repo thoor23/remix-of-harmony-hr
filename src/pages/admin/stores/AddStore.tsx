@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { useNavigate, Link } from "react-router-dom";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,16 +61,13 @@ export default function AddStore() {
   };
 
   return (
-    <PageContainer
-      title="Add Store"
-      subtitle="Create a new store location"
-      actions={
+    <PageContainer>
+      <PageHeader title="Add Store" description="Create a new store location">
         <Button variant="outline" onClick={() => navigate("/admin/stores")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Stores
         </Button>
-      }
-    >
+      </PageHeader>
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         {/* Basic Information */}
         <Card>

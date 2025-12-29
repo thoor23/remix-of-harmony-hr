@@ -40,6 +40,7 @@ import {
   Settings2,
   Bell,
   Palette,
+  Store,
   FolderOpen,
   Folders,
   FileStack,
@@ -127,6 +128,13 @@ const adminNavItems: NavItem[] = [
       { title: "Exchange Requests", href: "/admin/shifts/exchange", icon: ArrowLeftRight },
       { title: "Calendar", href: "/admin/shifts/calendar", icon: CalendarRange },
       { title: "Policy & Rules", href: "/admin/shifts/policy", icon: Gavel },
+    ],
+  },
+  {
+    title: "Stores",
+    icon: Store,
+    children: [
+      { title: "All Stores", href: "/admin/stores", icon: Store },
     ],
   },
   {

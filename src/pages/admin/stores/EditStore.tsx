@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +74,15 @@ export default function EditStore() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Edit Store" subtitle="Loading...">
+      <PageContainer>
+        <PageHeader title="Edit Store" description="Loading...">
+          <Button variant="outline" asChild>
+            <Link to="/admin/stores">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Stores
+            </Link>
+          </Button>
+        </PageHeader>
         <div className="max-w-3xl space-y-6">
           <Card>
             <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
@@ -90,25 +98,24 @@ export default function EditStore() {
 
   if (!store) {
     return (
-      <PageContainer title="Store Not Found" subtitle="The requested store could not be found">
-        <Button asChild>
-          <Link to="/admin/stores">Back to Stores</Link>
-        </Button>
+      <PageContainer>
+        <PageHeader title="Store Not Found" description="The requested store could not be found">
+          <Button asChild>
+            <Link to="/admin/stores">Back to Stores</Link>
+          </Button>
+        </PageHeader>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer
-      title={`Edit ${store.name}`}
-      subtitle="Update store information"
-      actions={
+    <PageContainer>
+      <PageHeader title={`Edit ${store.name}`} description="Update store information">
         <Button variant="outline" onClick={() => navigate(`/admin/stores/${id}`)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Store
         </Button>
-      }
-    >
+      </PageHeader>
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         {/* Basic Information */}
         <Card>

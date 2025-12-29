@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Building2, MapPin, Phone, Mail, Users, Edit, Trash2, Eye } from "lucide-react";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,18 +40,15 @@ export default function StoreList() {
   };
 
   return (
-    <PageContainer
-      title="Stores"
-      subtitle="Manage your store locations and assignments"
-      actions={
+    <PageContainer>
+      <PageHeader title="Stores" description="Manage your store locations and assignments">
         <Button asChild>
           <Link to="/admin/stores/add">
             <Plus className="h-4 w-4 mr-2" />
             Add Store
           </Link>
         </Button>
-      }
-    >
+      </PageHeader>
       <div className="space-y-6">
         {/* Search */}
         <div className="relative max-w-md">
