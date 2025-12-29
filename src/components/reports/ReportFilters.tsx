@@ -18,11 +18,19 @@ import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
+interface Store {
+  id: string;
+  name: string;
+}
+
 interface ReportFiltersProps {
   onDateRangeChange?: (range: DateRange | undefined) => void;
   onDepartmentChange?: (department: string) => void;
+  onStoreChange?: (storeId: string) => void;
   departments?: string[];
+  stores?: Store[];
   showDepartmentFilter?: boolean;
+  showStoreFilter?: boolean;
   className?: string;
 }
 
@@ -37,8 +45,11 @@ const datePresets = [
 export function ReportFilters({
   onDateRangeChange,
   onDepartmentChange,
+  onStoreChange,
   departments = [],
+  stores = [],
   showDepartmentFilter = true,
+  showStoreFilter = false,
   className,
 }: ReportFiltersProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -131,6 +142,22 @@ export function ReportFilters({
             {departments.map((dept) => (
               <SelectItem key={dept} value={dept}>
                 {dept}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {showStoreFilter && stores.length > 0 && (
+        <Select onValueChange={onStoreChange} defaultValue="all">
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Store" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Stores</SelectItem>
+            {stores.map((store) => (
+              <SelectItem key={store.id} value={store.id}>
+                {store.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -69,6 +69,7 @@ import {
   BellRing,
   CalendarDays,
   CalendarCheck,
+  LayoutGrid,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -135,6 +136,7 @@ const adminNavItems: NavItem[] = [
     icon: Store,
     children: [
       { title: "All Stores", href: "/admin/stores", icon: Store },
+      { title: "Store Dashboard", href: "/admin/stores/dashboard", icon: LayoutGrid },
     ],
   },
   {
