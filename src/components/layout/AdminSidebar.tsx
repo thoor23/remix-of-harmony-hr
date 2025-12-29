@@ -39,7 +39,7 @@ import {
   FileCheck,
   ClipboardEdit,
   BookOpen,
-  List,
+  ListChecks,
   UserCog,
   RefreshCw,
   ArrowLeftRight,
@@ -62,6 +62,10 @@ import {
   FileOutput,
   TrendingUp,
   LayoutTemplate,
+  List,
+  CalendarClock,
+  ClipboardPen,
+  Scale,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -105,10 +109,10 @@ const adminNavItems: NavItem[] = [
     title: "Leave Management",
     icon: CalendarCheck,
     children: [
-      { title: "Overview", href: "/admin/leaves", icon: Eye },
-      { title: "All Leaves", href: "/admin/leaves/all", icon: List },
-      { title: "Leave Requests", href: "/admin/leaves/requests", icon: FileCheck },
-      { title: "Policy & Rules", href: "/admin/leaves/policy", icon: BookOpen },
+      { title: "Overview", href: "/admin/leaves", icon: PieChart },
+      { title: "All Leaves", href: "/admin/leaves/all", icon: CalendarClock },
+      { title: "Leave Requests", href: "/admin/leaves/requests", icon: ClipboardPen },
+      { title: "Policy & Rules", href: "/admin/leaves/policy", icon: Scale },
     ],
   },
   {
