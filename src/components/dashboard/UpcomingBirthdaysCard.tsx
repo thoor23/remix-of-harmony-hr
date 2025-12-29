@@ -30,16 +30,16 @@ export function UpcomingBirthdaysCard() {
   const { data: birthdays = [], isLoading } = useUpcomingBirthdays(parseInt(selectedMonth));
 
   return (
-    <Card className="dark:border-border/50">
-      <CardHeader className="pb-3">
+    <Card className="dark:border-border/50 h-[320px] flex flex-col">
+      <CardHeader className="pb-2 shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Cake className="h-5 w-5 text-pink-500" />
-            Employee Birthdays
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Cake className="h-4 w-4 text-pink-500" />
+            Birthdays
           </CardTitle>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[130px] h-8">
-              <SelectValue placeholder="Select month" />
+            <SelectTrigger className="w-[100px] h-7 text-xs">
+              <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
               {months.map((month) => (
@@ -51,22 +51,22 @@ export function UpcomingBirthdaysCard() {
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="flex-1 overflow-hidden pt-0">
+        <div className="h-full overflow-y-auto pr-2 space-y-2">
           {isLoading ? (
             [...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
+              <div key={i} className="flex items-center gap-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
                 <div className="flex-1">
-                  <Skeleton className="h-4 w-32 mb-1" />
-                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-24 mb-1" />
+                  <Skeleton className="h-2 w-16" />
                 </div>
               </div>
             ))
           ) : birthdays.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Cake className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No birthdays in {months.find(m => m.value === selectedMonth)?.label}</p>
+            <div className="text-center py-6 text-muted-foreground">
+              <Cake className="h-6 w-6 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">No birthdays in {months.find(m => m.value === selectedMonth)?.label}</p>
             </div>
           ) : (
             birthdays.map((birthday, index) => {
@@ -76,23 +76,23 @@ export function UpcomingBirthdaysCard() {
               return (
                 <div
                   key={birthday.id || index}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="h-8 w-8">
                     <AvatarImage src={birthday.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs bg-pink-500/10 text-pink-500">
-                      {initials || <Cake className="h-4 w-4" />}
+                    <AvatarFallback className="text-[10px] bg-pink-500/10 text-pink-500">
+                      {initials || <Cake className="h-3 w-3" />}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
+                    <p className="font-medium text-xs truncate">
                       {birthday.first_name} {birthday.last_name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {birthday.department_name || "No Department"}
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {birthday.department_name || "No Dept"}
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-xs shrink-0">
+                  <Badge variant="outline" className="text-[10px] shrink-0 h-5">
                     {format(birthDate, "MMM d")}
                   </Badge>
                 </div>
