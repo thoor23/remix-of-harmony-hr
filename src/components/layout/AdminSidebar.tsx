@@ -71,6 +71,10 @@ import {
   CalendarDays,
   CalendarCheck,
   LayoutGrid,
+  Package,
+  PackagePlus,
+  Tags,
+  Wrench,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -141,6 +145,18 @@ const adminNavItems: NavItem[] = [
       { title: "All Offices", href: "/admin/locations/offices", icon: Building2 },
       { title: "Office Dashboard", href: "/admin/locations/offices/dashboard", icon: LayoutGrid },
       { title: "Employee Transfers", href: "/admin/locations/transfers", icon: ArrowLeftRight },
+    ],
+  },
+  {
+    title: "Asset Management",
+    icon: Package,
+    children: [
+      { title: "All Assets", href: "/admin/assets", icon: Package },
+      { title: "Add Asset", href: "/admin/assets/add", icon: PackagePlus },
+      { title: "Categories", href: "/admin/assets/categories", icon: Tags },
+      { title: "Assignments", href: "/admin/assets/assignments", icon: UserCheck },
+      { title: "Transfers", href: "/admin/assets/transfers", icon: ArrowLeftRight },
+      { title: "Maintenance", href: "/admin/assets/maintenance", icon: Wrench },
     ],
   },
   {
