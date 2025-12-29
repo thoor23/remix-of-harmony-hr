@@ -7,6 +7,7 @@ export interface DashboardStats {
   pendingLeaveRequests: number;
   todayAttendance: number;
   attendancePercentage: number;
+  onLeaveToday: number;
   newJoinersThisMonth: number;
   openTickets: number;
   departmentWiseCount: { department: string; count: number }[];
@@ -53,6 +54,15 @@ export interface UpcomingEvent {
   date: string;
   description?: string;
   avatar_url?: string;
+}
+
+export interface BirthdayEmployee {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  date_of_birth: string;
+  department_name: string | null;
 }
 
 export interface LeaveBreakdownItem {
@@ -105,6 +115,14 @@ export function useUpcomingEvents() {
   return useQuery({
     queryKey: ["upcoming-events"],
     queryFn: () => api.get<UpcomingEvent[]>('/dashboard/upcoming-events'),
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+}
+
+export function useUpcomingBirthdays(month: number) {
+  return useQuery({
+    queryKey: ["upcoming-birthdays", month],
+    queryFn: () => api.get<BirthdayEmployee[]>(`/dashboard/birthdays?month=${month}`),
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 }
