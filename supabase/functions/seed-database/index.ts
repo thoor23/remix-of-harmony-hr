@@ -587,11 +587,11 @@ Deno.serve(async (req) => {
     }
     console.log('Created employee transfers');
 
-    // Step 13: Create salary structures
+    // Step 13: Create salary structures (batch insert)
     console.log('Creating salary structures...');
-    for (const emp of createdEmployees) {
+    const salaryStructuresToCreate = createdEmployees.map(emp => {
       const salary = getSalaryByLevel(emp.designationLevel);
-      await supabase.from('salary_structures').insert({
+      return {
         employee_id: emp.id,
         basic_salary: salary.basic,
         hra: salary.hra,
@@ -602,16 +602,19 @@ Deno.serve(async (req) => {
         tax_deduction: salary.tax,
         other_deductions: Math.floor(salary.basic * 0.02),
         effective_from: emp.joiningDate
-      });
-    }
+      };
+    });
+    const { error: ssError } = await supabase.from('salary_structures').insert(salaryStructuresToCreate);
+    if (ssError) console.log(`Salary structures error: ${ssError.message}`);
     console.log('Created salary structures');
 
-    // Step 14: Create leave balances
+    // Step 14: Create leave balances (batch insert)
     console.log('Creating leave balances...');
+    const leaveBalancesToCreate = [];
     for (const emp of createdEmployees) {
       for (const lt of createdLeaveTypes || []) {
         const usedDays = Math.floor(Math.random() * Math.min(lt.max_days / 2, 5));
-        await supabase.from('leave_balances').insert({
+        leaveBalancesToCreate.push({
           employee_id: emp.id,
           leave_type_id: lt.id,
           year: 2025,
@@ -621,35 +624,36 @@ Deno.serve(async (req) => {
         });
       }
     }
+    const { error: lbError } = await supabase.from('leave_balances').insert(leaveBalancesToCreate);
+    if (lbError) console.log(`Leave balances error: ${lbError.message}`);
     console.log('Created leave balances');
 
-    // Step 15: Create shift assignments
+    // Step 15: Create shift assignments (batch insert)
     console.log('Creating shift assignments...');
-    for (const emp of createdEmployees) {
-      const shift = getRandomElement(createdShifts || []);
-      await supabase.from('shift_assignments').insert({
-        employee_id: emp.id,
-        shift_id: shift.id,
-        start_date: emp.joiningDate,
-        is_active: true,
-        store_id: emp.locationId
-      });
-    }
+    const shiftAssignmentsToCreate = createdEmployees.map(emp => ({
+      employee_id: emp.id,
+      shift_id: getRandomElement(createdShifts || []).id,
+      start_date: emp.joiningDate,
+      is_active: true,
+      store_id: emp.locationId
+    }));
+    const { error: saError } = await supabase.from('shift_assignments').insert(shiftAssignmentsToCreate);
+    if (saError) console.log(`Shift assignments error: ${saError.message}`);
     console.log('Created shift assignments');
 
-    // Step 16: Create attendance records (last 60 days)
+    // Step 16: Create attendance records (batch insert - last 60 days)
     console.log('Creating attendance records...');
     const today = new Date();
     const sixtyDaysAgo = new Date(today);
     sixtyDaysAgo.setDate(today.getDate() - 60);
 
+    const attendanceRecordsToCreate = [];
     for (const emp of createdEmployees) {
       const empJoinDate = new Date(emp.joiningDate);
       const startDate = empJoinDate > sixtyDaysAgo ? empJoinDate : sixtyDaysAgo;
       
       for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
         const dayOfWeek = d.getDay();
-        // Skip weekends
         if (dayOfWeek === 0 || dayOfWeek === 6) continue;
         
         const dateStr = d.toISOString().split('T')[0];
@@ -679,7 +683,7 @@ Deno.serve(async (req) => {
         
         const workHours = status === 'present' || status === 'late' ? 8 + Math.random() : (status === 'half-day' ? 4 : 0);
 
-        await supabase.from('attendance_records').insert({
+        attendanceRecordsToCreate.push({
           employee_id: emp.id,
           date: dateStr,
           status,
@@ -690,10 +694,17 @@ Deno.serve(async (req) => {
         });
       }
     }
-    console.log('Created attendance records');
+    // Insert in batches of 500 to avoid payload limits
+    for (let i = 0; i < attendanceRecordsToCreate.length; i += 500) {
+      const batch = attendanceRecordsToCreate.slice(i, i + 500);
+      const { error: attError } = await supabase.from('attendance_records').insert(batch);
+      if (attError) console.log(`Attendance batch error: ${attError.message}`);
+    }
+    console.log(`Created ${attendanceRecordsToCreate.length} attendance records`);
 
-    // Step 17: Create leave requests
+    // Step 17: Create leave requests (batch insert)
     console.log('Creating leave requests...');
+    const leaveRequestsToCreate = [];
     for (let i = 0; i < 100; i++) {
       const emp = getRandomElement(createdEmployees);
       const leaveType = getRandomElement(createdLeaveTypes || []);
@@ -705,7 +716,7 @@ Deno.serve(async (req) => {
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + days - 1);
 
-      await supabase.from('leave_requests').insert({
+      leaveRequestsToCreate.push({
         employee_id: emp.id,
         leave_type_id: leaveType.id,
         start_date: startDate,
@@ -725,11 +736,14 @@ Deno.serve(async (req) => {
         store_id: emp.locationId
       });
     }
+    const { error: lrError } = await supabase.from('leave_requests').insert(leaveRequestsToCreate);
+    if (lrError) console.log(`Leave requests error: ${lrError.message}`);
     console.log('Created leave requests');
 
-    // Step 18: Create payslips (last 6 months)
+    // Step 18: Create payslips (batch insert - last 6 months)
     console.log('Creating payslips...');
     const months = ['2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
+    const payslipsToCreate = [];
     for (const emp of createdEmployees) {
       const salary = getSalaryByLevel(emp.designationLevel);
       const grossEarnings = salary.basic + salary.hra + salary.transport + salary.medical + salary.other;
@@ -741,7 +755,7 @@ Deno.serve(async (req) => {
         const payMonth = new Date(month + '-01');
         if (payMonth < empJoinDate) continue;
 
-        await supabase.from('payslips').insert({
+        payslipsToCreate.push({
           employee_id: emp.id,
           pay_period: month,
           pay_date: `${month}-28`,
@@ -753,9 +767,11 @@ Deno.serve(async (req) => {
         });
       }
     }
+    const { error: psError } = await supabase.from('payslips').insert(payslipsToCreate);
+    if (psError) console.log(`Payslips error: ${psError.message}`);
     console.log('Created payslips');
 
-    // Step 19: Create announcements
+    // Step 19: Create announcements (batch insert)
     console.log('Creating announcements...');
     const announcements = [
       { title: 'Office Closed for Diwali', content: 'The office will be closed from October 20-21 for Diwali celebrations. Wishing everyone a happy and prosperous Diwali!', type: 'holiday', priority: 'high' },
@@ -768,19 +784,17 @@ Deno.serve(async (req) => {
       { title: 'New Joinees Welcome', content: 'Please welcome our 5 new team members joining this month. Introduction session on Monday.', type: 'general', priority: 'low' },
       { title: 'Training Program Registration', content: 'Leadership training program registrations open. Limited seats available. Apply by January 10th.', type: 'event', priority: 'medium' },
       { title: 'Year End Party', content: 'Annual year-end celebration on December 31st at Grand Ballroom. Dress code: Festive Formal.', type: 'event', priority: 'high' }
-    ];
-
-    for (const ann of announcements) {
-      await supabase.from('announcements').insert({
-        ...ann,
-        target_audience: 'all',
-        created_by: createdEmployees[0].userId,
-        is_active: true
-      });
-    }
+    ].map(ann => ({
+      ...ann,
+      target_audience: 'all',
+      created_by: createdEmployees[0].userId,
+      is_active: true
+    }));
+    const { error: annError } = await supabase.from('announcements').insert(announcements);
+    if (annError) console.log(`Announcements error: ${annError.message}`);
     console.log('Created announcements');
 
-    // Step 20: Create helpdesk tickets
+    // Step 20: Create helpdesk tickets (batch insert)
     console.log('Creating helpdesk tickets...');
     const ticketSubjects = [
       { subject: 'Cannot access email', category: 'it', priority: 'high' },
@@ -795,41 +809,49 @@ Deno.serve(async (req) => {
       { subject: 'Software license request', category: 'it', priority: 'medium' }
     ];
 
+    const ticketsToCreate = [];
     for (let i = 0; i < 25; i++) {
       const emp = getRandomElement(createdEmployees);
       const ticket = getRandomElement(ticketSubjects);
       const status = Math.random() < 0.6 ? 'open' : (Math.random() < 0.8 ? 'in-progress' : 'resolved');
+      ticketsToCreate.push({
+        employee_id: emp.id,
+        subject: ticket.subject,
+        description: `Detailed description for: ${ticket.subject}. Please help resolve this issue at the earliest.`,
+        category: ticket.category,
+        priority: ticket.priority,
+        status,
+        resolved_at: status === 'resolved' ? new Date().toISOString() : null
+      });
+    }
+    
+    const { data: createdTickets, error: ticketError } = await supabase
+      .from('helpdesk_tickets')
+      .insert(ticketsToCreate)
+      .select();
+    if (ticketError) console.log(`Tickets error: ${ticketError.message}`);
 
-      const { data: createdTicket } = await supabase
-        .from('helpdesk_tickets')
-        .insert({
-          employee_id: emp.id,
-          subject: ticket.subject,
-          description: `Detailed description for: ${ticket.subject}. Please help resolve this issue at the earliest.`,
-          category: ticket.category,
-          priority: ticket.priority,
-          status,
-          resolved_at: status === 'resolved' ? new Date().toISOString() : null
-        })
-        .select()
-        .single();
-
-      // Add messages to ticket
-      if (createdTicket) {
-        await supabase.from('ticket_messages').insert({
-          ticket_id: createdTicket.id,
+    // Create messages for tickets (batch insert)
+    if (createdTickets && createdTickets.length > 0) {
+      const messagesToCreate = [];
+      for (let i = 0; i < createdTickets.length; i++) {
+        const ticket = createdTickets[i];
+        const emp = createdEmployees.find(e => e.id === ticket.employee_id) || createdEmployees[0];
+        messagesToCreate.push({
+          ticket_id: ticket.id,
           sender_id: emp.id,
           message: `Hi, I need help with ${ticket.subject.toLowerCase()}. This is affecting my work.`
         });
-
-        if (status !== 'open') {
-          await supabase.from('ticket_messages').insert({
-            ticket_id: createdTicket.id,
-            sender_id: createdEmployees[0].id, // Admin responds
+        if (ticket.status !== 'open') {
+          messagesToCreate.push({
+            ticket_id: ticket.id,
+            sender_id: createdEmployees[0].id,
             message: 'Thank you for reporting this. We are looking into it and will update you soon.'
           });
         }
       }
+      const { error: msgError } = await supabase.from('ticket_messages').insert(messagesToCreate);
+      if (msgError) console.log(`Ticket messages error: ${msgError.message}`);
     }
     console.log('Created helpdesk tickets');
 
@@ -967,13 +989,22 @@ Deno.serve(async (req) => {
       notes: 'Assigned for official use'
     }));
 
-    // Update assets with assigned_to
-    for (const assignment of assignmentsToCreate) {
-      await supabase.from('assets').update({ 
-        assigned_to: assignment.employee_id,
-        assigned_date: assignment.assigned_date 
-      }).eq('id', assignment.asset_id);
-    }
+    // Update assets with assigned_to using batch approach
+    const assetUpdates = assignmentsToCreate.map(a => ({
+      id: a.asset_id,
+      assigned_to: a.employee_id,
+      assigned_date: a.assigned_date
+    }));
+    
+    // Process updates in parallel batches
+    await Promise.all(
+      assetUpdates.map(update => 
+        supabase.from('assets').update({ 
+          assigned_to: update.assigned_to,
+          assigned_date: update.assigned_date 
+        }).eq('id', update.id)
+      )
+    );
 
     const { error: assignError } = await supabase
       .from('asset_assignments')
