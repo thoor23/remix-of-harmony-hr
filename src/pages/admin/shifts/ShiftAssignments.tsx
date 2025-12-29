@@ -64,6 +64,7 @@ import { toast } from "sonner";
 interface AssignmentFormData {
   employeeId: string;
   shiftId: string;
+  storeId: string;
   startDate: string;
   endDate: string;
 }
@@ -95,6 +96,7 @@ export default function ShiftAssignments() {
   const [form, setForm] = useState<AssignmentFormData>({
     employeeId: "",
     shiftId: "",
+    storeId: "",
     startDate: new Date().toISOString().split("T")[0],
     endDate: "",
   });
@@ -192,6 +194,7 @@ export default function ShiftAssignments() {
         setForm({
           employeeId: assignment.employee_id,
           shiftId: assignment.shift_id,
+          storeId: assignment.store_id || "",
           startDate: assignment.start_date,
           endDate: assignment.end_date || "",
         });
@@ -201,6 +204,7 @@ export default function ShiftAssignments() {
       setForm({
         employeeId: "",
         shiftId: "",
+        storeId: "",
         startDate: new Date().toISOString().split("T")[0],
         endDate: "",
       });
@@ -217,6 +221,7 @@ export default function ShiftAssignments() {
           id: editingAssignment,
           data: {
             shift_id: form.shiftId,
+            store_id: form.storeId || undefined,
             start_date: form.startDate,
             end_date: form.endDate || undefined,
           },
@@ -228,6 +233,7 @@ export default function ShiftAssignments() {
         {
           employee_id: form.employeeId,
           shift_id: form.shiftId,
+          store_id: form.storeId || undefined,
           start_date: form.startDate,
           end_date: form.endDate || undefined,
         },
@@ -623,6 +629,26 @@ export default function ShiftAssignments() {
                         />
                         {shift.name} ({shift.start_time} - {shift.end_time})
                       </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Store</Label>
+              <Select 
+                value={form.storeId || "none"} 
+                onValueChange={(v) => setForm({ ...form, storeId: v === "none" ? "" : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select store (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific store</SelectItem>
+                  {stores.filter(s => s.is_active).map((store) => (
+                    <SelectItem key={store.id} value={store.id}>
+                      {store.name} ({store.code})
                     </SelectItem>
                   ))}
                 </SelectContent>

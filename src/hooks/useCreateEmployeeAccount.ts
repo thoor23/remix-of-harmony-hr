@@ -18,6 +18,7 @@ interface CreateEmployeeAccountData {
     employment_type: string;
     status?: string;
     reporting_to?: string;
+    primary_store_id?: string;
     address_street?: string;
     address_city?: string;
     address_state?: string;

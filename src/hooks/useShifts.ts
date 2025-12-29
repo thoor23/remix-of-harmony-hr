@@ -93,6 +93,7 @@ export function useCreateShiftAssignment() {
     mutationFn: async (assignment: {
       employee_id: string;
       shift_id: string;
+      store_id?: string;
       start_date: string;
       end_date?: string;
     }) => {
@@ -119,6 +120,7 @@ export function useUpdateShiftAssignment() {
       id: string;
       data: {
         shift_id?: string;
+        store_id?: string;
         start_date?: string;
         end_date?: string;
         is_active?: boolean;
