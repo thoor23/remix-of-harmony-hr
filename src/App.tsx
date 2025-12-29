@@ -70,6 +70,16 @@ import OfficeDetails from "./pages/admin/locations/offices/OfficeDetails";
 import OfficeDashboard from "./pages/admin/locations/offices/OfficeDashboard";
 import EmployeeTransfers from "./pages/admin/locations/EmployeeTransfers";
 
+// Asset Management Pages
+import AssetList from "./pages/admin/assets/AssetList";
+import AddAsset from "./pages/admin/assets/AddAsset";
+import AssetDetails from "./pages/admin/assets/AssetDetails";
+import EditAsset from "./pages/admin/assets/EditAsset";
+import AssetCategories from "./pages/admin/assets/AssetCategories";
+import AssetAssignments from "./pages/admin/assets/AssetAssignments";
+import AssetTransfers from "./pages/admin/assets/AssetTransfers";
+import AssetMaintenance from "./pages/admin/assets/AssetMaintenance";
+
 // Settings Pages
 import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
 import DesignationsPage from "./pages/admin/settings/DesignationsPage";
@@ -178,6 +188,15 @@ const App = () => (
                 <Route path="locations/offices/:id/edit" element={<EditOffice />} />
                 {/* Location Routes - Transfers */}
                 <Route path="locations/transfers" element={<EmployeeTransfers />} />
+                {/* Asset Management Routes */}
+                <Route path="assets" element={<AssetList />} />
+                <Route path="assets/add" element={<AddAsset />} />
+                <Route path="assets/:id" element={<AssetDetails />} />
+                <Route path="assets/:id/edit" element={<EditAsset />} />
+                <Route path="assets/categories" element={<AssetCategories />} />
+                <Route path="assets/assignments" element={<AssetAssignments />} />
+                <Route path="assets/transfers" element={<AssetTransfers />} />
+                <Route path="assets/maintenance" element={<AssetMaintenance />} />
                 {/* Legacy Store Routes - Redirects */}
                 <Route path="stores" element={<StoreList />} />
                 <Route path="stores/add" element={<AddStore />} />
