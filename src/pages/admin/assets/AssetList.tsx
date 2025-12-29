@@ -172,7 +172,7 @@ export default function AssetList() {
     paginatedData,
     setCurrentPage,
     setPageSize,
-  } = usePagination({ data: sortedAssets, initialPageSize: 10 });
+  } = usePagination({ data: sortedAssets, defaultPageSize: 10 });
 
   const handleToggleColumn = (columnId: string, visible: boolean) => {
     setColumns((prev) =>
