@@ -279,10 +279,18 @@ export default function AllAttendance() {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="All Attendance"
-        description="View all employee attendance records"
-      />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">All Attendance</h1>
+          <p className="text-muted-foreground">View all employee attendance records</p>
+        </div>
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "all" | "today")}>
+          <TabsList>
+            <TabsTrigger value="all">All Attendance</TabsTrigger>
+            <TabsTrigger value="today">Today's Attendance</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       <Card>
         <DataTableToolbar
@@ -297,78 +305,68 @@ export default function AllAttendance() {
 
         {showFilter && (
           <div className="p-4 border-b bg-muted/30">
-            <div className="flex flex-col gap-4">
-              {/* View Mode Toggle */}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "all" | "today")}>
-                <TabsList>
-                  <TabsTrigger value="all">All Attendance</TabsTrigger>
-                  <TabsTrigger value="today">Today's Attendance</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or employee ID..."
-                    className="pl-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
-                {viewMode === "all" && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full md:w-[280px] justify-start text-left font-normal",
-                          !dateRange && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
-
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="present">Present</SelectItem>
-                    <SelectItem value="absent">Absent</SelectItem>
-                    <SelectItem value="late">Late</SelectItem>
-                    <SelectItem value="on-leave">On Leave</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or employee ID..."
+                  className="pl-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
               </div>
+
+              {viewMode === "all" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full md:w-[280px] justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="on-leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
