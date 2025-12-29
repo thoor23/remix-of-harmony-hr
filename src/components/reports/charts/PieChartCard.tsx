@@ -1,10 +1,12 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { Pie, PieChart } from "recharts";
+import { Pie, PieChart, Legend } from "recharts";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 
@@ -24,6 +26,7 @@ interface PieChartCardProps {
     label: string;
   };
   footerDescription?: string;
+  showLegend?: boolean;
 }
 
 export function PieChartCard({ 
@@ -32,7 +35,8 @@ export function PieChartCard({
   data, 
   className,
   footerTrend,
-  footerDescription 
+  footerDescription,
+  showLegend = true
 }: PieChartCardProps) {
   // Generate chart config from data
   const chartConfig: ChartConfig = {
@@ -80,6 +84,12 @@ export function PieChartCard({
               outerRadius={90}
               strokeWidth={0}
             />
+            {showLegend && (
+              <ChartLegend
+                content={<ChartLegendContent nameKey="name" />}
+                className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              />
+            )}
           </PieChart>
         </ChartContainer>
       </CardContent>
