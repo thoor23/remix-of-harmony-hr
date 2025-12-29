@@ -58,6 +58,10 @@ import ShiftAssignments from "./pages/admin/shifts/ShiftAssignments";
 import ShiftRotations from "./pages/admin/shifts/ShiftRotations";
 import ShiftCalendar from "./pages/admin/shifts/ShiftCalendar";
 import ShiftExchange from "./pages/admin/shifts/ShiftExchange";
+import StoreList from "./pages/admin/stores/StoreList";
+import AddStore from "./pages/admin/stores/AddStore";
+import EditStore from "./pages/admin/stores/EditStore";
+import StoreDetails from "./pages/admin/stores/StoreDetails";
 
 // Settings Pages
 import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
@@ -153,6 +157,11 @@ const App = () => (
                 <Route path="shifts/exchange" element={<ShiftExchange />} />
                 <Route path="shifts/calendar" element={<ShiftCalendar />} />
                 <Route path="shifts/policy" element={<ShiftPolicyPage />} />
+                {/* Store Routes */}
+                <Route path="stores" element={<StoreList />} />
+                <Route path="stores/add" element={<AddStore />} />
+                <Route path="stores/:id" element={<StoreDetails />} />
+                <Route path="stores/:id/edit" element={<EditStore />} />
                 {/* Settings Routes */}
                 <Route path="settings/departments" element={<DepartmentsPage />} />
                 <Route path="settings/designations" element={<DesignationsPage />} />
