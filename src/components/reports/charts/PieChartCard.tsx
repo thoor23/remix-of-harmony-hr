@@ -79,14 +79,14 @@ export function PieChartCard({
             <Pie
               data={chartData}
               dataKey="value"
-              nameKey="name"
+              nameKey="key"
               innerRadius={60}
               outerRadius={90}
               strokeWidth={0}
             />
             {showLegend && (
               <ChartLegend
-                content={<ChartLegendContent nameKey="name" />}
+                content={<ChartLegendContent nameKey="key" />}
                 className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
               />
             )}
