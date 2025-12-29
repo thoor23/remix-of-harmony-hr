@@ -426,24 +426,9 @@ export default function CompanySettingsPage() {
 
         {/* Company Information */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Company Information</h3>
-              <p className="text-sm text-muted-foreground">Basic information about your organization</p>
-            </div>
-            <Button 
-              onClick={saveCompanySettings}
-              disabled={updateBranding.isPending}
-            >
-              {updateBranding.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
+          <div>
+            <h3 className="text-lg font-semibold">Company Information</h3>
+            <p className="text-sm text-muted-foreground">Basic information about your organization</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -567,6 +552,25 @@ export default function CompanySettingsPage() {
               </Select>
             </div>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button 
+            onClick={saveCompanySettings}
+            disabled={updateBranding.isPending}
+          >
+            {updateBranding.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
         </div>
       </div>
     </PageContainer>
