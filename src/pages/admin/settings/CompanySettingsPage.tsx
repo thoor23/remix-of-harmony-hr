@@ -356,7 +356,7 @@ export default function CompanySettingsPage() {
                     onBlur={() => handleLogoSizeCommit([formData.logoSize])}
                     min={24}
                     max={40}
-                    className="w-16"
+                    className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
@@ -384,7 +384,7 @@ export default function CompanySettingsPage() {
                     onBlur={() => handleNameSizeCommit([formData.nameSize])}
                     min={12}
                     max={22}
-                    className="w-16"
+                    className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
