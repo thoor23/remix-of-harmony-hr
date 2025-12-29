@@ -75,6 +75,7 @@ import {
   PackagePlus,
   Tags,
   Wrench,
+  Database,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -227,6 +228,7 @@ const adminNavItems: NavItem[] = [
       { title: "Email", href: "/admin/settings/email", icon: Mail },
       { title: "System", href: "/admin/settings/system", icon: Settings2 },
       { title: "Appearance", href: "/admin/settings/appearance", icon: Palette },
+      { title: "Data Seeder", href: "/admin/settings/seeder", icon: Database },
     ],
   },
   { title: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
