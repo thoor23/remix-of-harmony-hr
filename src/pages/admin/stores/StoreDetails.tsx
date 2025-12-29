@@ -263,9 +263,9 @@ export default function StoreDetails() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loadingEmployees ? (
-              <div className="space-y-2">
+              <div className="p-4 space-y-2">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
@@ -276,54 +276,56 @@ export default function StoreDetails() {
                 <p className="text-muted-foreground">No employees assigned to this store</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Designation</TableHead>
-                    <TableHead>Primary</TableHead>
-                    <TableHead>Since</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {storeEmployees?.map((assignment) => (
-                    <TableRow key={assignment.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {assignment.employee?.first_name} {assignment.employee?.last_name}
-                          </p>
-                          <p className="text-sm text-muted-foreground font-mono">
-                            {assignment.employee?.employee_id}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{assignment.employee?.department?.name || "-"}</TableCell>
-                      <TableCell>{assignment.employee?.designation?.name || "-"}</TableCell>
-                      <TableCell>
-                        {assignment.is_primary && (
-                          <Badge variant="secondary">Primary</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(assignment.start_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setRemoveEmployee(assignment)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Designation</TableHead>
+                      <TableHead>Primary</TableHead>
+                      <TableHead>Since</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {storeEmployees?.map((assignment) => (
+                      <TableRow key={assignment.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {assignment.employee?.first_name} {assignment.employee?.last_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground font-mono">
+                              {assignment.employee?.employee_id}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{assignment.employee?.department?.name || "—"}</TableCell>
+                        <TableCell>{assignment.employee?.designation?.name || "—"}</TableCell>
+                        <TableCell>
+                          {assignment.is_primary && (
+                            <Badge variant="secondary">Primary</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(assignment.start_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRemoveEmployee(assignment)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
