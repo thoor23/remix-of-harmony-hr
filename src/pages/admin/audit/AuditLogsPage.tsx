@@ -59,7 +59,7 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
     { id: "module", header: "Module", visible: !module }, // Hide module column when viewing module-specific logs
     { id: "description", header: "Description", visible: true },
     { id: "performer_name", header: "Performed By", visible: true },
-    { id: "ip_address", header: "IP Address", visible: false },
+    { id: "ip_address", header: "IP Address", visible: true },
   ]);
 
   const { data: logs = [], isLoading, isFetching } = useAuditLogs({
