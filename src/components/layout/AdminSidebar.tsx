@@ -247,7 +247,7 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
       )}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b">
+      <div className="flex items-center gap-2 px-4 h-14 border-b">
         <Avatar 
           className="rounded-lg flex-shrink-0"
           style={{ width: branding?.logoSize || 32, height: branding?.logoSize || 32 }}
