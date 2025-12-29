@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { useLeaveRequests, useLeaveTypes, LeaveRequestWithDetails } from "@/hooks/useLeaves";
+import { useStores } from "@/hooks/useStores";
 import { usePagination } from "@/hooks/usePagination";
 import { format, isWithinInterval, startOfDay, endOfDay, isToday } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
@@ -45,6 +46,7 @@ const getInitialColumns = (): ColumnDef[] => [
   { id: "employee_name", header: "Employee", accessor: "employee_name", visible: true },
   { id: "employee_id", header: "Employee ID", accessor: "employee_code", visible: true },
   { id: "department", header: "Department", accessor: "department", visible: true },
+  { id: "store", header: "Store", accessor: "store_name", visible: true },
   { id: "leave_type", header: "Leave Type", accessor: "leave_type_name", visible: true },
   { id: "start_date", header: "From", accessor: "start_date", visible: true },
   { id: "end_date", header: "To", accessor: "end_date", visible: true },
@@ -60,6 +62,7 @@ export default function AllLeaves() {
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [storeFilter, setStoreFilter] = useState<string>("all");
   const [showFilter, setShowFilter] = useState(true);
   const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -68,16 +71,21 @@ export default function AllLeaves() {
 
   const { data: leaveRequests = [], isLoading, refetch, isFetching } = useLeaveRequests();
   const { data: leaveTypes = [] } = useLeaveTypes();
+  const { data: stores = [] } = useStores();
 
   // Transform leave requests with additional info
   const transformedRecords = useMemo(() => {
     return leaveRequests.map((record: LeaveRequestWithDetails) => {
       const emp = record.employee;
+      const recordAny = record as any;
+      const store = stores.find(s => s.id === recordAny.store_id);
       return {
         ...record,
         employee_name: emp ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim() : 'Unknown',
         employee_code: emp?.employee_id || '-',
         department: emp?.department?.name || '-',
+        store_name: store?.name || '-',
+        store_id: recordAny.store_id,
         avatar_url: emp?.avatar_url || null,
         first_name: emp?.first_name || '',
         last_name: emp?.last_name || '',
@@ -85,7 +93,7 @@ export default function AllLeaves() {
         leave_type_color: record.leave_type?.color || '#888',
       };
     });
-  }, [leaveRequests]);
+  }, [leaveRequests, stores]);
 
   const filteredRecords = useMemo(() => {
     return transformedRecords.filter((record) => {
@@ -94,6 +102,7 @@ export default function AllLeaves() {
         record.employee_code.toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || record.status === statusFilter;
+      const matchesStore = storeFilter === "all" || record.store_id === storeFilter;
 
       // Filter by view mode
       const startDate = new Date(record.start_date);
@@ -107,9 +116,9 @@ export default function AllLeaves() {
         matchesDate = isWithinInterval(startDate, { start: from, end: to });
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesStore && matchesDate;
     });
-  }, [transformedRecords, search, statusFilter, viewMode, dateRange]);
+  }, [transformedRecords, search, statusFilter, storeFilter, viewMode, dateRange]);
 
   const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
@@ -354,6 +363,18 @@ export default function AllLeaves() {
                   </PopoverContent>
                 </Popover>
               )}
+
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stores</SelectItem>
+                  {stores.map((store: any) => (
+                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-40">

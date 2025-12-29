@@ -34,6 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { useAttendanceRecords } from "@/hooks/useAttendance";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useStores } from "@/hooks/useStores";
 import { usePagination } from "@/hooks/usePagination";
 import { format, isWithinInterval, startOfDay, endOfDay, isToday } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
@@ -46,6 +47,7 @@ const getInitialColumns = (): ColumnDef[] => [
   { id: "employee_name", header: "Employee", accessor: "employee_name", visible: true },
   { id: "employee_id", header: "Employee ID", accessor: "employee_code", visible: true },
   { id: "department", header: "Department", accessor: "department", visible: true },
+  { id: "store", header: "Store", accessor: "store_name", visible: true },
   { id: "date", header: "Date", accessor: "date", visible: true },
   { id: "check_in", header: "Clock In", accessor: "check_in", visible: true },
   { id: "check_out", header: "Clock Out", accessor: "check_out", visible: true },
@@ -62,6 +64,7 @@ export default function AllAttendance() {
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [storeFilter, setStoreFilter] = useState<string>("all");
   const [showFilter, setShowFilter] = useState(true);
   const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -70,6 +73,7 @@ export default function AllAttendance() {
 
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
   const { data: attendanceRecords = [], isLoading: attendanceLoading, refetch, isFetching } = useAttendanceRecords();
+  const { data: stores = [] } = useStores();
 
   const isLoading = employeesLoading || attendanceLoading;
 
@@ -77,18 +81,20 @@ export default function AllAttendance() {
   const transformedRecords = useMemo(() => {
     return attendanceRecords.map((record: any) => {
       const employee = employees.find(e => e.id === record.employee_id);
+      const store = stores.find(s => s.id === record.store_id);
       return {
         ...record,
         employee_name: employee ? `${employee.first_name || ''} ${employee.last_name || ''}`.trim() : 'Unknown',
         employee_code: employee?.employee_id || '-',
         department: employee?.department?.name || '-',
+        store_name: store?.name || '-',
         avatar_url: employee?.avatar_url || null,
         first_name: employee?.first_name || '',
         last_name: employee?.last_name || '',
         break_duration: record.break_duration || '-',
       };
     });
-  }, [attendanceRecords, employees]);
+  }, [attendanceRecords, employees, stores]);
 
   const filteredRecords = useMemo(() => {
     return transformedRecords.filter((record) => {
@@ -97,6 +103,7 @@ export default function AllAttendance() {
         record.employee_code.toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || record.status === statusFilter;
+      const matchesStore = storeFilter === "all" || record.store_id === storeFilter;
 
       // Filter by view mode
       const recordDate = new Date(record.date);
@@ -110,9 +117,9 @@ export default function AllAttendance() {
         matchesDate = isWithinInterval(recordDate, { start: from, end: to });
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesStore && matchesDate;
     });
-  }, [transformedRecords, search, statusFilter, viewMode, dateRange]);
+  }, [transformedRecords, search, statusFilter, storeFilter, viewMode, dateRange]);
 
   const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
@@ -354,6 +361,18 @@ export default function AllAttendance() {
                   </PopoverContent>
                 </Popover>
               )}
+
+              <Select value={storeFilter} onValueChange={setStoreFilter}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stores</SelectItem>
+                  {stores.map((store: any) => (
+                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-40">
