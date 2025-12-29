@@ -25,6 +25,8 @@ import EditEmployee from "./pages/admin/employees/EditEmployee";
 import AttendanceManagement from "./pages/admin/attendance/AttendanceManagement";
 import AllAttendance from "./pages/admin/attendance/AllAttendance";
 import AttendanceRegularizationPage from "./pages/admin/attendance/AttendanceRegularizationPage";
+import LeaveOverview from "./pages/admin/leaves/LeaveOverview";
+import AllLeaves from "./pages/admin/leaves/AllLeaves";
 import LeaveManagement from "./pages/admin/leaves/LeaveManagement";
 import LeavePolicy from "./pages/admin/leaves/LeavePolicy";
 import SalaryStructure from "./pages/admin/payroll/SalaryStructure";
@@ -118,7 +120,9 @@ const App = () => (
                 <Route path="attendance/all" element={<AllAttendance />} />
                 <Route path="attendance/regularization" element={<AttendanceRegularizationPage />} />
                 <Route path="attendance/policy" element={<AttendancePolicyPage />} />
-                <Route path="leaves" element={<LeaveManagement />} />
+                <Route path="leaves" element={<LeaveOverview />} />
+                <Route path="leaves/all" element={<AllLeaves />} />
+                <Route path="leaves/requests" element={<LeaveManagement />} />
                 <Route path="leaves/policy" element={<LeavePolicy />} />
                 <Route path="payroll/structure" element={<SalaryStructure />} />
                 <Route path="payroll/payslips" element={<PayslipsList />} />
