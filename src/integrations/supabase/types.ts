@@ -161,6 +161,7 @@ export type Database = {
           id: string
           notes: string | null
           status: string
+          store_id: string | null
           work_hours: number | null
         }
         Insert: {
@@ -172,6 +173,7 @@ export type Database = {
           id?: string
           notes?: string | null
           status?: string
+          store_id?: string | null
           work_hours?: number | null
         }
         Update: {
@@ -183,6 +185,7 @@ export type Database = {
           id?: string
           notes?: string | null
           status?: string
+          store_id?: string | null
           work_hours?: number | null
         }
         Relationships: [
@@ -191,6 +194,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -476,6 +486,57 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_store_assignments: {
+        Row: {
+          created_at: string
+          employee_id: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          start_date: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          start_date?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          start_date?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_store_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_store_assignments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address_city: string | null
@@ -503,6 +564,7 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          primary_store_id: string | null
           reporting_to: string | null
           status: string
           updated_at: string
@@ -534,6 +596,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          primary_store_id?: string | null
           reporting_to?: string | null
           status?: string
           updated_at?: string
@@ -565,6 +628,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          primary_store_id?: string | null
           reporting_to?: string | null
           status?: string
           updated_at?: string
@@ -583,6 +647,13 @@ export type Database = {
             columns: ["designation_id"]
             isOneToOne: false
             referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_primary_store_id_fkey"
+            columns: ["primary_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -803,6 +874,7 @@ export type Database = {
           reason: string | null
           start_date: string
           status: string
+          store_id: string | null
           updated_at: string
         }
         Insert: {
@@ -818,6 +890,7 @@ export type Database = {
           reason?: string | null
           start_date: string
           status?: string
+          store_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -833,6 +906,7 @@ export type Database = {
           reason?: string | null
           start_date?: string
           status?: string
+          store_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -855,6 +929,13 @@ export type Database = {
             columns: ["leave_type_id"]
             isOneToOne: false
             referencedRelation: "leave_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -1219,6 +1300,7 @@ export type Database = {
           is_active: boolean | null
           shift_id: string
           start_date: string
+          store_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1228,6 +1310,7 @@ export type Database = {
           is_active?: boolean | null
           shift_id: string
           start_date: string
+          store_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1237,6 +1320,7 @@ export type Database = {
           is_active?: boolean | null
           shift_id?: string
           start_date?: string
+          store_id?: string | null
         }
         Relationships: [
           {
@@ -1251,6 +1335,13 @@ export type Database = {
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -1364,6 +1455,71 @@ export type Database = {
           start_time?: string
         }
         Relationships: []
+      }
+      stores: {
+        Row: {
+          address_city: string | null
+          address_country: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip_code: string | null
+          closing_time: string | null
+          code: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          manager_id: string | null
+          name: string
+          opening_time: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip_code?: string | null
+          closing_time?: string | null
+          code: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name: string
+          opening_time?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip_code?: string | null
+          closing_time?: string | null
+          code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name?: string
+          opening_time?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
@@ -1572,7 +1728,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "hr" | "manager" | "employee"
+      app_role: "admin" | "hr" | "manager" | "employee" | "store_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1700,7 +1856,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "hr", "manager", "employee"],
+      app_role: ["admin", "hr", "manager", "employee", "store_manager"],
     },
   },
 } as const

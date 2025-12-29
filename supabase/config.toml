@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.seed-database]
 verify_jwt = false
+
+[functions.api-stores]
+verify_jwt = false
