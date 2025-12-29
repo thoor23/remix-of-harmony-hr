@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -23,13 +31,15 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { useAttendanceRecords } from "@/hooks/useAttendance";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePagination } from "@/hooks/usePagination";
-import { format } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay, isToday } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
@@ -45,10 +55,11 @@ const getInitialColumns = (): ColumnDef[] => [
 ];
 
 export default function AllAttendance() {
-  const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [viewMode, setViewMode] = useState<"all" | "today">("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    to: new Date(),
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showFilter, setShowFilter] = useState(true);
@@ -58,7 +69,7 @@ export default function AllAttendance() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
-  const { data: attendanceRecords = [], isLoading: attendanceLoading, refetch, isFetching } = useAttendanceRecords(selectedMonth);
+  const { data: attendanceRecords = [], isLoading: attendanceLoading, refetch, isFetching } = useAttendanceRecords();
 
   const isLoading = employeesLoading || attendanceLoading;
 
@@ -87,9 +98,21 @@ export default function AllAttendance() {
 
       const matchesStatus = statusFilter === "all" || record.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      // Filter by view mode
+      const recordDate = new Date(record.date);
+      let matchesDate = true;
+      
+      if (viewMode === "today") {
+        matchesDate = isToday(recordDate);
+      } else if (dateRange?.from) {
+        const from = startOfDay(dateRange.from);
+        const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+        matchesDate = isWithinInterval(recordDate, { start: from, end: to });
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [transformedRecords, search, statusFilter]);
+  }, [transformedRecords, search, statusFilter, viewMode, dateRange]);
 
   const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
@@ -134,17 +157,6 @@ export default function AllAttendance() {
     columns.filter(col => col.visible !== false), 
     [columns]
   );
-
-  const getMonthOptions = () => {
-    const options = [];
-    for (let i = 0; i < 6; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = format(date, "MMMM yyyy");
-      options.push({ value, label });
-    }
-    return options;
-  };
 
   const handleToggleColumn = (columnId: string, visible: boolean) => {
     setColumns(prev =>
@@ -285,40 +297,78 @@ export default function AllAttendance() {
 
         {showFilter && (
           <div className="p-4 border-b bg-muted/30">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or employee ID..."
-                  className="pl-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+            <div className="flex flex-col gap-4">
+              {/* View Mode Toggle */}
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "all" | "today")}>
+                <TabsList>
+                  <TabsTrigger value="all">All Attendance</TabsTrigger>
+                  <TabsTrigger value="today">Today's Attendance</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or employee ID..."
+                    className="pl-9"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                {viewMode === "all" && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full md:w-[280px] justify-start text-left font-normal",
+                          !dateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full md:w-40">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="late">Late</SelectItem>
+                    <SelectItem value="on-leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getMonthOptions().map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="present">Present</SelectItem>
-                  <SelectItem value="absent">Absent</SelectItem>
-                  <SelectItem value="late">Late</SelectItem>
-                  <SelectItem value="on-leave">On Leave</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         )}
