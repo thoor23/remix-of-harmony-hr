@@ -469,22 +469,14 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Custom scrollbar */
+  /* Hide scrollbar but allow scrolling */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    display: none;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-muted/50;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
