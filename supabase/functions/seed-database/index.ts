@@ -221,6 +221,11 @@ Deno.serve(async (req) => {
     // Step 1: Clear existing data in order (including new tables)
     console.log('Clearing existing data...');
     const tablesToClear = [
+      'asset_maintenance',
+      'asset_transfers',
+      'asset_assignments',
+      'assets',
+      'asset_categories',
       'ticket_messages',
       'helpdesk_tickets',
       'attendance_regularization_requests',
@@ -857,6 +862,189 @@ Deno.serve(async (req) => {
     }
     console.log('Updated department counts');
 
+    // Step 23: Create asset categories
+    console.log('Creating asset categories...');
+    const assetCategories = [
+      { name: 'Laptops', code: 'LAP', description: 'Laptop computers and notebooks', icon: 'Laptop' },
+      { name: 'Mobile Phones', code: 'MOB', description: 'Mobile phones and tablets', icon: 'Smartphone' },
+      { name: 'Furniture', code: 'FUR', description: 'Office furniture and fixtures', icon: 'Armchair' },
+      { name: 'Vehicles', code: 'VEH', description: 'Company vehicles', icon: 'Car' },
+      { name: 'IT Equipment', code: 'IT', description: 'IT equipment and peripherals', icon: 'Monitor' }
+    ];
+
+    const { data: createdCategories, error: catError } = await supabase
+      .from('asset_categories')
+      .insert(assetCategories)
+      .select();
+    
+    if (catError) throw new Error(`Failed to create asset categories: ${catError.message}`);
+    console.log(`Created ${createdCategories?.length} asset categories`);
+
+    const categoryMap = new Map(createdCategories?.map(c => [c.code, c.id]) || []);
+
+    // Step 24: Create assets
+    console.log('Creating assets...');
+    const assetTemplates = [
+      // Laptops
+      { category: 'LAP', name: 'MacBook Pro 14"', brand: 'Apple', model: 'M3 Pro', cost: 199900 },
+      { category: 'LAP', name: 'MacBook Air 13"', brand: 'Apple', model: 'M2', cost: 114900 },
+      { category: 'LAP', name: 'ThinkPad X1 Carbon', brand: 'Lenovo', model: 'Gen 11', cost: 145000 },
+      { category: 'LAP', name: 'Dell XPS 15', brand: 'Dell', model: '9530', cost: 175000 },
+      { category: 'LAP', name: 'HP EliteBook 840', brand: 'HP', model: 'G10', cost: 125000 },
+      // Phones
+      { category: 'MOB', name: 'iPhone 15 Pro', brand: 'Apple', model: 'A2848', cost: 134900 },
+      { category: 'MOB', name: 'iPhone 14', brand: 'Apple', model: 'A2649', cost: 79900 },
+      { category: 'MOB', name: 'Samsung Galaxy S24', brand: 'Samsung', model: 'SM-S921B', cost: 79999 },
+      { category: 'MOB', name: 'OnePlus 12', brand: 'OnePlus', model: 'CPH2573', cost: 64999 },
+      // Furniture
+      { category: 'FUR', name: 'Ergonomic Office Chair', brand: 'Herman Miller', model: 'Aeron', cost: 145000 },
+      { category: 'FUR', name: 'Standing Desk', brand: 'Flexispot', model: 'E7 Pro', cost: 45000 },
+      { category: 'FUR', name: 'Executive Desk', brand: 'Godrej', model: 'Interio', cost: 35000 },
+      { category: 'FUR', name: 'Conference Table', brand: 'Nilkamal', model: 'Matrix', cost: 75000 },
+      // Vehicles
+      { category: 'VEH', name: 'Toyota Innova Crysta', brand: 'Toyota', model: '2024', cost: 2500000 },
+      { category: 'VEH', name: 'Maruti Swift Dzire', brand: 'Maruti Suzuki', model: '2024', cost: 850000 },
+      { category: 'VEH', name: 'Honda City', brand: 'Honda', model: '2024', cost: 1350000 },
+      // IT Equipment
+      { category: 'IT', name: 'Dell Monitor 27"', brand: 'Dell', model: 'U2722D', cost: 45000 },
+      { category: 'IT', name: 'HP LaserJet Printer', brand: 'HP', model: 'M428fdw', cost: 52000 },
+      { category: 'IT', name: 'Logitech Webcam', brand: 'Logitech', model: 'C920', cost: 8500 },
+      { category: 'IT', name: 'Apple Magic Keyboard', brand: 'Apple', model: 'A1843', cost: 12900 }
+    ];
+
+    const statuses = ['available', 'assigned', 'maintenance', 'available', 'assigned', 'assigned'];
+    const conditions = ['new', 'good', 'good', 'fair', 'good', 'new'];
+    const allStoreIds = createdLocations?.map(s => s.id) || [];
+
+    const assetsToCreate = [];
+    let assetCounter = 1;
+
+    for (let i = 0; i < 100; i++) {
+      const template = getRandomElement(assetTemplates);
+      const status = getRandomElement(statuses);
+      const locationId = getRandomElement(allStoreIds);
+      const purchaseDate = getRandomDate(new Date('2022-01-01'), new Date('2024-12-01'));
+      const warrantyExpiry = new Date(purchaseDate);
+      warrantyExpiry.setFullYear(warrantyExpiry.getFullYear() + 2);
+
+      assetsToCreate.push({
+        asset_tag: `AST-2024-${String(assetCounter).padStart(4, '0')}`,
+        name: template.name,
+        category_id: categoryMap.get(template.category),
+        brand: template.brand,
+        model: template.model,
+        serial_number: `SN${Date.now()}${Math.random().toString(36).substring(7).toUpperCase()}`,
+        purchase_date: purchaseDate,
+        purchase_cost: template.cost + Math.floor(Math.random() * 10000) - 5000,
+        warranty_expiry: warrantyExpiry.toISOString().split('T')[0],
+        status,
+        condition: getRandomElement(conditions),
+        location_id: locationId,
+        notes: status === 'maintenance' ? 'Under scheduled maintenance' : null
+      });
+      assetCounter++;
+    }
+
+    const { data: createdAssets, error: assetError } = await supabase
+      .from('assets')
+      .insert(assetsToCreate)
+      .select();
+    
+    if (assetError) throw new Error(`Failed to create assets: ${assetError.message}`);
+    console.log(`Created ${createdAssets?.length} assets`);
+
+    // Step 25: Create asset assignments for assigned assets
+    console.log('Creating asset assignments...');
+    const assignedAssets = createdAssets?.filter(a => a.status === 'assigned') || [];
+    const employeeIds = createdEmployees.map(e => e.id);
+
+    const assignmentsToCreate = assignedAssets.slice(0, 40).map((asset, index) => ({
+      asset_id: asset.id,
+      employee_id: employeeIds[index % employeeIds.length],
+      location_id: asset.location_id,
+      assigned_date: getRandomDate(new Date('2024-01-01'), new Date('2024-12-01')),
+      condition_on_assign: asset.condition,
+      notes: 'Assigned for official use'
+    }));
+
+    // Update assets with assigned_to
+    for (const assignment of assignmentsToCreate) {
+      await supabase.from('assets').update({ 
+        assigned_to: assignment.employee_id,
+        assigned_date: assignment.assigned_date 
+      }).eq('id', assignment.asset_id);
+    }
+
+    const { error: assignError } = await supabase
+      .from('asset_assignments')
+      .insert(assignmentsToCreate);
+    
+    if (assignError) console.log(`Note: Asset assignments error: ${assignError.message}`);
+    console.log(`Created ${assignmentsToCreate.length} asset assignments`);
+
+    // Step 26: Create asset transfers
+    console.log('Creating asset transfers...');
+    const availableAssets = createdAssets?.filter(a => a.status === 'available') || [];
+    const transfersToCreate = availableAssets.slice(0, 15).map((asset, index) => {
+      const fromLocation = allStoreIds[index % allStoreIds.length];
+      let toLocation = allStoreIds[(index + 1) % allStoreIds.length];
+      if (fromLocation === toLocation && allStoreIds.length > 1) {
+        toLocation = allStoreIds[(index + 2) % allStoreIds.length];
+      }
+      return {
+        asset_id: asset.id,
+        from_location_id: fromLocation,
+        to_location_id: toLocation,
+        transfer_date: getRandomDate(new Date('2024-06-01'), new Date('2024-12-01')),
+        reason: getRandomElement(['Reallocation', 'Store requirement', 'Inventory balancing', 'New store opening']),
+        status: 'completed',
+        notes: 'Transfer completed successfully'
+      };
+    });
+
+    const { error: transferError } = await supabase
+      .from('asset_transfers')
+      .insert(transfersToCreate);
+    
+    if (transferError) console.log(`Note: Asset transfers error: ${transferError.message}`);
+    console.log(`Created ${transfersToCreate.length} asset transfers`);
+
+    // Step 27: Create asset maintenance records
+    console.log('Creating asset maintenance records...');
+    const maintenanceAssets = createdAssets?.filter(a => a.status === 'maintenance') || [];
+    const allAssets = createdAssets || [];
+    
+    const maintenanceToCreate = [
+      ...maintenanceAssets.map(asset => ({
+        asset_id: asset.id,
+        type: 'repair',
+        description: 'Scheduled repair and maintenance',
+        scheduled_date: getRandomDate(new Date('2024-10-01'), new Date('2025-01-15')),
+        status: 'in_progress',
+        cost: Math.floor(Math.random() * 5000) + 1000,
+        vendor: getRandomElement(['Apple Service Center', 'Lenovo Support', 'Local IT Partner', 'Dell Service']),
+        notes: 'Under maintenance'
+      })),
+      ...allAssets.slice(0, 20).map(asset => ({
+        asset_id: asset.id,
+        type: getRandomElement(['service', 'upgrade', 'inspection']),
+        description: getRandomElement(['Annual service', 'RAM upgrade', 'Routine inspection', 'Software update']),
+        scheduled_date: getRandomDate(new Date('2024-01-01'), new Date('2024-09-01')),
+        completed_date: getRandomDate(new Date('2024-01-15'), new Date('2024-09-15')),
+        status: 'completed',
+        cost: Math.floor(Math.random() * 3000) + 500,
+        vendor: getRandomElement(['Apple Service Center', 'HP Care', 'Dell Support', 'IT Solutions Inc']),
+        notes: 'Completed successfully'
+      }))
+    ];
+
+    const { error: maintError } = await supabase
+      .from('asset_maintenance')
+      .insert(maintenanceToCreate);
+    
+    if (maintError) console.log(`Note: Asset maintenance error: ${maintError.message}`);
+    console.log(`Created ${maintenanceToCreate.length} maintenance records`);
+
     console.log('Database seeding completed successfully!');
 
     return new Response(
@@ -872,7 +1060,12 @@ Deno.serve(async (req) => {
           leaveTypes: createdLeaveTypes?.length || 0,
           shifts: createdShifts?.length || 0,
           holidays: holidays2025.length,
-          transfers: 10
+          transfers: 10,
+          assetCategories: createdCategories?.length || 0,
+          assets: createdAssets?.length || 0,
+          assetAssignments: assignmentsToCreate.length,
+          assetTransfers: transfersToCreate.length,
+          assetMaintenance: maintenanceToCreate.length
         },
         testCredentials: {
           admin: 'admin@company.com / Test@123',
