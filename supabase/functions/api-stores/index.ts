@@ -53,9 +53,12 @@ serve(async (req) => {
       return data?.id;
     };
 
-    // GET /stores - Get all stores
+    // GET /stores - Get all stores (with optional type filter)
     if (req.method === "GET" && (path === "" || path === "/")) {
       const isAdmin = await isAdminOrHR();
+      const typeFilter = url.searchParams.get("type"); // 'store' or 'office'
+      
+      console.log(`[api-stores] Fetching locations with type filter: ${typeFilter || 'all'}`);
       
       let query = supabase
         .from("stores")
@@ -67,6 +70,11 @@ serve(async (req) => {
 
       if (!isAdmin) {
         query = query.eq("is_active", true);
+      }
+
+      // Apply type filter if provided
+      if (typeFilter && (typeFilter === 'store' || typeFilter === 'office')) {
+        query = query.eq("type", typeFilter);
       }
 
       const { data, error } = await query;
@@ -177,6 +185,7 @@ serve(async (req) => {
         .insert({
           name: body.name,
           code: body.code,
+          type: body.type || 'store',
           address_street: body.address_street,
           address_city: body.address_city,
           address_state: body.address_state,
@@ -187,6 +196,10 @@ serve(async (req) => {
           manager_id: body.manager_id || null,
           opening_time: body.opening_time,
           closing_time: body.closing_time,
+          timezone: body.timezone || 'Asia/Kolkata',
+          date_format: body.date_format || 'DD/MM/YYYY',
+          currency: body.currency || 'INR',
+          locale: body.locale || 'en-IN',
           is_active: body.is_active ?? true,
         })
         .select()
@@ -243,6 +256,7 @@ serve(async (req) => {
         .update({
           name: body.name,
           code: body.code,
+          type: body.type,
           address_street: body.address_street,
           address_city: body.address_city,
           address_state: body.address_state,
@@ -253,6 +267,10 @@ serve(async (req) => {
           manager_id: body.manager_id || null,
           opening_time: body.opening_time,
           closing_time: body.closing_time,
+          timezone: body.timezone,
+          date_format: body.date_format,
+          currency: body.currency,
+          locale: body.locale,
           is_active: body.is_active,
         })
         .eq("id", storeId)

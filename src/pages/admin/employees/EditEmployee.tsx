@@ -15,7 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
-import { useStores } from "@/hooks/useStores";
+import { useAllLocations } from "@/hooks/useLocations";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,7 +114,7 @@ export default function EditEmployee() {
   const { data: departments = [] } = useDepartments();
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
-  const { data: stores = [] } = useStores();
+  const { data: locations = [] } = useAllLocations();
   const { data: employeeRole, isLoading: roleLoading } = useEmployeeRole(employee?.user_id || null);
   const updateEmployee = useUpdateEmployee();
   const updateEmployeeAccount = useUpdateEmployeeAccount();
@@ -553,19 +553,19 @@ export default function EditEmployee() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="primaryStore">Primary Store</Label>
+                    <Label htmlFor="primaryStore">Primary Location</Label>
                     <Select
                       value={formData.primaryStore || "none"}
                       onValueChange={(value) => handleInputChange("primaryStore", value === "none" ? "" : value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select primary store" />
+                        <SelectValue placeholder="Select primary location" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No store assigned</SelectItem>
-                        {stores.filter((s: any) => s.is_active).map((store: any) => (
-                          <SelectItem key={store.id} value={store.id}>
-                            {store.name} ({store.code})
+                        <SelectItem value="none">No location assigned</SelectItem>
+                        {locations.filter((s: any) => s.is_active).map((loc: any) => (
+                          <SelectItem key={loc.id} value={loc.id}>
+                            {loc.name} ({loc.code}) - {loc.type === 'office' ? 'Office' : 'Store'}
                           </SelectItem>
                         ))}
                       </SelectContent>

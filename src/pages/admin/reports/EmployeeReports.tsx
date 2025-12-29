@@ -18,23 +18,23 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEmployeeReportData, processEmployeeData } from "@/hooks/useReportData";
 import { useDepartmentsData } from "@/hooks/useDepartments";
-import { useStores } from "@/hooks/useStores";
+import { useAllLocations } from "@/hooks/useLocations";
 
 export default function EmployeeReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
-  const [filteredStore, setFilteredStore] = useState("all");
+  const [filteredLocation, setFilteredLocation] = useState("all");
 
   const { data: employees = [], isLoading } = useEmployeeReportData();
   const { data: departments = [] } = useDepartmentsData();
-  const { data: stores = [] } = useStores();
+  const { data: locations = [] } = useAllLocations();
 
   const departmentNames = departments.map((d: any) => d.name);
 
   // Filter employees by department and store
   const filteredEmployees = employees.filter((emp: any) => {
     const deptMatch = filteredDepartment === "all" || emp.department?.name === filteredDepartment;
-    const storeMatch = filteredStore === "all" || emp.primary_store_id === filteredStore;
-    return deptMatch && storeMatch;
+    const locationMatch = filteredLocation === "all" || emp.primary_store_id === filteredLocation;
+    return deptMatch && locationMatch;
   });
 
   // Process data for charts
@@ -63,18 +63,18 @@ export default function EmployeeReports() {
     return Object.entries(buckets).map(([name, value]) => ({ name, value }));
   })();
 
-  const getStoreName = (storeId: string | null) => {
+  const getLocationName = (storeId: string | null) => {
     if (!storeId) return "Unassigned";
-    return stores.find(s => s.id === storeId)?.name || "Unknown";
+    return locations.find(s => s.id === storeId)?.name || "Unknown";
   };
 
   const exportData = {
-    headers: ["Employee ID", "Name", "Department", "Store", "Designation", "Join Date", "Status"],
+    headers: ["Employee ID", "Name", "Department", "Location", "Designation", "Join Date", "Status"],
     rows: filteredEmployees.map((emp: any) => [
       emp.employee_id,
       `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || "N/A",
       emp.department?.name || "Unassigned",
-      getStoreName(emp.primary_store_id),
+      getLocationName(emp.primary_store_id),
       emp.designation?.name || "N/A",
       emp.date_of_joining,
       emp.status,
@@ -107,9 +107,9 @@ export default function EmployeeReports() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
           departments={departmentNames}
-          stores={stores.map(s => ({ id: s.id, name: s.name }))}
+          stores={locations.map(s => ({ id: s.id, name: s.name }))}
           onDepartmentChange={setFilteredDepartment}
-          onStoreChange={setFilteredStore}
+          onStoreChange={setFilteredLocation}
           showStoreFilter={true}
         />
         <ReportExport data={exportData} title="Employee Report" />
@@ -151,7 +151,7 @@ export default function EmployeeReports() {
                     {`${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "N/A"}
                   </TableCell>
                   <TableCell>{employee.department?.name || "Unassigned"}</TableCell>
-                  <TableCell>{getStoreName(employee.primary_store_id)}</TableCell>
+                  <TableCell>{getLocationName(employee.primary_store_id)}</TableCell>
                   <TableCell>{employee.designation?.name || "N/A"}</TableCell>
                   <TableCell>{employee.date_of_joining}</TableCell>
                   <TableCell>
