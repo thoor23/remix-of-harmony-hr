@@ -123,15 +123,23 @@ export default function CompanySettingsPage() {
     }
   };
 
-  const handleLogoSizeChange = async (value: number[]) => {
+  const handleLogoSizeChange = (value: number[]) => {
     const size = value[0];
     setFormData(prev => ({ ...prev, logoSize: size }));
+  };
+
+  const handleLogoSizeCommit = async (value: number[]) => {
+    const size = value[0];
     await updateBranding.mutateAsync({ logoSize: size });
   };
 
-  const handleNameSizeChange = async (value: number[]) => {
+  const handleNameSizeChange = (value: number[]) => {
     const size = value[0];
     setFormData(prev => ({ ...prev, nameSize: size }));
+  };
+
+  const handleNameSizeCommit = async (value: number[]) => {
+    const size = value[0];
     await updateBranding.mutateAsync({ nameSize: size });
   };
 
@@ -332,6 +340,7 @@ export default function CompanySettingsPage() {
                   <Slider
                     value={[formData.logoSize]}
                     onValueChange={handleLogoSizeChange}
+                    onValueCommit={handleLogoSizeCommit}
                     min={24}
                     max={40}
                     step={2}
@@ -344,6 +353,7 @@ export default function CompanySettingsPage() {
                       const val = Math.min(40, Math.max(24, Number(e.target.value)));
                       handleLogoSizeChange([val]);
                     }}
+                    onBlur={() => handleLogoSizeCommit([formData.logoSize])}
                     min={24}
                     max={40}
                     className="w-16"
@@ -358,6 +368,7 @@ export default function CompanySettingsPage() {
                   <Slider
                     value={[formData.nameSize]}
                     onValueChange={handleNameSizeChange}
+                    onValueCommit={handleNameSizeCommit}
                     min={12}
                     max={22}
                     step={1}
@@ -370,6 +381,7 @@ export default function CompanySettingsPage() {
                       const val = Math.min(22, Math.max(12, Number(e.target.value)));
                       handleNameSizeChange([val]);
                     }}
+                    onBlur={() => handleNameSizeCommit([formData.nameSize])}
                     min={12}
                     max={22}
                     className="w-16"
