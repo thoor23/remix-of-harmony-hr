@@ -27,6 +27,7 @@ import {
   CompanyBranding,
 } from "@/hooks/useCompanyBranding";
 import { Loader2, Upload, X, Building2, Image, Italic } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
@@ -188,12 +189,13 @@ export default function CompanySettingsPage() {
         description="Manage company information, branding, and regional settings"
       />
 
-      <div className="grid gap-6">
-        {/* Logo & Favicon Upload Section - Combined */}
-        <SettingsCard
-          title="Company Logo & Favicon"
-          description="Upload your company logo and favicon for branding"
-        >
+      <div className="rounded-lg border bg-card p-6 space-y-8">
+        {/* Logo & Favicon Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Company Logo & Favicon</h3>
+            <p className="text-sm text-muted-foreground">Upload your company logo and favicon for branding</p>
+          </div>
           <div className="grid gap-6 sm:grid-cols-2">
             {/* Logo Upload */}
             <div className="space-y-3">
@@ -302,129 +304,133 @@ export default function CompanySettingsPage() {
               </div>
             </div>
           </div>
-        </SettingsCard>
+        </div>
 
-        {/* Size Settings - Combined */}
-        <SettingsCard
-          title="Sidebar Display Settings"
-          description="Customize logo and company name appearance in the sidebar"
-        >
-          <div className="space-y-6">
-            {/* Preview */}
-            <div className="p-4 rounded-lg border bg-sidebar">
-              <div className="flex items-center gap-2">
-                <Avatar 
-                  className="rounded-lg flex-shrink-0"
-                  style={{ width: formData.logoSize, height: formData.logoSize }}
-                >
-                  <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
-                  <AvatarFallback className="rounded-lg bg-primary">
-                    <Building2 style={{ width: formData.logoSize / 2, height: formData.logoSize / 2 }} className="text-primary-foreground" />
-                  </AvatarFallback>
-                </Avatar>
-                <span 
-                  className={`truncate ${fontWeightClass[formData.nameFontWeight]} ${formData.nameItalic ? 'italic' : ''}`}
-                  style={{ fontSize: formData.nameSize }}
-                >
-                  {formData.companyName || "Company Name"}
-                </span>
-              </div>
+        <Separator />
+
+        {/* Sidebar Display Settings */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Sidebar Display Settings</h3>
+            <p className="text-sm text-muted-foreground">Customize logo and company name appearance in the sidebar</p>
+          </div>
+          
+          {/* Preview */}
+          <div className="p-4 rounded-lg border bg-sidebar">
+            <div className="flex items-center gap-2">
+              <Avatar 
+                className="rounded-lg flex-shrink-0"
+                style={{ width: formData.logoSize, height: formData.logoSize }}
+              >
+                <AvatarImage src={formData.companyLogo || undefined} alt="Preview" />
+                <AvatarFallback className="rounded-lg bg-primary">
+                  <Building2 style={{ width: formData.logoSize / 2, height: formData.logoSize / 2 }} className="text-primary-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span 
+                className={`truncate ${fontWeightClass[formData.nameFontWeight]} ${formData.nameItalic ? 'italic' : ''}`}
+                style={{ fontSize: formData.nameSize }}
+              >
+                {formData.companyName || "Company Name"}
+              </span>
             </div>
+          </div>
 
-            {/* Size Controls - Both in one row */}
-            <div className="grid gap-6 sm:grid-cols-2">
-              {/* Logo Size */}
-              <div className="space-y-2">
-                <Label>Logo Size ({formData.logoSize}px)</Label>
-                <div className="flex items-center gap-3">
-                  <Slider
-                    value={[formData.logoSize]}
-                    onValueChange={handleLogoSizeChange}
-                    onValueCommit={handleLogoSizeCommit}
-                    min={24}
-                    max={40}
-                    step={2}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.logoSize}
-                    onChange={(e) => {
-                      const val = Math.min(40, Math.max(24, Number(e.target.value)));
-                      handleLogoSizeChange([val]);
-                    }}
-                    onBlur={() => handleLogoSizeCommit([formData.logoSize])}
-                    min={24}
-                    max={40}
-                    className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
-
-              {/* Name Size */}
-              <div className="space-y-2">
-                <Label>Name Size ({formData.nameSize}px)</Label>
-                <div className="flex items-center gap-3">
-                  <Slider
-                    value={[formData.nameSize]}
-                    onValueChange={handleNameSizeChange}
-                    onValueCommit={handleNameSizeCommit}
-                    min={12}
-                    max={22}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.nameSize}
-                    onChange={(e) => {
-                      const val = Math.min(22, Math.max(12, Number(e.target.value)));
-                      handleNameSizeChange([val]);
-                    }}
-                    onBlur={() => handleNameSizeCommit([formData.nameSize])}
-                    min={12}
-                    max={22}
-                    className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Font Style Controls */}
+          {/* Size Controls */}
+          <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Font Style</Label>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={formData.nameFontWeight}
-                  onValueChange={(value) => handleFontWeightChange(value as CompanyBranding["nameFontWeight"])}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="semibold">Semibold</SelectItem>
-                    <SelectItem value="bold">Bold</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Toggle 
-                  pressed={formData.nameItalic} 
-                  onPressedChange={handleItalicToggle}
-                  aria-label="Toggle italic"
-                >
-                  <Italic className="h-4 w-4" />
-                </Toggle>
+              <Label>Logo Size ({formData.logoSize}px)</Label>
+              <div className="flex items-center gap-3">
+                <Slider
+                  value={[formData.logoSize]}
+                  onValueChange={handleLogoSizeChange}
+                  onValueCommit={handleLogoSizeCommit}
+                  min={24}
+                  max={40}
+                  step={2}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  value={formData.logoSize}
+                  onChange={(e) => {
+                    const val = Math.min(40, Math.max(24, Number(e.target.value)));
+                    handleLogoSizeChange([val]);
+                  }}
+                  onBlur={() => handleLogoSizeCommit([formData.logoSize])}
+                  min={24}
+                  max={40}
+                  className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Name Size ({formData.nameSize}px)</Label>
+              <div className="flex items-center gap-3">
+                <Slider
+                  value={[formData.nameSize]}
+                  onValueChange={handleNameSizeChange}
+                  onValueCommit={handleNameSizeCommit}
+                  min={12}
+                  max={22}
+                  step={1}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  value={formData.nameSize}
+                  onChange={(e) => {
+                    const val = Math.min(22, Math.max(12, Number(e.target.value)));
+                    handleNameSizeChange([val]);
+                  }}
+                  onBlur={() => handleNameSizeCommit([formData.nameSize])}
+                  min={12}
+                  max={22}
+                  className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
               </div>
             </div>
           </div>
-        </SettingsCard>
+
+          {/* Font Style Controls */}
+          <div className="space-y-2">
+            <Label>Font Style</Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={formData.nameFontWeight}
+                onValueChange={(value) => handleFontWeightChange(value as CompanyBranding["nameFontWeight"])}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="semibold">Semibold</SelectItem>
+                  <SelectItem value="bold">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+              <Toggle 
+                pressed={formData.nameItalic} 
+                onPressedChange={handleItalicToggle}
+                aria-label="Toggle italic"
+              >
+                <Italic className="h-4 w-4" />
+              </Toggle>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
 
         {/* Company Information */}
-        <SettingsCard
-          title="Company Information"
-          description="Basic information about your organization"
-          action={
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Company Information</h3>
+              <p className="text-sm text-muted-foreground">Basic information about your organization</p>
+            </div>
             <Button 
               onClick={saveCompanySettings}
               disabled={updateBranding.isPending}
@@ -438,8 +444,7 @@ export default function CompanySettingsPage() {
                 "Save Changes"
               )}
             </Button>
-          }
-        >
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Company Name</Label>
@@ -484,13 +489,16 @@ export default function CompanySettingsPage() {
               />
             </div>
           </div>
-        </SettingsCard>
+        </div>
+
+        <Separator />
 
         {/* Regional Settings */}
-        <SettingsCard
-          title="Regional Settings"
-          description="Configure timezone, currency, and date formats"
-        >
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Regional Settings</h3>
+            <p className="text-sm text-muted-foreground">Configure timezone, currency, and date formats</p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label>Timezone</Label>
@@ -559,7 +567,7 @@ export default function CompanySettingsPage() {
               </Select>
             </div>
           </div>
-        </SettingsCard>
+        </div>
       </div>
     </PageContainer>
   );
