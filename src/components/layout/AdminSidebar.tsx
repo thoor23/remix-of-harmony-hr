@@ -97,6 +97,7 @@ interface NavItem {
 }
 
 const adminNavItems: NavItem[] = [
+  // Core Operations
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   {
     title: "Employee Management",
@@ -139,6 +140,16 @@ const adminNavItems: NavItem[] = [
       { title: "Shift Policies", href: "/admin/shifts/policy", icon: Gavel },
     ],
   },
+  // Financial
+  {
+    title: "Payroll Management",
+    icon: Banknote,
+    children: [
+      { title: "Salary Configuration", href: "/admin/payroll/structure", icon: FileSpreadsheet },
+      { title: "Payslip Records", href: "/admin/payroll/payslips", icon: Receipt },
+    ],
+  },
+  // Resources
   {
     title: "Location Management",
     icon: MapPin,
@@ -163,21 +174,7 @@ const adminNavItems: NavItem[] = [
       { title: "Asset Reports", href: "/admin/assets/reports", icon: BarChart3 },
     ],
   },
-  {
-    title: "Helpdesk",
-    icon: Headset,
-    children: [
-      { title: "All Tickets", href: "/admin/helpdesk", icon: Ticket },
-    ],
-  },
-  {
-    title: "Payroll Management",
-    icon: Banknote,
-    children: [
-      { title: "Salary Configuration", href: "/admin/payroll/structure", icon: FileSpreadsheet },
-      { title: "Payslip Records", href: "/admin/payroll/payslips", icon: Receipt },
-    ],
-  },
+  // Documentation
   {
     title: "Document Management",
     icon: FolderOpen,
@@ -197,13 +194,6 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    title: "Announcement Centre",
-    icon: BellRing,
-    children: [
-      { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
-    ],
-  },
-  {
     title: "Template Management",
     icon: LayoutTemplate,
     children: [
@@ -214,6 +204,22 @@ const adminNavItems: NavItem[] = [
       { title: "Email Templates", href: "/admin/settings/email-templates", icon: Mail },
     ],
   },
+  // Communication
+  {
+    title: "Helpdesk",
+    icon: Headset,
+    children: [
+      { title: "All Tickets", href: "/admin/helpdesk", icon: Ticket },
+    ],
+  },
+  {
+    title: "Announcement Centre",
+    icon: BellRing,
+    children: [
+      { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
+    ],
+  },
+  // Analytics & Admin
   {
     title: "Reports & Analytics",
     icon: BarChart3,
