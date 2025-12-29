@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -20,7 +21,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, Clock, User, Globe, FileText, Database } from "lucide-react";
 import { useAuditLogs } from "@/hooks/useAuditLogs";
 import { format } from "date-fns";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -48,6 +54,7 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
   const [search, setSearch] = useState("");
   const [action, setAction] = useState("all");
   const [showFilter, setShowFilter] = useState(true);
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
   
   // Table state
   const [sortColumn, setSortColumn] = useState<string>("created_at");
@@ -134,6 +141,12 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
     setColumns(prev => prev.map(col => col.id === columnId ? { ...col, visible } : col));
   };
 
+  const handleToggleExpand = (id: string) => {
+    setExpandedRows(prev => 
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
+  };
+
   const handleExport = () => {
     const data = sortedLogs.map(log => ({
       created_at: format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss"),
@@ -151,7 +164,7 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
     queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
   };
 
-  const visibleColumnCount = columns.filter(c => c.visible).length + 1; // +1 for checkbox column
+  const visibleColumnCount = columns.filter(c => c.visible).length + 2; // +1 for checkbox, +1 for expand button
 
   return (
     <PageContainer>
@@ -213,6 +226,7 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead className="w-12">
                     <Checkbox
                       checked={paginatedItems.length > 0 && selectedRows.length === paginatedItems.length}
@@ -259,48 +273,177 @@ export default function AuditLogsPage({ module, title, description }: AuditLogsP
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedItems.map((log) => (
-                    <TableRow key={log.id} data-state={selectedRows.includes(log.id) ? "selected" : undefined}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedRows.includes(log.id)}
-                          onCheckedChange={(checked) => handleSelectRow(log.id, !!checked)}
-                        />
-                      </TableCell>
-                      {columns.find(c => c.id === "created_at")?.visible && (
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {format(new Date(log.created_at), "MMM d, yyyy h:mm a")}
-                        </TableCell>
-                      )}
-                      {columns.find(c => c.id === "action")?.visible && (
-                        <TableCell>
-                          <Badge className={actionColors[log.action] || "bg-muted"}>
-                            {log.action}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      {columns.find(c => c.id === "module")?.visible && (
-                        <TableCell>
-                          <Badge variant="outline">{log.module}</Badge>
-                        </TableCell>
-                      )}
-                      {columns.find(c => c.id === "description")?.visible && (
-                        <TableCell className="max-w-xs truncate">
-                          {log.description}
-                        </TableCell>
-                      )}
-                      {columns.find(c => c.id === "performer_name")?.visible && (
-                        <TableCell className="font-medium">
-                          {log.performer_name || "System"}
-                        </TableCell>
-                      )}
-                      {columns.find(c => c.id === "ip_address")?.visible && (
-                        <TableCell className="text-muted-foreground">
-                          {log.ip_address || "-"}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
+                  paginatedItems.map((log) => {
+                    const isExpanded = expandedRows.includes(log.id);
+                    const metadata = log.metadata as Record<string, unknown>;
+                    const hasMetadata = metadata && Object.keys(metadata).length > 0;
+                    
+                    return (
+                      <Fragment key={log.id}>
+                        <TableRow 
+                          data-state={selectedRows.includes(log.id) ? "selected" : undefined}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleToggleExpand(log.id)}
+                        >
+                          <TableCell className="p-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleExpand(log.id);
+                              }}
+                            >
+                              <ChevronRight 
+                                className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
+                              />
+                            </Button>
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedRows.includes(log.id)}
+                              onCheckedChange={(checked) => handleSelectRow(log.id, !!checked)}
+                            />
+                          </TableCell>
+                          {columns.find(c => c.id === "created_at")?.visible && (
+                            <TableCell className="text-muted-foreground whitespace-nowrap">
+                              {format(new Date(log.created_at), "MMM d, yyyy h:mm a")}
+                            </TableCell>
+                          )}
+                          {columns.find(c => c.id === "action")?.visible && (
+                            <TableCell>
+                              <Badge className={actionColors[log.action] || "bg-muted"}>
+                                {log.action}
+                              </Badge>
+                            </TableCell>
+                          )}
+                          {columns.find(c => c.id === "module")?.visible && (
+                            <TableCell>
+                              <Badge variant="outline">{log.module}</Badge>
+                            </TableCell>
+                          )}
+                          {columns.find(c => c.id === "description")?.visible && (
+                            <TableCell className="max-w-xs truncate">
+                              {log.description}
+                            </TableCell>
+                          )}
+                          {columns.find(c => c.id === "performer_name")?.visible && (
+                            <TableCell className="font-medium">
+                              {log.performer_name || "System"}
+                            </TableCell>
+                          )}
+                          {columns.find(c => c.id === "ip_address")?.visible && (
+                            <TableCell className="text-muted-foreground">
+                              {log.ip_address || "-"}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                        
+                        {/* Expanded Details Row */}
+                        {isExpanded && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableCell colSpan={visibleColumnCount} className="p-0">
+                              <div className="px-6 py-4 space-y-4">
+                                <div className="text-sm font-medium text-foreground mb-3">Event Details</div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                  {/* Timestamp Details */}
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                                    <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                      <div className="text-xs text-muted-foreground font-medium">Timestamp</div>
+                                      <div className="text-sm font-medium">
+                                        {format(new Date(log.created_at), "EEEE, MMMM d, yyyy")}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {format(new Date(log.created_at), "h:mm:ss a")}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Performer Details */}
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                                    <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                      <div className="text-xs text-muted-foreground font-medium">Performed By</div>
+                                      <div className="text-sm font-medium">
+                                        {log.performer_name || "System"}
+                                      </div>
+                                      {log.performed_by && (
+                                        <div className="text-xs text-muted-foreground font-mono">
+                                          ID: {log.performed_by.slice(0, 8)}...
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* IP Address Details */}
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                                    <Globe className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                      <div className="text-xs text-muted-foreground font-medium">IP Address</div>
+                                      <div className="text-sm font-medium font-mono">
+                                        {log.ip_address || "Not recorded"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Module & Action */}
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                    <div>
+                                      <div className="text-xs text-muted-foreground font-medium">Module / Action</div>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant="outline" className="text-xs">{log.module}</Badge>
+                                        <Badge className={`text-xs ${actionColors[log.action] || "bg-muted"}`}>
+                                          {log.action}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Description */}
+                                <div className="p-3 rounded-lg bg-background border">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground font-medium">Description</span>
+                                  </div>
+                                  <p className="text-sm">{log.description}</p>
+                                </div>
+                                
+                                {/* Metadata */}
+                                {hasMetadata && (
+                                  <div className="p-3 rounded-lg bg-background border">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Database className="h-4 w-4 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground font-medium">Additional Data</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                      {Object.entries(metadata).map(([key, value]) => (
+                                        <div key={key} className="text-sm">
+                                          <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}: </span>
+                                          <span className="font-medium">
+                                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Event ID */}
+                                <div className="text-xs text-muted-foreground">
+                                  Event ID: <span className="font-mono">{log.id}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
