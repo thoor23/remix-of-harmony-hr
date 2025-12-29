@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Database, AlertTriangle, CheckCircle, Loader2, Users, Building2, Calendar, FileText } from "lucide-react";
+import { Database, AlertTriangle, CheckCircle, Loader2, Users, Building2, Calendar, FileText, MapPin, Store } from "lucide-react";
 
 export default function DataSeederPage() {
   const [isSeeding, setIsSeeding] = useState(false);
@@ -77,11 +77,11 @@ export default function DataSeederPage() {
               Sample Data Generator
             </CardTitle>
             <CardDescription>
-              Generate realistic sample data for the HRMS system including 50 employees across 8 departments
+              Generate realistic sample data for the HRMS system including 50 employees, stores, offices, and all related data
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="p-4 border rounded-lg text-center">
                 <Users className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">50</div>
@@ -93,14 +93,24 @@ export default function DataSeederPage() {
                 <div className="text-sm text-muted-foreground">Departments</div>
               </div>
               <div className="p-4 border rounded-lg text-center">
+                <Store className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="text-2xl font-bold">7</div>
+                <div className="text-sm text-muted-foreground">Stores</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
+                <MapPin className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="text-2xl font-bold">5</div>
+                <div className="text-sm text-muted-foreground">Offices</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
                 <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">60</div>
-                <div className="text-sm text-muted-foreground">Days of Attendance</div>
+                <div className="text-sm text-muted-foreground">Days Attendance</div>
               </div>
               <div className="p-4 border rounded-lg text-center">
                 <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">6</div>
-                <div className="text-sm text-muted-foreground">Months of Payroll</div>
+                <div className="text-sm text-muted-foreground">Months Payroll</div>
               </div>
             </div>
 
@@ -109,14 +119,17 @@ export default function DataSeederPage() {
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>50 employees with full profiles (names, addresses, bank details, emergency contacts)</li>
                 <li>8 departments with 16+ designations across all levels</li>
+                <li>7 stores (5 India, 2 USA) with regional settings (timezone, currency, date format)</li>
+                <li>5 offices (3 India, 2 USA) with regional settings</li>
+                <li>Employee-location assignments and 10 sample transfers</li>
                 <li>6 leave types with balances for each employee</li>
-                <li>4 shifts with assignments</li>
+                <li>4 shifts with assignments linked to locations</li>
                 <li>60 days of attendance records with realistic patterns</li>
                 <li>100 leave requests (pending, approved, rejected)</li>
                 <li>6 months of payroll data with payslips</li>
                 <li>15 holidays for 2025</li>
                 <li>10 announcements and 25 helpdesk tickets</li>
-                <li>User roles: 2 Admins, 2 HR, 4 Managers, 42 Employees</li>
+                <li>User roles: 2 Admins, 2 HR, 4 Store Managers, 4 Managers, 38 Employees</li>
               </ul>
             </div>
 
@@ -162,7 +175,7 @@ export default function DataSeederPage() {
             <CardContent>
               {result.success && result.stats && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {Object.entries(result.stats).map(([key, value]) => (
                       <div key={key} className="p-3 bg-muted rounded-lg">
                         <div className="text-lg font-bold">{value}</div>
