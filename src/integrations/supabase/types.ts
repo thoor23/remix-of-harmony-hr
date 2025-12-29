@@ -537,6 +537,80 @@ export type Database = {
           },
         ]
       }
+      employee_transfers: {
+        Row: {
+          created_at: string
+          effective_date: string
+          employee_id: string
+          from_store_id: string | null
+          id: string
+          initiated_by: string | null
+          notes: string | null
+          reason: string | null
+          status: string
+          to_store_id: string
+          transfer_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date: string
+          employee_id: string
+          from_store_id?: string | null
+          id?: string
+          initiated_by?: string | null
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          to_store_id: string
+          transfer_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          employee_id?: string
+          from_store_id?: string | null
+          id?: string
+          initiated_by?: string | null
+          notes?: string | null
+          reason?: string | null
+          status?: string
+          to_store_id?: string
+          transfer_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_transfers_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_transfers_from_store_id_fkey"
+            columns: ["from_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_transfers_initiated_by_fkey"
+            columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_transfers_to_store_id_fkey"
+            columns: ["to_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address_city: string | null

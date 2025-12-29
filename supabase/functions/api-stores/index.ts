@@ -430,6 +430,159 @@ serve(async (req) => {
       });
     }
 
+    // POST /transfers - Create employee transfer
+    if (req.method === "POST" && path === "/transfers") {
+      const isAdmin = await isAdminOrHR();
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const body = await req.json();
+      console.log("[api-stores] Creating transfer:", body);
+
+      const initiatorId = await getEmployeeId();
+
+      // Get current store assignment
+      const { data: currentAssignment } = await supabase
+        .from("employee_store_assignments")
+        .select("store_id")
+        .eq("employee_id", body.employee_id)
+        .eq("is_primary", true)
+        .eq("is_active", true)
+        .single();
+
+      // Create transfer record
+      const { data: transfer, error: transferError } = await supabase
+        .from("employee_transfers")
+        .insert({
+          employee_id: body.employee_id,
+          from_store_id: currentAssignment?.store_id || null,
+          to_store_id: body.to_store_id,
+          effective_date: body.effective_date,
+          reason: body.reason,
+          notes: body.notes,
+          initiated_by: initiatorId,
+        })
+        .select()
+        .single();
+
+      if (transferError) {
+        console.error("[api-stores] Error creating transfer:", transferError);
+        return new Response(JSON.stringify({ error: transferError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Deactivate old primary assignment
+      if (currentAssignment?.store_id) {
+        await supabase
+          .from("employee_store_assignments")
+          .update({ 
+            is_active: false, 
+            is_primary: false,
+            end_date: body.effective_date 
+          })
+          .eq("employee_id", body.employee_id)
+          .eq("store_id", currentAssignment.store_id)
+          .eq("is_primary", true);
+      }
+
+      // Create new primary assignment
+      await supabase
+        .from("employee_store_assignments")
+        .upsert({
+          employee_id: body.employee_id,
+          store_id: body.to_store_id,
+          is_primary: true,
+          is_active: true,
+          start_date: body.effective_date,
+        }, { onConflict: "employee_id,store_id" });
+
+      // Update employee's primary_store_id
+      await supabase
+        .from("employees")
+        .update({ primary_store_id: body.to_store_id })
+        .eq("id", body.employee_id);
+
+      return new Response(JSON.stringify(transfer), {
+        status: 201,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // GET /transfers - Get all transfers
+    if (req.method === "GET" && path === "/transfers") {
+      const employeeId = url.searchParams.get("employee_id");
+      const storeId = url.searchParams.get("store_id");
+
+      let query = supabase
+        .from("employee_transfers")
+        .select(`
+          *,
+          employee:employees!employee_transfers_employee_id_fkey(id, first_name, last_name, employee_id),
+          from_store:stores!employee_transfers_from_store_id_fkey(id, name, code),
+          to_store:stores!employee_transfers_to_store_id_fkey(id, name, code),
+          initiated_by_employee:employees!employee_transfers_initiated_by_fkey(id, first_name, last_name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (employeeId) {
+        query = query.eq("employee_id", employeeId);
+      }
+      if (storeId) {
+        query = query.or(`from_store_id.eq.${storeId},to_store_id.eq.${storeId}`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("[api-stores] Error fetching transfers:", error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // GET /transfers/:id - Get single transfer
+    if (req.method === "GET" && path.match(/^\/transfers\/[a-f0-9-]+$/)) {
+      const transferId = path.split("/")[2];
+      
+      const { data, error } = await supabase
+        .from("employee_transfers")
+        .select(`
+          *,
+          employee:employees!employee_transfers_employee_id_fkey(id, first_name, last_name, employee_id),
+          from_store:stores!employee_transfers_from_store_id_fkey(id, name, code),
+          to_store:stores!employee_transfers_to_store_id_fkey(id, name, code),
+          initiated_by_employee:employees!employee_transfers_initiated_by_fkey(id, first_name, last_name)
+        `)
+        .eq("id", transferId)
+        .single();
+
+      if (error) {
+        console.error("[api-stores] Error fetching transfer:", error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: error.code === "PGRST116" ? 404 : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

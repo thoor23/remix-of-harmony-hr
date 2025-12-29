@@ -16,6 +16,7 @@ export interface EmployeeWithDetails {
   phone: string | null;
   avatar_url: string | null;
   reporting_to: string | null;
+  primary_store_id: string | null;
   address_street: string | null;
   address_city: string | null;
   address_state: string | null;
