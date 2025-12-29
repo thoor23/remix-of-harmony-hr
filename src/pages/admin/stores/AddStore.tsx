@@ -125,15 +125,15 @@ export default function AddStore() {
             <div className="space-y-2">
               <Label htmlFor="manager">Store Manager</Label>
               <Select
-                value={formData.manager_id || ""}
-                onValueChange={(value) => handleChange("manager_id", value || undefined)}
+                value={formData.manager_id || "none"}
+                onValueChange={(value) => handleChange("manager_id", value === "none" ? undefined : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a manager" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No manager assigned</SelectItem>
-                  {employees?.filter(e => e.status === 'active').map((emp: any) => (
+                  <SelectItem value="none">No manager assigned</SelectItem>
+                  {employees?.filter(e => e.status === 'active' && e.id).map((emp: any) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name} ({emp.employee_id})
                     </SelectItem>
