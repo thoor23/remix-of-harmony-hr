@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,9 +20,11 @@ import {
   PanelLeft,
   PanelLeftClose,
   Palette,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { AttendanceWidget } from "@/components/attendance/AttendanceWidget";
 
@@ -116,6 +119,15 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, profile, signOut } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const displayName = profile?.first_name && profile?.last_name
     ? `${profile.first_name} ${profile.last_name}`
@@ -217,7 +229,14 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {/* Current Date/Time */}
+        <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{format(currentTime, "EEE, dd MMM yyyy")}</span>
+          <span className="text-foreground font-medium">{format(currentTime, "hh:mm:ss a")}</span>
+        </div>
+
         {/* Clock In/Out for all users */}
         <AttendanceWidget />
         
