@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
+import { useStores } from "@/hooks/useStores";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +34,7 @@ const employeeSchema = z.object({
   designation: z.string().min(1, "Designation is required"),
   employmentType: z.string().min(1, "Employment type is required"),
   reportingTo: z.string().optional(),
+  primaryStore: z.string().optional(),
   status: z.string().min(1, "Status is required"),
   role: z.string().min(1, "Role is required"),
   street: z.string().min(1, "Street address is required"),
@@ -89,6 +91,7 @@ export default function EditEmployee() {
     designation: "",
     employmentType: "",
     reportingTo: "",
+    primaryStore: "",
     status: "active",
     role: "employee",
     street: "",
@@ -111,6 +114,7 @@ export default function EditEmployee() {
   const { data: departments = [] } = useDepartments();
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
+  const { data: stores = [] } = useStores();
   const { data: employeeRole, isLoading: roleLoading } = useEmployeeRole(employee?.user_id || null);
   const updateEmployee = useUpdateEmployee();
   const updateEmployeeAccount = useUpdateEmployeeAccount();
@@ -132,6 +136,7 @@ export default function EditEmployee() {
         designation: employee.designation?.id || "",
         employmentType: employee.employment_type,
         reportingTo: employee.reporting_to || "",
+        primaryStore: (employee as any).primary_store_id || "",
         status: employee.status || "active",
         street: employee.address_street || "",
         city: employee.address_city || "",
@@ -197,6 +202,7 @@ export default function EditEmployee() {
           designation_id: formData.designation || null,
           employment_type: formData.employmentType,
           reporting_to: formData.reportingTo || null,
+          primary_store_id: formData.primaryStore || null,
           address_street: formData.street || null,
           address_city: formData.city || null,
           address_state: formData.state || null,
@@ -541,6 +547,25 @@ export default function EditEmployee() {
                         {managers.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
                             {emp.first_name} {emp.last_name} ({emp.designation?.name})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryStore">Primary Store</Label>
+                    <Select
+                      value={formData.primaryStore || "none"}
+                      onValueChange={(value) => handleInputChange("primaryStore", value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary store" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No store assigned</SelectItem>
+                        {stores.filter((s: any) => s.is_active).map((store: any) => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.name} ({store.code})
                           </SelectItem>
                         ))}
                       </SelectContent>

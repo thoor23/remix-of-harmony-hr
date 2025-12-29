@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployees } from "@/hooks/useEmployees";
+import { useStores } from "@/hooks/useStores";
 import { useCreateEmployeeAccount } from "@/hooks/useCreateEmployeeAccount";
 import { z } from "zod";
 
@@ -31,6 +32,7 @@ const employeeSchema = z.object({
   designation: z.string().min(1, "Designation is required"),
   employmentType: z.string().min(1, "Employment type is required"),
   reportingTo: z.string().optional(),
+  primaryStore: z.string().optional(),
   status: z.string().min(1, "Status is required"),
   role: z.enum(["admin", "hr", "manager", "employee"]),
   street: z.string().min(1, "Street address is required"),
@@ -73,6 +75,7 @@ export default function AddEmployee() {
     designation: "",
     employmentType: "",
     reportingTo: "",
+    primaryStore: "",
     status: "active",
     role: "employee" as "admin" | "hr" | "manager" | "employee",
     street: "",
@@ -94,6 +97,7 @@ export default function AddEmployee() {
   const { data: departments = [] } = useDepartments();
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
+  const { data: stores = [] } = useStores();
   const createEmployeeAccount = useCreateEmployeeAccount();
 
   const handleInputChange = (field: string, value: string) => {
@@ -137,6 +141,7 @@ export default function AddEmployee() {
           employment_type: formData.employmentType,
           status: formData.status,
           reporting_to: formData.reportingTo || undefined,
+          primary_store_id: formData.primaryStore || undefined,
           address_street: formData.street || undefined,
           address_city: formData.city || undefined,
           address_state: formData.state || undefined,
@@ -429,6 +434,25 @@ export default function AddEmployee() {
                         {managers.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
                             {emp.first_name} {emp.last_name} ({emp.designation?.name})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryStore">Primary Store</Label>
+                    <Select
+                      value={formData.primaryStore || "none"}
+                      onValueChange={(value) => handleInputChange("primaryStore", value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary store" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No store assigned</SelectItem>
+                        {stores.filter((s: any) => s.is_active).map((store: any) => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.name} ({store.code})
                           </SelectItem>
                         ))}
                       </SelectContent>

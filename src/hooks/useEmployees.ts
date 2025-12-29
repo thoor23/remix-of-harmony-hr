@@ -90,6 +90,7 @@ export interface CreateEmployeeData {
   designation_id: string | null;
   employment_type: string;
   reporting_to: string | null;
+  primary_store_id?: string | null;
   address_street: string | null;
   address_city: string | null;
   address_state: string | null;
