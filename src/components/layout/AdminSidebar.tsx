@@ -157,6 +157,7 @@ const adminNavItems: NavItem[] = [
       { title: "Assignments", href: "/admin/assets/assignments", icon: UserCheck },
       { title: "Transfers", href: "/admin/assets/transfers", icon: ArrowLeftRight },
       { title: "Maintenance", href: "/admin/assets/maintenance", icon: Wrench },
+      { title: "Reports", href: "/admin/assets/reports", icon: BarChart3 },
     ],
   },
   {
