@@ -156,32 +156,26 @@ export default function EmployeeDocumentsPage() {
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <Select
-                value={sortField}
-                onValueChange={(value: SortField) => {
-                  setSortField(value);
+                value={`${sortField}-${sortDirection}`}
+                onValueChange={(value) => {
+                  const [field, dir] = value.split("-") as [SortField, SortDirection];
+                  setSortField(field);
+                  setSortDirection(dir);
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="documents">Documents</SelectItem>
-                  <SelectItem value="department">Department</SelectItem>
+                  <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                  <SelectItem value="documents-desc">Most Documents</SelectItem>
+                  <SelectItem value="documents-asc">Least Documents</SelectItem>
+                  <SelectItem value="department-asc">Department (A-Z)</SelectItem>
+                  <SelectItem value="department-desc">Department (Z-A)</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-              >
-                {sortDirection === "asc" ? (
-                  <ArrowUp className="h-4 w-4" />
-                ) : (
-                  <ArrowDown className="h-4 w-4" />
-                )}
-              </Button>
               <div className="flex items-center gap-1 border rounded-md p-1">
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
