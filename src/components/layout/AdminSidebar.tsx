@@ -78,6 +78,7 @@ import {
   Database,
   Headset,
   Ticket,
+  Send,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -235,11 +236,12 @@ const adminNavSections: NavSection[] = [
           { title: "All Tickets", href: "/admin/helpdesk", icon: Ticket },
         ],
       },
-      {
-        title: "Announcement Centre",
-        icon: BellRing,
-        children: [
-          { title: "Notification Centre", href: "/admin/notification-centre", icon: Bell },
+  {
+    title: "Announcement Centre",
+    icon: BellRing,
+    children: [
+      { title: "Announcements", href: "/admin/announcements", icon: Megaphone },
+      { title: "Send Notifications", href: "/admin/notifications/send", icon: Send },
         ],
       },
     ],

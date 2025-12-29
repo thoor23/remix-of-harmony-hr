@@ -44,7 +44,8 @@ import IncrementLetterPage from "./pages/admin/letters/IncrementLetterPage";
 import LetterTemplatesPage from "./pages/admin/letters/LetterTemplatesPage";
 import AnnouncementTemplatesPage from "./pages/admin/announcements/AnnouncementTemplatesPage";
 import BannerTemplatesPage from "./pages/admin/announcements/BannerTemplatesPage";
-import NotificationCentre from "./pages/admin/notification-centre/NotificationCentre";
+import AnnouncementsPage from "./pages/admin/announcements/AnnouncementsPage";
+import SendNotificationsPage from "./pages/admin/notifications/SendNotificationsPage";
 import NotificationsPage from "./pages/admin/notifications/NotificationsPage";
 import AllAuditLogs from "./pages/admin/audit/AllAuditLogs";
 import EmployeeAuditLogs from "./pages/admin/audit/EmployeeAuditLogs";
@@ -179,9 +180,10 @@ const App = () => (
                 <Route path="letters/relieving" element={<RelievingLetterPage />} />
                 <Route path="letters/increment" element={<IncrementLetterPage />} />
                 <Route path="letters/templates" element={<LetterTemplatesPage />} />
+                <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="announcements/templates" element={<AnnouncementTemplatesPage />} />
                 <Route path="announcements/banner-templates" element={<BannerTemplatesPage />} />
-                <Route path="notification-centre" element={<NotificationCentre />} />
+                <Route path="notifications/send" element={<SendNotificationsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="audit-logs" element={<AllAuditLogs />} />
                 <Route path="audit-logs/employee" element={<EmployeeAuditLogs />} />
