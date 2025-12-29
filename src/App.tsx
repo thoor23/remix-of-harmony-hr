@@ -46,7 +46,22 @@ import AnnouncementTemplatesPage from "./pages/admin/announcements/AnnouncementT
 import BannerTemplatesPage from "./pages/admin/announcements/BannerTemplatesPage";
 import NotificationCentre from "./pages/admin/notification-centre/NotificationCentre";
 import NotificationsPage from "./pages/admin/notifications/NotificationsPage";
-import AuditLogs from "./pages/admin/audit/AuditLogs";
+import AllAuditLogs from "./pages/admin/audit/AllAuditLogs";
+import EmployeeAuditLogs from "./pages/admin/audit/EmployeeAuditLogs";
+import AttendanceAuditLogs from "./pages/admin/audit/AttendanceAuditLogs";
+import LeaveAuditLogs from "./pages/admin/audit/LeaveAuditLogs";
+import ShiftAuditLogs from "./pages/admin/audit/ShiftAuditLogs";
+import PayrollAuditLogs from "./pages/admin/audit/PayrollAuditLogs";
+import AssetAuditLogs from "./pages/admin/audit/AssetAuditLogs";
+import HelpdeskAuditLogs from "./pages/admin/audit/HelpdeskAuditLogs";
+import DocumentsAuditLogs from "./pages/admin/audit/DocumentsAuditLogs";
+import LettersAuditLogs from "./pages/admin/audit/LettersAuditLogs";
+import AnnouncementsAuditLogs from "./pages/admin/audit/AnnouncementsAuditLogs";
+import TemplatesAuditLogs from "./pages/admin/audit/TemplatesAuditLogs";
+import DepartmentsAuditLogs from "./pages/admin/audit/DepartmentsAuditLogs";
+import DesignationsAuditLogs from "./pages/admin/audit/DesignationsAuditLogs";
+import SettingsAuditLogs from "./pages/admin/audit/SettingsAuditLogs";
+import AuthAuditLogs from "./pages/admin/audit/AuthAuditLogs";
 import ProfileChangeRequestsPage from "./pages/admin/employees/ProfileChangeRequestsPage";
 import ReportsOverview from "./pages/admin/reports/ReportsOverview";
 import EmployeeReports from "./pages/admin/reports/EmployeeReports";
@@ -166,7 +181,22 @@ const App = () => (
                 <Route path="announcements/banner-templates" element={<BannerTemplatesPage />} />
                 <Route path="notification-centre" element={<NotificationCentre />} />
                 <Route path="notifications" element={<NotificationsPage />} />
-                <Route path="audit-logs" element={<AuditLogs />} />
+                <Route path="audit-logs" element={<AllAuditLogs />} />
+                <Route path="audit-logs/employee" element={<EmployeeAuditLogs />} />
+                <Route path="audit-logs/attendance" element={<AttendanceAuditLogs />} />
+                <Route path="audit-logs/leave" element={<LeaveAuditLogs />} />
+                <Route path="audit-logs/shift" element={<ShiftAuditLogs />} />
+                <Route path="audit-logs/payroll" element={<PayrollAuditLogs />} />
+                <Route path="audit-logs/asset" element={<AssetAuditLogs />} />
+                <Route path="audit-logs/helpdesk" element={<HelpdeskAuditLogs />} />
+                <Route path="audit-logs/documents" element={<DocumentsAuditLogs />} />
+                <Route path="audit-logs/letters" element={<LettersAuditLogs />} />
+                <Route path="audit-logs/announcements" element={<AnnouncementsAuditLogs />} />
+                <Route path="audit-logs/templates" element={<TemplatesAuditLogs />} />
+                <Route path="audit-logs/departments" element={<DepartmentsAuditLogs />} />
+                <Route path="audit-logs/designations" element={<DesignationsAuditLogs />} />
+                <Route path="audit-logs/settings" element={<SettingsAuditLogs />} />
+                <Route path="audit-logs/auth" element={<AuthAuditLogs />} />
                 <Route path="reports" element={<ReportsOverview />} />
                 <Route path="reports/employee" element={<EmployeeReports />} />
                 <Route path="reports/attendance" element={<AttendanceReports />} />

@@ -240,7 +240,28 @@ const adminNavItems: NavItem[] = [
       { title: "Data Seeder", href: "/admin/settings/seeder", icon: Database },
     ],
   },
-  { title: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
+  {
+    title: "Audit Logs",
+    icon: ScrollText,
+    children: [
+      { title: "All Logs", href: "/admin/audit-logs", icon: FileText },
+      { title: "Employee Logs", href: "/admin/audit-logs/employee", icon: Users2 },
+      { title: "Attendance Logs", href: "/admin/audit-logs/attendance", icon: Fingerprint },
+      { title: "Leave Logs", href: "/admin/audit-logs/leave", icon: CalendarOff },
+      { title: "Shift Logs", href: "/admin/audit-logs/shift", icon: TimerReset },
+      { title: "Payroll Logs", href: "/admin/audit-logs/payroll", icon: Banknote },
+      { title: "Asset Logs", href: "/admin/audit-logs/asset", icon: Package },
+      { title: "Helpdesk Logs", href: "/admin/audit-logs/helpdesk", icon: Headset },
+      { title: "Documents Logs", href: "/admin/audit-logs/documents", icon: FolderOpen },
+      { title: "Letters Logs", href: "/admin/audit-logs/letters", icon: FileSignature },
+      { title: "Announcements Logs", href: "/admin/audit-logs/announcements", icon: BellRing },
+      { title: "Templates Logs", href: "/admin/audit-logs/templates", icon: LayoutTemplate },
+      { title: "Departments Logs", href: "/admin/audit-logs/departments", icon: Building },
+      { title: "Designations Logs", href: "/admin/audit-logs/designations", icon: BadgeCheck },
+      { title: "Settings Logs", href: "/admin/audit-logs/settings", icon: Cog },
+      { title: "Auth Logs", href: "/admin/audit-logs/auth", icon: Shield },
+    ],
+  },
 ];
 
 interface AdminSidebarProps {
