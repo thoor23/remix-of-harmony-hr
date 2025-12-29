@@ -105,7 +105,9 @@ const adminNavItems: NavItem[] = [
     title: "Leave Management",
     icon: CalendarCheck,
     children: [
-      { title: "Leave Requests", href: "/admin/leaves", icon: FileCheck },
+      { title: "Overview", href: "/admin/leaves", icon: Eye },
+      { title: "All Leaves", href: "/admin/leaves/all", icon: List },
+      { title: "Leave Requests", href: "/admin/leaves/requests", icon: FileCheck },
       { title: "Policy & Rules", href: "/admin/leaves/policy", icon: BookOpen },
     ],
   },
