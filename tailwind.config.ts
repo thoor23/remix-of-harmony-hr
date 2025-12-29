@@ -117,6 +117,10 @@ export default {
         shimmer: {
           "100%": { transform: "translateX(100%)" },
         },
+        "wave-bar": {
+          "0%, 100%": { transform: "scaleY(0.4)" },
+          "50%": { transform: "scaleY(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -127,6 +131,7 @@ export default {
         "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         shimmer: "shimmer 2s infinite",
+        "wave-bar": "wave-bar 0.8s ease-in-out infinite",
       },
     },
   },
