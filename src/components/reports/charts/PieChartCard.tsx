@@ -66,10 +66,10 @@ export function PieChartCard({
           <CardDescription>{description}</CardDescription>
         )}
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex flex-col items-center pb-4">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square w-full max-h-[200px]"
         >
           <PieChart>
             <ChartTooltip
@@ -80,18 +80,25 @@ export function PieChartCard({
               data={chartData}
               dataKey="value"
               nameKey="key"
-              innerRadius={60}
-              outerRadius={90}
+              innerRadius={50}
+              outerRadius={80}
               strokeWidth={0}
             />
-            {showLegend && (
-              <ChartLegend
-                content={<ChartLegendContent nameKey="key" />}
-                className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-              />
-            )}
           </PieChart>
         </ChartContainer>
+        {showLegend && (
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2">
+            {chartData.map((item, index) => (
+              <div key={item.key} className="flex items-center gap-1.5">
+                <div 
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm" 
+                  style={{ backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))` }}
+                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{item.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
       {(footerTrend || footerDescription) && (
         <CardFooter className="flex-col gap-2 text-sm">
