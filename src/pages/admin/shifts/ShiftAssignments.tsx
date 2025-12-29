@@ -21,7 +21,7 @@ import {
 import { useShifts, useShiftAssignments, useCreateShiftAssignment, useUpdateShiftAssignment, useDeleteShiftAssignment } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useDepartments } from "@/hooks/useDashboard";
-import { useStores } from "@/hooks/useStores";
+import { useAllLocations } from "@/hooks/useLocations";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -111,7 +111,7 @@ export default function ShiftAssignments() {
   const { data: assignments = [], isLoading: assignmentsLoading, refetch, isFetching } = useShiftAssignments();
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
-  const { data: stores = [] } = useStores();
+  const { data: locations = [] } = useAllLocations();
   
   const createAssignment = useCreateShiftAssignment();
   const updateAssignment = useUpdateShiftAssignment();
@@ -455,12 +455,12 @@ export default function ShiftAssignments() {
               </Select>
               <Select value={storeFilter || "_all"} onValueChange={(v) => setStoreFilter(v === "_all" ? "" : v)}>
                 <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Store" />
+                  <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_all">All Stores</SelectItem>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  <SelectItem value="_all">All Locations</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -652,13 +652,13 @@ export default function ShiftAssignments() {
                 onValueChange={(v) => setForm({ ...form, storeId: v === "none" ? "" : v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select store (optional)" />
+                  <SelectValue placeholder="Select location (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No specific store</SelectItem>
-                  {stores.filter(s => s.is_active).map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name} ({store.code})
+                  <SelectItem value="none">No specific location</SelectItem>
+                  {locations.filter(s => s.is_active).map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name} ({loc.code})
                     </SelectItem>
                   ))}
                 </SelectContent>

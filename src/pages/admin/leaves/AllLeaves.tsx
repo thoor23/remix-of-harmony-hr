@@ -33,7 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { useLeaveRequests, useLeaveTypes, LeaveRequestWithDetails } from "@/hooks/useLeaves";
-import { useStores } from "@/hooks/useStores";
+import { useAllLocations } from "@/hooks/useLocations";
 import { usePagination } from "@/hooks/usePagination";
 import { format, isWithinInterval, startOfDay, endOfDay, isToday } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
@@ -46,7 +46,7 @@ const getInitialColumns = (): ColumnDef[] => [
   { id: "employee_name", header: "Employee", accessor: "employee_name", visible: true },
   { id: "employee_id", header: "Employee ID", accessor: "employee_code", visible: true },
   { id: "department", header: "Department", accessor: "department", visible: true },
-  { id: "store", header: "Store", accessor: "store_name", visible: true },
+  { id: "store", header: "Location", accessor: "store_name", visible: true },
   { id: "leave_type", header: "Leave Type", accessor: "leave_type_name", visible: true },
   { id: "start_date", header: "From", accessor: "start_date", visible: true },
   { id: "end_date", header: "To", accessor: "end_date", visible: true },
@@ -62,7 +62,7 @@ export default function AllLeaves() {
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
   const [showFilter, setShowFilter] = useState(true);
   const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -71,20 +71,20 @@ export default function AllLeaves() {
 
   const { data: leaveRequests = [], isLoading, refetch, isFetching } = useLeaveRequests();
   const { data: leaveTypes = [] } = useLeaveTypes();
-  const { data: stores = [] } = useStores();
+  const { data: locations = [] } = useAllLocations();
 
   // Transform leave requests with additional info
   const transformedRecords = useMemo(() => {
     return leaveRequests.map((record: LeaveRequestWithDetails) => {
       const emp = record.employee;
       const recordAny = record as any;
-      const store = stores.find(s => s.id === recordAny.store_id);
+      const location = locations.find(s => s.id === recordAny.store_id);
       return {
         ...record,
         employee_name: emp ? `${emp.first_name || ''} ${emp.last_name || ''}`.trim() : 'Unknown',
         employee_code: emp?.employee_id || '-',
         department: emp?.department?.name || '-',
-        store_name: store?.name || '-',
+        store_name: location?.name || '-',
         store_id: recordAny.store_id,
         avatar_url: emp?.avatar_url || null,
         first_name: emp?.first_name || '',
@@ -93,7 +93,7 @@ export default function AllLeaves() {
         leave_type_color: record.leave_type?.color || '#888',
       };
     });
-  }, [leaveRequests, stores]);
+  }, [leaveRequests, locations]);
 
   const filteredRecords = useMemo(() => {
     return transformedRecords.filter((record) => {
@@ -102,7 +102,7 @@ export default function AllLeaves() {
         record.employee_code.toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || record.status === statusFilter;
-      const matchesStore = storeFilter === "all" || record.store_id === storeFilter;
+      const matchesLocation = locationFilter === "all" || record.store_id === locationFilter;
 
       // Filter by view mode
       const startDate = new Date(record.start_date);
@@ -116,9 +116,9 @@ export default function AllLeaves() {
         matchesDate = isWithinInterval(startDate, { start: from, end: to });
       }
 
-      return matchesSearch && matchesStatus && matchesStore && matchesDate;
+      return matchesSearch && matchesStatus && matchesLocation && matchesDate;
     });
-  }, [transformedRecords, search, statusFilter, storeFilter, viewMode, dateRange]);
+  }, [transformedRecords, search, statusFilter, locationFilter, viewMode, dateRange]);
 
   const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((current, key) => current?.[key], obj);
@@ -364,14 +364,14 @@ export default function AllLeaves() {
                 </Popover>
               )}
 
-              <Select value={storeFilter} onValueChange={setStoreFilter}>
+              <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Store" />
+                  <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stores</SelectItem>
-                  {stores.map((store: any) => (
-                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations.map((loc: any) => (
+                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -452,7 +452,7 @@ export default function AllLeaves() {
               <div>
                 <h3 className="text-lg font-medium">No leave records found</h3>
                 <p className="text-muted-foreground text-sm">
-                  {search || statusFilter !== "all" || storeFilter !== "all" 
+                  {search || statusFilter !== "all" || locationFilter !== "all" 
                     ? "Try adjusting your filters" 
                     : "No leave requests have been submitted yet"}
                 </p>

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/shared/StatCard";
 import { Wallet, TrendingUp, Receipt, CreditCard } from "lucide-react";
-import { useStores } from "@/hooks/useStores";
+import { useAllLocations } from "@/hooks/useLocations";
 
 const monthlyDisbursementData = [
   { name: "Jul", gross: 850000, net: 720000 },
@@ -71,13 +71,13 @@ const formatCurrency = (value: number) => {
 
 export default function PayrollReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
-  const [filteredStore, setFilteredStore] = useState("all");
-  const { data: stores = [] } = useStores();
+  const [filteredLocation, setFilteredLocation] = useState("all");
+  const { data: locations = [] } = useAllLocations();
 
   const filteredDetails = payrollDetails.filter(d => {
     const deptMatch = filteredDepartment === "all" || d.department === filteredDepartment;
-    const storeMatch = filteredStore === "all" || stores.find(s => s.id === filteredStore)?.name === d.store;
-    return deptMatch && storeMatch;
+    const locationMatch = filteredLocation === "all" || locations.find(s => s.id === filteredLocation)?.name === d.store;
+    return deptMatch && locationMatch;
   });
 
   const exportData = {
@@ -102,9 +102,9 @@ export default function PayrollReports() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <ReportFilters
           departments={departments}
-          stores={stores.map(s => ({ id: s.id, name: s.name }))}
+          stores={locations.map(s => ({ id: s.id, name: s.name }))}
           onDepartmentChange={setFilteredDepartment}
-          onStoreChange={setFilteredStore}
+          onStoreChange={setFilteredLocation}
           showStoreFilter={true}
         />
         <ReportExport data={exportData} title="Payroll Report" />
