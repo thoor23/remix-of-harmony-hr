@@ -53,12 +53,15 @@ export function LineChartCard({ title, data, lines, className }: LineChartCardPr
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
+                  color: "hsl(var(--card-foreground))",
                 }}
+                labelStyle={{ color: "hsl(var(--card-foreground))" }}
+                itemStyle={{ color: "hsl(var(--muted-foreground))" }}
               />
               {lines.length > 1 && (
                 <Legend
                   formatter={(value) => (
-                    <span className="text-sm text-muted-foreground">{value}</span>
+                    <span style={{ color: "hsl(var(--muted-foreground))", fontSize: "14px" }}>{value}</span>
                   )}
                 />
               )}
