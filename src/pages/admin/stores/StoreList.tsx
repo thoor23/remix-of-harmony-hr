@@ -280,20 +280,17 @@ export default function StoreList() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 2} className="h-32 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <Building2 className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        {searchTerm ? "No stores found matching your search" : "No stores found"}
-                      </p>
-                      {!searchTerm && (
-                        <Button size="sm" asChild>
-                          <Link to="/admin/stores/add">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Store
-                          </Link>
-                        </Button>
-                      )}
+                  <TableCell colSpan={visibleColumns.length + 2} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <Building2 className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">No stores found</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {searchTerm ? "Try adjusting your search criteria" : "Get started by adding your first store"}
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>

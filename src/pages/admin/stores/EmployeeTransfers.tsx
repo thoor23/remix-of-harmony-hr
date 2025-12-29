@@ -369,10 +369,17 @@ export default function EmployeeTransfers() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 1} className="h-32 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <ArrowRightLeft className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">No transfers found</p>
+                  <TableCell colSpan={visibleColumns.length + 1} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <ArrowRightLeft className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">No transfers found</h3>
+                        <p className="text-muted-foreground text-sm">
+                          {searchTerm ? "Try adjusting your search criteria" : "Get started by creating your first transfer"}
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>

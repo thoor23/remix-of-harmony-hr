@@ -436,9 +436,21 @@ export default function EmployeeList() {
           </Table>
         </div>
 
-        {filteredEmployees.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground">
-            No employees found matching your criteria.
+        {paginatedData.length === 0 && (
+          <div className="py-12 px-4 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">No employees found</h3>
+                <p className="text-muted-foreground text-sm">
+                  {search || departmentFilter !== "all" || statusFilter !== "all" 
+                    ? "Try adjusting your filters" 
+                    : "Get started by adding your first employee"}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
