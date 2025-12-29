@@ -85,12 +85,14 @@ export default function AddAsset() {
 
   return (
     <PageContainer>
-      <PageHeader title="Add New Asset">
-        <Button variant="outline" onClick={() => navigate('/admin/assets')}>
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate('/admin/assets')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Back to Assets
         </Button>
-      </PageHeader>
+      </div>
+
+      <PageHeader title="Add New Asset" />
 
       <Card>
         <CardHeader>
