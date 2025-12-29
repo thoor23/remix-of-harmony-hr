@@ -37,13 +37,16 @@ const actionColors: Record<string, string> = {
   LOGOUT: "bg-muted text-muted-foreground",
 };
 
-const modules = ["Employee", "Leave", "Payroll", "Announcement", "Settings", "Auth", "Documents", "Departments", "Designations"];
+interface AuditLogsPageProps {
+  module?: string;
+  title: string;
+  description: string;
+}
 
-export default function AuditLogs() {
+export default function AuditLogsPage({ module, title, description }: AuditLogsPageProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [action, setAction] = useState("all");
-  const [module, setModule] = useState("all");
   const [showFilter, setShowFilter] = useState(true);
   
   // Table state
@@ -53,15 +56,16 @@ export default function AuditLogs() {
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "created_at", header: "Timestamp", visible: true },
     { id: "action", header: "Action", visible: true },
-    { id: "module", header: "Module", visible: true },
+    { id: "module", header: "Module", visible: !module }, // Hide module column when viewing module-specific logs
     { id: "description", header: "Description", visible: true },
     { id: "performer_name", header: "Performed By", visible: true },
+    { id: "ip_address", header: "IP Address", visible: false },
   ]);
 
   const { data: logs = [], isLoading, isFetching } = useAuditLogs({
     search: search || undefined,
     action: action !== "all" ? action : undefined,
-    module: module !== "all" ? module : undefined,
+    module: module || undefined,
   });
 
   const sortedLogs = useMemo(() => {
@@ -87,6 +91,10 @@ export default function AuditLogs() {
         case "performer_name":
           aVal = a.performer_name || "";
           bVal = b.performer_name || "";
+          break;
+        case "ip_address":
+          aVal = a.ip_address || "";
+          bVal = b.ip_address || "";
           break;
         default:
           return 0;
@@ -133,22 +141,25 @@ export default function AuditLogs() {
       module: log.module,
       description: log.description,
       performer_name: log.performer_name || "System",
+      ip_address: log.ip_address || "-",
     }));
-    exportToCSV(data, columns, "audit-logs");
+    const filename = module ? `audit-logs-${module.toLowerCase()}` : "audit-logs";
+    exportToCSV(data, columns, filename);
   };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
   };
 
+  const visibleColumnCount = columns.filter(c => c.visible).length + 1; // +1 for checkbox column
+
   return (
     <PageContainer>
       <PageHeader
-        title="Audit Logs"
-        description="Track all system activities and changes"
+        title={title}
+        description={description}
       />
 
-      {/* Logs Table */}
       <Card>
         <DataTableToolbar
           columns={columns}
@@ -183,17 +194,6 @@ export default function AuditLogs() {
                   <SelectItem value="DELETE">Delete</SelectItem>
                   <SelectItem value="LOGIN">Login</SelectItem>
                   <SelectItem value="LOGOUT">Logout</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={module} onValueChange={setModule}>
-                <SelectTrigger className="w-full md:w-40">
-                  <SelectValue placeholder="Module" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Modules</SelectItem>
-                  {modules.map((mod) => (
-                    <SelectItem key={mod} value={mod}>{mod}</SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -244,12 +244,17 @@ export default function AuditLogs() {
                       <div className="flex items-center">Performed By {getSortIcon("performer_name")}</div>
                     </TableHead>
                   )}
+                  {columns.find(c => c.id === "ip_address")?.visible && (
+                    <TableHead className="cursor-pointer" onClick={() => handleSort("ip_address")}>
+                      <div className="flex items-center">IP Address {getSortIcon("ip_address")}</div>
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={visibleColumnCount} className="text-center text-muted-foreground py-8">
                       No audit logs found
                     </TableCell>
                   </TableRow>
@@ -287,6 +292,11 @@ export default function AuditLogs() {
                       {columns.find(c => c.id === "performer_name")?.visible && (
                         <TableCell className="font-medium">
                           {log.performer_name || "System"}
+                        </TableCell>
+                      )}
+                      {columns.find(c => c.id === "ip_address")?.visible && (
+                        <TableCell className="text-muted-foreground">
+                          {log.ip_address || "-"}
                         </TableCell>
                       )}
                     </TableRow>
