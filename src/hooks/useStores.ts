@@ -74,6 +74,49 @@ export interface AssignEmployeeInput {
   end_date?: string;
 }
 
+export interface EmployeeTransfer {
+  id: string;
+  employee_id: string;
+  from_store_id: string | null;
+  to_store_id: string;
+  transfer_date: string;
+  effective_date: string;
+  reason?: string;
+  notes?: string;
+  status: string;
+  initiated_by?: string;
+  created_at: string;
+  employee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    employee_id: string;
+  };
+  from_store?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  to_store?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  initiated_by_employee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+export interface CreateTransferInput {
+  employee_id: string;
+  to_store_id: string;
+  effective_date: string;
+  reason?: string;
+  notes?: string;
+}
+
 export function useStores() {
   return useQuery({
     queryKey: ["stores"],
@@ -196,6 +239,38 @@ export function useRemoveEmployeeFromStore() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to remove employee: ${error.message}`);
+    },
+  });
+}
+
+export function useEmployeeTransfers(employeeId?: string, storeId?: string) {
+  return useQuery({
+    queryKey: ["employee-transfers", { employeeId, storeId }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (employeeId) params.append("employee_id", employeeId);
+      if (storeId) params.append("store_id", storeId);
+      const queryString = params.toString();
+      return api.get<EmployeeTransfer[]>(`/stores/transfers${queryString ? `?${queryString}` : ""}`);
+    },
+  });
+}
+
+export function useCreateTransfer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateTransferInput) => {
+      return api.post<EmployeeTransfer>("/stores/transfers", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stores"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Employee transferred successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to transfer employee: ${error.message}`);
     },
   });
 }

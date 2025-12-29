@@ -137,6 +137,7 @@ const adminNavItems: NavItem[] = [
     children: [
       { title: "All Stores", href: "/admin/stores", icon: Store },
       { title: "Store Dashboard", href: "/admin/stores/dashboard", icon: LayoutGrid },
+      { title: "Employee Transfers", href: "/admin/stores/transfers", icon: ArrowLeftRight },
     ],
   },
   {

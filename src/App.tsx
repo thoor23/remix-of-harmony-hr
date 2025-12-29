@@ -63,6 +63,7 @@ import AddStore from "./pages/admin/stores/AddStore";
 import EditStore from "./pages/admin/stores/EditStore";
 import StoreDetails from "./pages/admin/stores/StoreDetails";
 import StoreManagerDashboard from "./pages/admin/stores/StoreManagerDashboard";
+import EmployeeTransfers from "./pages/admin/stores/EmployeeTransfers";
 
 // Settings Pages
 import DepartmentsPage from "./pages/admin/settings/DepartmentsPage";
@@ -162,6 +163,7 @@ const App = () => (
                 <Route path="stores" element={<StoreList />} />
                 <Route path="stores/add" element={<AddStore />} />
                 <Route path="stores/dashboard" element={<StoreManagerDashboard />} />
+                <Route path="stores/transfers" element={<EmployeeTransfers />} />
                 <Route path="stores/:id" element={<StoreDetails />} />
                 <Route path="stores/:id/edit" element={<EditStore />} />
                 {/* Settings Routes */}
