@@ -61,7 +61,7 @@ export default function EditOffice() {
         </Button>
       </div>
 
-      <PageHeader title={`Edit ${office.name}`} />
+      <PageHeader title={`Edit ${office.name}`} description="Update office information" />
 
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
         <Card><CardHeader><CardTitle>Basic Information</CardTitle></CardHeader><CardContent className="space-y-4">

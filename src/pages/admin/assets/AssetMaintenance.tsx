@@ -151,7 +151,7 @@ export default function AssetMaintenance() {
 
   return (
     <PageContainer>
-      <PageHeader title="Asset Maintenance">
+      <PageHeader title="Asset Maintenance" description="Schedule and track asset maintenance">
         <Button onClick={() => setShowDialog(true)}><Plus className="mr-2 h-4 w-4" />Schedule Maintenance</Button>
       </PageHeader>
 

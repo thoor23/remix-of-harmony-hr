@@ -92,7 +92,7 @@ export default function AddAsset() {
         </Button>
       </div>
 
-      <PageHeader title="Add New Asset" />
+      <PageHeader title="Add New Asset" description="Fill in the details to add a new asset" />
 
       <Card>
         <CardHeader>

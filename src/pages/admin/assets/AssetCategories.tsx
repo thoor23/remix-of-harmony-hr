@@ -221,7 +221,7 @@ export default function AssetCategories() {
 
   return (
     <PageContainer>
-      <PageHeader title="Asset Categories">
+      <PageHeader title="Asset Categories" description="Organize assets into categories">
         <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Add Category

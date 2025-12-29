@@ -253,7 +253,7 @@ export default function AssetList() {
 
   return (
     <PageContainer>
-      <PageHeader title="Asset Management" />
+      <PageHeader title="Asset Management" description="Manage and track your organization's assets" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

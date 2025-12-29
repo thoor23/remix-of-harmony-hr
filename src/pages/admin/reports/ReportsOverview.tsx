@@ -22,8 +22,8 @@ const recentActivity = [
 
 export default function ReportsOverview() {
   return (
-    <PageContainer
-    >
+    <PageContainer>
+      <PageHeader title="Reports" description="Generate and download reports for your organization" />
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
