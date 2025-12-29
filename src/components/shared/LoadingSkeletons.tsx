@@ -1,5 +1,52 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+interface WaveLoaderProps {
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+export function WaveLoader({ size = "md", className }: WaveLoaderProps) {
+  const sizeClasses = {
+    sm: "h-4 gap-0.5",
+    md: "h-8 gap-1",
+    lg: "h-12 gap-1.5",
+  };
+
+  const barSizes = {
+    sm: "w-1",
+    md: "w-1.5",
+    lg: "w-2",
+  };
+
+  return (
+    <div className={cn("flex items-center justify-center", sizeClasses[size], className)}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className={cn(
+            "bg-primary rounded-full animate-wave-bar",
+            barSizes[size]
+          )}
+          style={{
+            animationDelay: `${i * 0.1}s`,
+            height: "100%",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function PageLoader({ message = "Loading..." }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <WaveLoader size="lg" />
+      <p className="text-muted-foreground text-sm animate-pulse">{message}</p>
+    </div>
+  );
+}
 
 export function StatCardSkeleton() {
   return (
