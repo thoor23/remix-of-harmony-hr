@@ -63,6 +63,48 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // GET /user-preferences - Get current user's preferences
+    if (method === 'GET' && path === '/user-preferences') {
+      const prefKey = `user_prefs_${auth.userId}`;
+      
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', prefKey)
+        .maybeSingle();
+
+      if (error) throw error;
+      return jsonResponse(data?.value || { notifications: {} });
+    }
+
+    // POST /user-preferences - Save current user's preferences
+    if (method === 'POST' && path === '/user-preferences') {
+      const prefKey = `user_prefs_${auth.userId}`;
+      const body = await req.json();
+
+      // Check if exists
+      const { data: existing } = await supabase
+        .from('system_settings')
+        .select('id')
+        .eq('key', prefKey)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('system_settings')
+          .update({ value: body, updated_at: new Date().toISOString() })
+          .eq('key', prefKey);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('system_settings')
+          .insert({ key: prefKey, value: body, category: 'user_preferences' });
+        if (error) throw error;
+      }
+
+      return jsonResponse({ success: true });
+    }
+
     // GET /:key - Get specific setting (exclude 'roles' which has its own handler)
     const keyMatch = path.match(/^\/([a-zA-Z_]+)$/);
     if (method === 'GET' && keyMatch && keyMatch[1] !== 'roles') {

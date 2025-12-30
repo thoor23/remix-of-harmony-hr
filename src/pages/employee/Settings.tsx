@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useTheme, ColorTheme, Mode } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, Sun, Moon, Monitor, Palette, Bell, User, Lock, Shield, Mail, Calendar, CreditCard, Megaphone, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { Check, Sun, Moon, Monitor, Palette, Bell, User, Lock, Shield, Mail, Calendar, CreditCard, Megaphone, Settings2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface ThemeOption {
   id: ColorTheme;
@@ -105,6 +107,45 @@ export default function EmployeeSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
+
+  // Load notification preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/user-preferences`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.notifications) {
+            setNotificationPreferences(prev => 
+              prev.map(pref => ({
+                ...pref,
+                enabled: data.notifications[pref.id] !== undefined 
+                  ? data.notifications[pref.id] 
+                  : pref.enabled,
+              }))
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load preferences:", error);
+      } finally {
+        setLoadingPreferences(false);
+      }
+    };
+
+    if (user) {
+      loadPreferences();
+    } else {
+      setLoadingPreferences(false);
+    }
+  }, [user]);
 
   const toggleNotification = (id: string) => {
     setNotificationPreferences(prev =>
@@ -114,11 +155,38 @@ export default function EmployeeSettingsPage() {
     );
   };
 
-  const handleSaveNotifications = () => {
-    toast.success("Notification preferences saved");
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const notificationSettings = notificationPreferences.reduce((acc, pref) => ({
+        ...acc,
+        [pref.id]: pref.enabled,
+      }), {});
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/user-preferences`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ notifications: notificationSettings }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save preferences");
+      }
+
+      toast.success("Notification preferences saved");
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save preferences");
+    } finally {
+      setSavingNotifications(false);
+    }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields");
       return;
@@ -131,10 +199,37 @@ export default function EmployeeSettingsPage() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    toast.success("Password changed successfully");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+
+    setChangingPassword(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to change password");
+      }
+
+      toast.success("Password changed successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to change password");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const displayName = profile?.first_name && profile?.last_name
@@ -259,32 +354,41 @@ export default function EmployeeSettingsPage() {
               <CardDescription>Choose which notifications you want to receive</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {notificationPreferences.map((pref) => (
-                <div key={pref.id} className="flex items-center justify-between gap-4 py-3 border-b last:border-0">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-muted">
-                      <pref.icon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <Label htmlFor={pref.id} className="text-sm font-medium cursor-pointer">
-                        {pref.label}
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">{pref.description}</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id={pref.id}
-                    checked={pref.enabled}
-                    onCheckedChange={() => toggleNotification(pref.id)}
-                  />
+              {loadingPreferences ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ))}
-              
-              <div className="pt-4">
-                <Button onClick={handleSaveNotifications}>
-                  Save Preferences
-                </Button>
-              </div>
+              ) : (
+                <>
+                  {notificationPreferences.map((pref) => (
+                    <div key={pref.id} className="flex items-center justify-between gap-4 py-3 border-b last:border-0">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-muted">
+                          <pref.icon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <Label htmlFor={pref.id} className="text-sm font-medium cursor-pointer">
+                            {pref.label}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{pref.description}</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id={pref.id}
+                        checked={pref.enabled}
+                        onCheckedChange={() => toggleNotification(pref.id)}
+                      />
+                    </div>
+                  ))}
+                  
+                  <div className="pt-4">
+                    <Button onClick={handleSaveNotifications} disabled={savingNotifications}>
+                      {savingNotifications && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Preferences
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -354,7 +458,8 @@ export default function EmployeeSettingsPage() {
                 </div>
               </div>
               
-              <Button onClick={handleChangePassword} className="mt-4">
+              <Button onClick={handleChangePassword} className="mt-4" disabled={changingPassword}>
+                {changingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Update Password
               </Button>
             </CardContent>
