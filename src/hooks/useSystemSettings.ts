@@ -39,7 +39,7 @@ export function useUpdateSystemSetting() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: Json }) => {
+    mutationFn: async ({ key, value }: { key: string; value: Record<string, unknown> | Json }) => {
       return api.put(`/settings/${key}`, { value });
     },
     onSuccess: (_, variables) => {

@@ -43,7 +43,7 @@ export default function SystemSettingsPage() {
     if (settingData?.value) {
       setSystemPreferences({
         ...defaultPreferences,
-        ...(settingData.value as SystemPreferences),
+        ...(settingData.value as unknown as SystemPreferences),
       });
     }
   }, [settingData]);
@@ -51,7 +51,7 @@ export default function SystemSettingsPage() {
   const saveSystemPreferences = async () => {
     await updateSetting.mutateAsync({
       key: "system_preferences",
-      value: systemPreferences,
+      value: systemPreferences as unknown as Record<string, unknown>,
     });
   };
 
