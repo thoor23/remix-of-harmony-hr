@@ -107,25 +107,25 @@ export default function EmployeeDashboard() {
       {/* Quick Actions */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4 mb-6">
         <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
-          <Link to="/employee/leaves">
+          <Link to="/app/my-leaves">
             <CalendarPlus className="h-5 w-5 text-primary" />
             <span className="text-sm">Apply Leave</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
-          <Link to="/employee/payslips">
+          <Link to="/app/my-payslips">
             <Wallet className="h-5 w-5 text-primary" />
             <span className="text-sm">View Payslip</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
-          <Link to="/employee/helpdesk">
+          <Link to="/app/my-helpdesk">
             <HelpCircle className="h-5 w-5 text-primary" />
             <span className="text-sm">Raise Ticket</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-auto py-4 flex-col gap-2">
-          <Link to="/employee/attendance">
+          <Link to="/app/my-attendance">
             <CalendarCheck className="h-5 w-5 text-primary" />
             <span className="text-sm">My Attendance</span>
           </Link>
@@ -206,7 +206,7 @@ export default function EmployeeDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Leave Balance</CardTitle>
               <Button asChild size="sm">
-                <Link to="/employee/leaves">Apply Leave</Link>
+                <Link to="/app/my-leaves">Apply Leave</Link>
               </Button>
             </CardHeader>
             <CardContent>
@@ -257,7 +257,7 @@ export default function EmployeeDashboard() {
                 <p className="text-sm text-muted-foreground text-center py-4">No upcoming holidays</p>
               )}
               <Button asChild variant="ghost" className="w-full mt-2" size="sm">
-                <Link to="/employee/holidays">
+                <Link to="/app/my-holidays">
                   View All Holidays
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

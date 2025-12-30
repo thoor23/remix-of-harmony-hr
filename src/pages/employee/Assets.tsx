@@ -283,7 +283,7 @@ export default function EmployeeAssets() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Need maintenance?</p>
-              <Link to="/employee/assets/maintenance" className="text-sm text-primary hover:underline">
+              <Link to="/app/my-asset-maintenance" className="text-sm text-primary hover:underline">
                 Submit a request →
               </Link>
             </div>
@@ -303,7 +303,7 @@ export default function EmployeeAssets() {
           isRefreshing={isFetching}
           extraActions={
             <Button variant="outline" size="sm" className="h-8 gap-1.5" asChild>
-              <Link to="/employee/assets/maintenance">
+              <Link to="/app/my-asset-maintenance">
                 <Wrench className="h-4 w-4" />
                 Maintenance Requests
               </Link>
