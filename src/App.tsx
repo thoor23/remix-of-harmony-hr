@@ -119,6 +119,7 @@ import PersonalSettingsPage from "./pages/admin/settings/PersonalSettingsPage";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import EmployeeProfile from "./pages/employee/Profile";
 import EmployeeAttendance from "./pages/employee/Attendance";
+import EmployeeAttendanceRegularization from "./pages/employee/AttendanceRegularization";
 import EmployeeLeaves from "./pages/employee/Leaves";
 import EmployeePayslips from "./pages/employee/Payslips";
 import EmployeeDocuments from "./pages/employee/Documents";
@@ -282,7 +283,7 @@ const App = () => (
                 {/* Attendance */}
                 <Route path="attendance" element={<EmployeeAttendance />} />
                 <Route path="attendance/log" element={<EmployeeAttendance />} />
-                <Route path="attendance/regularization" element={<EmployeeAttendance />} />
+                <Route path="attendance/regularization" element={<EmployeeAttendanceRegularization />} />
                 <Route path="attendance/report" element={<EmployeeAttendanceReport />} />
                 {/* Shifts */}
                 <Route path="shifts" element={<EmployeeShiftExchange />} />
