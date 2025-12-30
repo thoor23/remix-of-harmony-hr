@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +37,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Building2,
 } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployee } from "@/hooks/useEmployees";
@@ -78,7 +78,6 @@ export default function EmployeeProfile() {
     const file = e.target.files?.[0];
     if (!file || !employee) return;
 
-    // Validate file
     if (!file.type.startsWith('image/')) {
       toast.error("Please select an image file");
       return;
@@ -91,7 +90,6 @@ export default function EmployeeProfile() {
     setUploadingAvatar(true);
 
     try {
-      // Upload to company-assets bucket
       const fileExt = file.name.split('.').pop();
       const fileName = `avatars/${employee.id}-${Date.now()}.${fileExt}`;
 
@@ -101,12 +99,10 @@ export default function EmployeeProfile() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('company-assets')
         .getPublicUrl(fileName);
 
-      // Update employee record using API (use /current endpoint for employee self-update)
       const token = localStorage.getItem("access_token");
       await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-employees/current`, {
         method: "PUT",
@@ -117,7 +113,6 @@ export default function EmployeeProfile() {
         body: JSON.stringify({ avatar_url: publicUrl }),
       });
 
-      // Refetch employee data
       refetchEmployee();
       refetchCurrentEmployee();
       
@@ -191,14 +186,28 @@ export default function EmployeeProfile() {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex gap-6">
-              <Skeleton className="h-24 w-24 rounded-full" />
-              <div className="flex-1 space-y-2">
+              <Skeleton className="h-28 w-28 rounded-full" />
+              <div className="flex-1 space-y-3">
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-64" />
               </div>
             </div>
           </CardContent>
         </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </PageContainer>
     );
   }
@@ -229,7 +238,7 @@ export default function EmployeeProfile() {
       </PageHeader>
 
       {/* Profile Header */}
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-md">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="relative">
@@ -240,16 +249,16 @@ export default function EmployeeProfile() {
                 accept="image/*"
                 onChange={handleAvatarUpload}
               />
-              <Avatar className="h-24 w-24">
+              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
                 <AvatarImage src={employee.avatar_url || undefined} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
                   {employee.first_name?.[0] || ""}{employee.last_name?.[0] || ""}
                 </AvatarFallback>
               </Avatar>
               <Button 
                 size="icon" 
                 variant="secondary" 
-                className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-md"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
               >
@@ -261,60 +270,54 @@ export default function EmployeeProfile() {
               </Button>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-semibold mb-1">
+              <h2 className="text-2xl font-bold mb-1">
                 {employee.first_name} {employee.last_name}
               </h2>
               <p className="text-muted-foreground mb-3">
                 {designation?.name || "N/A"} • {department?.name || "N/A"}
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{employee.employee_id}</Badge>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="outline" className="font-mono">{employee.employee_id}</Badge>
                 <Badge className="bg-success/10 text-success border-success/20 capitalize">{employee.status}</Badge>
                 <Badge variant="secondary" className="capitalize">{employee.employment_type}</Badge>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.email || "N/A"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.phone || "N/A"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>Joined {employee.date_of_joining}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.address_city || "N/A"}, {employee.address_state || "N/A"}</span>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>{employee.email || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>{employee.phone || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Joined {employee.date_of_joining}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>{employee.address_city || "N/A"}, {employee.address_state || "N/A"}</span>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Profile Details */}
-      <Tabs defaultValue="personal">
-        <TabsList className="mb-4">
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="work">Work</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
-          <TabsTrigger value="bank">Bank</TabsTrigger>
-          <TabsTrigger value="requests">Change Requests</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="personal">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+      {/* Information Grid */}
+      <div className="space-y-6">
+        {/* Personal & Work Info Row */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Personal Information */}
+          <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5 text-primary" />
                 Personal Information
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">First Name</p>
                   <p className="font-medium">{employee.first_name || "N/A"}</p>
@@ -331,25 +334,24 @@ export default function EmployeeProfile() {
                   <p className="text-sm text-muted-foreground mb-1">Phone</p>
                   <p className="font-medium">{employee.phone || "N/A"}</p>
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
                   <p className="font-medium">{employee.date_of_birth || "N/A"}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="work">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
+          {/* Work Information */}
+          <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Briefcase className="h-5 w-5 text-blue-500" />
                 Work Information
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Employee ID</p>
                   <p className="font-medium font-mono">{employee.employee_id}</p>
@@ -377,159 +379,166 @@ export default function EmployeeProfile() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="contact">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Street</p>
-                    <p className="font-medium">{employee.address_street || "N/A"}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">City</p>
-                      <p className="font-medium">{employee.address_city || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">State</p>
-                      <p className="font-medium">{employee.address_state || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
-                      <p className="font-medium">{employee.address_zip_code || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Country</p>
-                      <p className="font-medium">{employee.address_country || "N/A"}</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Emergency Contact
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Name</p>
-                    <p className="font-medium">{employee.emergency_contact_name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Relationship</p>
-                    <p className="font-medium">{employee.emergency_contact_relationship || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                    <p className="font-medium">{employee.emergency_contact_phone || "N/A"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="bank">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Bank Details
+        {/* Address & Emergency Contact Row */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Address */}
+          <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-green-500" />
+                Address
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
-                  <p className="font-medium">{employee.bank_name || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Street</p>
+                  <p className="font-medium">{employee.address_street || "N/A"}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
-                  <p className="font-medium">{employee.bank_account_holder_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Number</p>
-                  <p className="font-medium font-mono">{employee.bank_account_number || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
-                  <p className="font-medium font-mono">{employee.bank_ifsc_code || "N/A"}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">City</p>
+                    <p className="font-medium">{employee.address_city || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">State</p>
+                    <p className="font-medium">{employee.address_state || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
+                    <p className="font-medium">{employee.address_zip_code || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Country</p>
+                    <p className="font-medium">{employee.address_country || "N/A"}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Change Requests Tab */}
-        <TabsContent value="requests">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Edit className="h-5 w-5" />
-                My Change Requests
+          {/* Emergency Contact */}
+          <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                Emergency Contact
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {changeRequests.length > 0 ? (
-                <div className="space-y-4">
-                  {changeRequests.map((request) => (
-                    <div key={request.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(request.status)}
-                          <span className="font-medium capitalize">
-                            {fieldOptions.find(f => f.value === request.field_name)?.label || request.field_name}
-                          </span>
-                        </div>
-                        <Badge variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}>
-                          {request.status}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Current Value</p>
-                          <p>{request.current_value || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Requested Value</p>
-                          <p>{request.new_value}</p>
-                        </div>
-                      </div>
-                      {request.reason && (
-                        <p className="text-sm text-muted-foreground mt-2">Reason: {request.reason}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Submitted: {format(new Date(request.created_at), "MMM dd, yyyy")}
-                      </p>
-                      {request.review_comments && (
-                        <p className="text-sm mt-2 p-2 bg-muted rounded">
-                          <span className="font-medium">Review Comments:</span> {request.review_comments}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Name</p>
+                  <p className="font-medium">{employee.emergency_contact_name || "N/A"}</p>
                 </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">No change requests submitted</p>
-              )}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Relationship</p>
+                  <p className="font-medium">{employee.emergency_contact_relationship || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                  <p className="font-medium">{employee.emergency_contact_phone || "N/A"}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+
+        {/* Bank Details */}
+        <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CreditCard className="h-5 w-5 text-purple-500" />
+              Bank Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
+                <p className="font-medium">{employee.bank_name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
+                <p className="font-medium">{employee.bank_account_holder_name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Account Number</p>
+                <p className="font-medium font-mono">{employee.bank_account_number || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
+                <p className="font-medium font-mono">{employee.bank_ifsc_code || "N/A"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Change Requests */}
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Edit className="h-5 w-5 text-yellow-500" />
+              My Change Requests
+              {changeRequests.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{changeRequests.length}</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {changeRequests.length > 0 ? (
+              <div className="space-y-4">
+                {changeRequests.map((request) => (
+                  <div key={request.id} className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(request.status)}
+                        <span className="font-medium">
+                          {fieldOptions.find(f => f.value === request.field_name)?.label || request.field_name}
+                        </span>
+                      </div>
+                      <Badge variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}>
+                        {request.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Current Value</p>
+                        <p className="font-medium">{request.current_value || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Requested Value</p>
+                        <p className="font-medium">{request.new_value}</p>
+                      </div>
+                    </div>
+                    {request.reason && (
+                      <p className="text-sm text-muted-foreground mt-3">
+                        <span className="font-medium">Reason:</span> {request.reason}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Submitted: {format(new Date(request.created_at), "MMM dd, yyyy")}
+                    </p>
+                    {request.review_comments && (
+                      <div className="text-sm mt-3 p-3 bg-muted rounded-md">
+                        <span className="font-medium">Review Comments:</span> {request.review_comments}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Edit className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>No change requests submitted</p>
+                <p className="text-sm mt-1">Click "Request Change" to update your profile information</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Request Change Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
