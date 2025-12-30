@@ -87,7 +87,7 @@ const employeeNavItems: NavItem[] = [
       { title: "My Report", href: "/employee/shifts/report", icon: BarChart3 },
     ],
   },
-  { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
+  
   {
     title: "Leave Requests",
     icon: CalendarCheck,
