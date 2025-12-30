@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -290,114 +289,108 @@ export default function EmployeeAttendanceRegularization() {
 
   return (
     <PageContainer>
-      <PageHeader title="Attendance Regularization" description="Request corrections to your attendance records">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Request
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Request Regularization</DialogTitle>
-              <DialogDescription>
-                Submit a request to correct your attendance record
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="request_type">Request Type *</Label>
-                <Select value={requestType} onValueChange={setRequestType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {requestTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <PageHeader title="Attendance Regularization" description="Request corrections to your attendance records" />
 
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Regularization</DialogTitle>
+            <DialogDescription>
+              Submit a request to correct your attendance record
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="request_type">Request Type *</Label>
+              <Select value={requestType} onValueChange={setRequestType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {requestTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="request_date">Date *</Label>
+              <Input
+                id="request_date"
+                type="date"
+                value={requestDate}
+                onChange={(e) => setRequestDate(e.target.value)}
+                max={format(new Date(), "yyyy-MM-dd")}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="request_date">Date *</Label>
+                <Label htmlFor="original_check_in">Original Check-In</Label>
                 <Input
-                  id="request_date"
-                  type="date"
-                  value={requestDate}
-                  onChange={(e) => setRequestDate(e.target.value)}
-                  max={format(new Date(), "yyyy-MM-dd")}
+                  id="original_check_in"
+                  type="time"
+                  value={originalCheckIn}
+                  onChange={(e) => setOriginalCheckIn(e.target.value)}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="original_check_in">Original Check-In</Label>
-                  <Input
-                    id="original_check_in"
-                    type="time"
-                    value={originalCheckIn}
-                    onChange={(e) => setOriginalCheckIn(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="original_check_out">Original Check-Out</Label>
-                  <Input
-                    id="original_check_out"
-                    type="time"
-                    value={originalCheckOut}
-                    onChange={(e) => setOriginalCheckOut(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="requested_check_in">Requested Check-In</Label>
-                  <Input
-                    id="requested_check_in"
-                    type="time"
-                    value={requestedCheckIn}
-                    onChange={(e) => setRequestedCheckIn(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requested_check_out">Requested Check-Out</Label>
-                  <Input
-                    id="requested_check_out"
-                    type="time"
-                    value={requestedCheckOut}
-                    onChange={(e) => setRequestedCheckOut(e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="reason">Reason *</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Explain why you need this correction..."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={3}
+                <Label htmlFor="original_check_out">Original Check-Out</Label>
+                <Input
+                  id="original_check_out"
+                  type="time"
+                  value={originalCheckOut}
+                  onChange={(e) => setOriginalCheckOut(e.target.value)}
                 />
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createRequest.isPending}>
-                  {createRequest.isPending ? "Submitting..." : "Submit Request"}
-                </Button>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="requested_check_in">Requested Check-In</Label>
+                <Input
+                  id="requested_check_in"
+                  type="time"
+                  value={requestedCheckIn}
+                  onChange={(e) => setRequestedCheckIn(e.target.value)}
+                />
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </PageHeader>
+              <div className="space-y-2">
+                <Label htmlFor="requested_check_out">Requested Check-Out</Label>
+                <Input
+                  id="requested_check_out"
+                  type="time"
+                  value={requestedCheckOut}
+                  onChange={(e) => setRequestedCheckOut(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason *</Label>
+              <Textarea
+                id="reason"
+                placeholder="Explain why you need this correction..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createRequest.isPending}>
+                {createRequest.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -446,6 +439,8 @@ export default function EmployeeAttendanceRegularization() {
           onToggleFilter={() => setShowFilters(!showFilters)}
           showFilter={showFilters}
           isRefreshing={isLoading}
+          onAddRow={() => setIsDialogOpen(true)}
+          addRowLabel="New Request"
         />
 
         {showFilters && (
