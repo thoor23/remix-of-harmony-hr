@@ -44,6 +44,7 @@ import {
   useDeleteDepartment,
   Department,
 } from "@/hooks/useDepartments";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 interface DepartmentForm {
   name: string;
@@ -66,6 +67,10 @@ export default function DepartmentsPage() {
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
+  
+  const canCreate = useHasPermission("Settings", "create");
+  const canUpdate = useHasPermission("Settings", "update");
+  const canDelete = useHasPermission("Settings", "delete");
 
   const [deptSearch, setDeptSearch] = useState("");
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
@@ -274,7 +279,7 @@ export default function DepartmentsPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => openDeptDialog()}
+          onAddRow={canCreate ? () => openDeptDialog() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -367,18 +372,22 @@ export default function DepartmentsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openDeptDialog(dept)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteDeptDialog(dept)}
-                            disabled={(dept.employee_count || 0) > 0}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => openDeptDialog(dept)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteDeptDialog(dept)}
+                              disabled={(dept.employee_count || 0) > 0}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

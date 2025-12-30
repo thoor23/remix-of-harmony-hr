@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePermissions } from "@/contexts/PermissionContext";
 
 const fontWeightClasses = {
   normal: "font-normal",
@@ -146,10 +147,25 @@ interface EmployeeSidebarProps {
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
+// Map nav items to permission modules
+const navItemToModule: Record<string, string> = {
+  "Dashboard": "Employee Dashboard",
+  "Attendance": "My Attendance",
+  "Shift Management": "My Shifts",
+  "Leave Requests": "My Leaves",
+  "Payroll": "My Payslips",
+  "Documents": "My Documents",
+  "Assets": "My Assets",
+  "Helpdesk": "My Helpdesk",
+  "Profile": "My Profile",
+  "Settings": "My Settings",
+};
+
 export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSidebarProps) {
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const { data: branding } = useCompanyBranding();
+  const { canRead, loading: permLoading } = usePermissions();
 
   // Close all open items when sidebar is collapsed
   useEffect(() => {
@@ -157,6 +173,18 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
       setOpenItems([]);
     }
   }, [collapsed]);
+
+  // Filter nav items based on permissions
+  const filteredNavItems = useMemo(() => {
+    if (permLoading) return employeeNavItems;
+    
+    return employeeNavItems.filter((item) => {
+      const module = navItemToModule[item.title];
+      // If no module mapping, show by default (e.g., new items)
+      if (!module) return true;
+      return canRead(module);
+    });
+  }, [canRead, permLoading]);
 
   const toggleItem = (title: string) => {
     setOpenItems((prev) =>
@@ -204,7 +232,7 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
       <ScrollArea className="flex-1 py-2">
         <TooltipProvider delayDuration={0}>
           <nav className="px-2 space-y-1">
-            {employeeNavItems.map((item) => {
+            {filteredNavItems.map((item) => {
               if (item.children) {
                 const isOpen = openItems.includes(item.title);
                 const hasActiveChild = isChildActive(item.children);
