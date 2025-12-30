@@ -127,6 +127,7 @@ import EmployeeAssets from "./pages/employee/Assets";
 import HolidayCalendar from "./pages/employee/Holidays";
 import EmployeeHelpdesk from "./pages/employee/Helpdesk";
 import EmployeeMyShift from "./pages/employee/MyShift";
+import EmployeeAllShifts from "./pages/employee/AllShifts";
 import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
 import EmployeeSettings from "./pages/employee/Settings";
 
@@ -288,6 +289,7 @@ const App = () => (
                 <Route path="attendance/report" element={<EmployeeAttendanceReport />} />
                 {/* Shifts */}
                 <Route path="shifts" element={<EmployeeMyShift />} />
+                <Route path="all-shifts" element={<EmployeeAllShifts />} />
                 <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
                 <Route path="shifts/report" element={<EmployeeShiftReport />} />
                 {/* Leaves */}
