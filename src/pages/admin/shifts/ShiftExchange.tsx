@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -580,10 +581,10 @@ export default function ShiftExchange() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Exchange Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={formData.requestDate}
-                onChange={(e) => setFormData({ ...formData, requestDate: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, requestDate: value })}
+                placeholder="Select exchange date"
               />
             </div>
             <div className="space-y-2">

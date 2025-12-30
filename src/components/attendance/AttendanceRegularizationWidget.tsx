@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   Dialog,
   DialogContent,
@@ -189,29 +190,28 @@ export function AttendanceRegularizationWidget({
 
             <div className="space-y-2">
               <Label>Date *</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={requestDate}
-                onChange={(e) => handleDateChange(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
+                onChange={handleDateChange}
+                placeholder="Select date"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Correct Check-in Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
+                  onChange={setCheckIn}
+                  placeholder="Select time"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Correct Check-out Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                  onChange={setCheckOut}
+                  placeholder="Select time"
                 />
               </div>
             </div>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   Select,
   SelectContent,
@@ -153,23 +154,27 @@ export function ShiftForm({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startTime">Start Time *</Label>
-                <Input
-                  id="startTime"
-                  type="time"
+                <TimePicker
                   value={form.startTime || "09:00"}
-                  onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                  className={errors.startTime ? "border-destructive" : ""}
+                  onChange={(value) => setForm({ ...form, startTime: value })}
+                  placeholder="Select start time"
+                  error={!!errors.startTime}
                 />
+                {errors.startTime && (
+                  <p className="text-xs text-destructive">{errors.startTime}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endTime">End Time *</Label>
-                <Input
-                  id="endTime"
-                  type="time"
+                <TimePicker
                   value={form.endTime || "18:00"}
-                  onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                  className={errors.endTime ? "border-destructive" : ""}
+                  onChange={(value) => setForm({ ...form, endTime: value })}
+                  placeholder="Select end time"
+                  error={!!errors.endTime}
                 />
+                {errors.endTime && (
+                  <p className="text-xs text-destructive">{errors.endTime}</p>
+                )}
               </div>
             </div>
           )}

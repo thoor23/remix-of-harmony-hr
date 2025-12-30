@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -532,11 +533,10 @@ export default function EmployeeShiftExchange() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Exchange Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={formData.requestDate}
-                onChange={(e) => setFormData({ ...formData, requestDate: e.target.value })}
-                min={new Date().toISOString().split("T")[0]}
+                onChange={(value) => setFormData({ ...formData, requestDate: value })}
+                placeholder="Select exchange date"
               />
             </div>
 

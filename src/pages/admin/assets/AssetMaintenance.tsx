@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -217,7 +218,7 @@ export default function AssetMaintenance() {
             <div className="space-y-2"><Label>Type *</Label><Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="repair">Repair</SelectItem><SelectItem value="service">Service</SelectItem><SelectItem value="upgrade">Upgrade</SelectItem></SelectContent></Select></div>
             <div className="space-y-2"><Label>Description</Label><Textarea placeholder="Maintenance description..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label>Vendor</Label><Input placeholder="Service provider" value={formData.vendor} onChange={(e) => setFormData({ ...formData, vendor: e.target.value })} /></div><div className="space-y-2"><Label>Estimated Cost (₹)</Label><Input type="number" placeholder="0" value={formData.cost} onChange={(e) => setFormData({ ...formData, cost: e.target.value })} /></div></div>
-            <div className="space-y-2"><Label>Scheduled Date</Label><Input type="date" value={formData.scheduled_date} onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Scheduled Date</Label><DatePicker value={formData.scheduled_date} onChange={(value) => setFormData({ ...formData, scheduled_date: value })} placeholder="Select scheduled date" /></div>
             <div className="space-y-2"><Label>Notes</Label><Textarea placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button><Button onClick={handleSubmit} disabled={!formData.asset_id || createMaintenance.isPending}>{createMaintenance.isPending ? "Creating..." : "Create"}</Button></DialogFooter>

@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TimePicker } from "@/components/ui/time-picker";
 import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
 import { Clock, AlertTriangle, Timer, MapPin, CalendarClock, Loader2 } from "lucide-react";
 
@@ -203,34 +204,34 @@ export default function AttendancePolicyPage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label>Work Start Time</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.workStartTime}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, workStartTime: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, workStartTime: value }))}
+                    placeholder="Select start time"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Work End Time</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.workEndTime}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, workEndTime: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, workEndTime: value }))}
+                    placeholder="Select end time"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Half-Day Cutoff</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.halfDayCutoff}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, halfDayCutoff: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, halfDayCutoff: value }))}
+                    placeholder="Select cutoff time"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Auto Checkout Time</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.autoCheckoutTime}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, autoCheckoutTime: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, autoCheckoutTime: value }))}
+                    placeholder="Select checkout time"
                   />
                 </div>
               </div>

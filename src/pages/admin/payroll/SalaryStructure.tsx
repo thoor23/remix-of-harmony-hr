@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -651,11 +652,11 @@ export default function SalaryStructure() {
 
             <div className="space-y-2">
               <Label>Effective From</Label>
-              <Input 
-                type="date" 
-                className="w-48"
+              <DatePicker
                 value={effectiveFrom}
-                onChange={(e) => setEffectiveFrom(e.target.value)}
+                onChange={setEffectiveFrom}
+                placeholder="Select date"
+                className="w-48"
               />
             </div>
           </div>
