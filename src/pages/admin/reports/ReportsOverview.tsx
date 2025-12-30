@@ -2,6 +2,9 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { ReportCard } from "@/components/reports/ReportCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useReportActivity, useReportStats } from "@/hooks/useReportActivity";
+import { format } from "date-fns";
 import {
   Users,
   CalendarCheck,
@@ -13,14 +16,10 @@ import {
   Download,
 } from "lucide-react";
 
-const recentActivity = [
-  { id: 1, name: "Employee Report", type: "CSV", date: "2024-01-15", user: "Admin" },
-  { id: 2, name: "Attendance Summary", type: "PDF", date: "2024-01-14", user: "HR Manager" },
-  { id: 3, name: "Payroll Report", type: "CSV", date: "2024-01-13", user: "Admin" },
-  { id: 4, name: "Leave Analysis", type: "PDF", date: "2024-01-12", user: "HR Manager" },
-];
-
 export default function ReportsOverview() {
+  const { data: recentActivity, isLoading: activityLoading } = useReportActivity();
+  const { data: stats, isLoading: statsLoading } = useReportStats();
+
   return (
     <PageContainer>
       <PageHeader title="Reports" description="Generate and download reports for your organization" />
@@ -33,7 +32,11 @@ export default function ReportsOverview() {
                 <FileText className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">24</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.reportsGenerated || 0}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Reports Generated</p>
               </div>
             </div>
@@ -46,7 +49,11 @@ export default function ReportsOverview() {
                 <Clock className="h-5 w-5 text-info" />
               </div>
               <div>
-                <p className="text-2xl font-bold">3</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.scheduledReports || 0}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Scheduled Reports</p>
               </div>
             </div>
@@ -59,7 +66,11 @@ export default function ReportsOverview() {
                 <Download className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">156</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.totalDownloads || 0}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Total Downloads</p>
               </div>
             </div>
@@ -72,8 +83,12 @@ export default function ReportsOverview() {
                 <TrendingUp className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold">+12%</p>
-                <p className="text-sm text-muted-foreground">Usage This Month</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.monthlyGrowth || '0'}</p>
+                )}
+                <p className="text-sm text-muted-foreground">This Month</p>
               </div>
             </div>
           </CardContent>
@@ -119,32 +134,58 @@ export default function ReportsOverview() {
           <CardTitle className="text-base">Recent Export Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center justify-between py-2 border-b last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+          {activityLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                    <div>
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{activity.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Exported by {activity.user}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-12" />
+                    <Skeleton className="h-4 w-20" />
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{activity.type}</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {activity.date}
-                  </span>
+              ))}
+            </div>
+          ) : recentActivity && recentActivity.length > 0 ? (
+            <div className="space-y-4">
+              {recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.performer_name || 'System'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline">{activity.action}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(activity.created_at), 'MMM dd, yyyy')}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No recent export activity</p>
+              <p className="text-sm">Export reports to see activity here</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </PageContainer>

@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useTheme, ColorTheme, Mode } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, Sun, Moon, Monitor, Palette, Bell, User, Lock, Shield, Mail, Calendar, CreditCard, Megaphone, Settings2 } from "lucide-react";
-import { useState } from "react";
+import { useChangePassword } from "@/hooks/useProfileUpdate";
+import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { Check, Sun, Moon, Monitor, Palette, Bell, User, Lock, Shield, Mail, Calendar, CreditCard, Megaphone, Settings2, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface ThemeOption {
@@ -101,10 +103,31 @@ const defaultNotificationPreferences: NotificationPreference[] = [
 export default function PersonalSettingsPage() {
   const { colorTheme, mode, setColorTheme, setMode } = useTheme();
   const { user, profile } = useAuth();
+  const changePassword = useChangePassword();
+  const updateSetting = useUpdateSystemSetting();
+  
+  // Get user-specific notification preferences
+  const settingKey = user?.id ? `notification_preferences_${user.id}` : null;
+  const { data: savedPreferences, isLoading: prefsLoading } = useSystemSetting(settingKey || '');
+  
   const [notificationPreferences, setNotificationPreferences] = useState(defaultNotificationPreferences);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+
+  // Load saved preferences
+  useEffect(() => {
+    if (savedPreferences?.value && typeof savedPreferences.value === 'object') {
+      const savedValues = savedPreferences.value as Record<string, boolean>;
+      setNotificationPreferences(prev => 
+        prev.map(pref => ({
+          ...pref,
+          enabled: savedValues[pref.id] !== undefined ? savedValues[pref.id] : pref.enabled,
+        }))
+      );
+    }
+  }, [savedPreferences]);
 
   const toggleNotification = (id: string) => {
     setNotificationPreferences(prev =>
@@ -114,11 +137,31 @@ export default function PersonalSettingsPage() {
     );
   };
 
-  const handleSaveNotifications = () => {
-    toast.success("Notification preferences saved");
+  const handleSaveNotifications = async () => {
+    if (!user?.id) {
+      toast.error("User not authenticated");
+      return;
+    }
+    
+    setIsSavingPrefs(true);
+    try {
+      const prefsObject = notificationPreferences.reduce((acc, pref) => {
+        acc[pref.id] = pref.enabled;
+        return acc;
+      }, {} as Record<string, boolean>);
+      
+      await updateSetting.mutateAsync({
+        key: `notification_preferences_${user.id}`,
+        value: prefsObject,
+      });
+    } catch {
+      // Error handled by mutation
+    } finally {
+      setIsSavingPrefs(false);
+    }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields");
       return;
@@ -131,10 +174,15 @@ export default function PersonalSettingsPage() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    toast.success("Password changed successfully");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    
+    try {
+      await changePassword.mutateAsync({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      // Error handled by mutation
+    }
   };
 
   const displayName = profile?.first_name && profile?.last_name
@@ -259,32 +307,41 @@ export default function PersonalSettingsPage() {
               <CardDescription>Choose which notifications you want to receive</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {notificationPreferences.map((pref) => (
-                <div key={pref.id} className="flex items-center justify-between gap-4 py-3 border-b last:border-0">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-muted">
-                      <pref.icon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <Label htmlFor={pref.id} className="text-sm font-medium cursor-pointer">
-                        {pref.label}
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">{pref.description}</p>
-                    </div>
-                  </div>
-                  <Switch
-                    id={pref.id}
-                    checked={pref.enabled}
-                    onCheckedChange={() => toggleNotification(pref.id)}
-                  />
+              {prefsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ))}
-              
-              <div className="pt-4">
-                <Button onClick={handleSaveNotifications}>
-                  Save Preferences
-                </Button>
-              </div>
+              ) : (
+                <>
+                  {notificationPreferences.map((pref) => (
+                    <div key={pref.id} className="flex items-center justify-between gap-4 py-3 border-b last:border-0">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-muted">
+                          <pref.icon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <Label htmlFor={pref.id} className="text-sm font-medium cursor-pointer">
+                            {pref.label}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">{pref.description}</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id={pref.id}
+                        checked={pref.enabled}
+                        onCheckedChange={() => toggleNotification(pref.id)}
+                      />
+                    </div>
+                  ))}
+                  
+                  <div className="pt-4">
+                    <Button onClick={handleSaveNotifications} disabled={isSavingPrefs}>
+                      {isSavingPrefs && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Save Preferences
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -354,7 +411,8 @@ export default function PersonalSettingsPage() {
                 </div>
               </div>
               
-              <Button onClick={handleChangePassword} className="mt-4">
+              <Button onClick={handleChangePassword} className="mt-4" disabled={changePassword.isPending}>
+                {changePassword.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Update Password
               </Button>
             </CardContent>
