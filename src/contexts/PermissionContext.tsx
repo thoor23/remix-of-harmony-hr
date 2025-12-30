@@ -7,6 +7,7 @@ interface PermissionContextType {
   permissions: RolePermission[];
   roleId: string | null;
   roleName: string | null;
+  roleType: 'admin' | 'employee' | null;
   loading: boolean;
   hasModuleAccess: (module: string) => boolean;
   canCreate: (module: string) => boolean;
@@ -23,6 +24,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [roleId, setRoleId] = useState<string | null>(null);
   const [roleName, setRoleName] = useState<string | null>(null);
+  const [roleType, setRoleType] = useState<'admin' | 'employee' | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = useCallback(async () => {
@@ -30,6 +32,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       setPermissions([]);
       setRoleId(null);
       setRoleName(null);
+      setRoleType(null);
       setLoading(false);
       return;
     }
@@ -38,18 +41,21 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const data = await api.get<{ 
         roleId: string | null; 
-        roleName: string | null; 
+        roleName: string | null;
+        roleType: 'admin' | 'employee' | null;
         permissions: RolePermission[] 
       }>("/settings/user-permissions");
       
       setRoleId(data.roleId);
       setRoleName(data.roleName);
+      setRoleType(data.roleType || 'admin');
       setPermissions(Array.isArray(data.permissions) ? data.permissions : []);
     } catch (error) {
       console.error("Failed to fetch permissions:", error);
       setPermissions([]);
       setRoleId(null);
       setRoleName(null);
+      setRoleType(null);
     } finally {
       setLoading(false);
     }
@@ -95,6 +101,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         permissions,
         roleId,
         roleName,
+        roleType,
         loading,
         hasModuleAccess,
         canCreate,

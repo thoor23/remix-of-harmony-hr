@@ -13,9 +13,8 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import Unauthorized from "./pages/Unauthorized";
 
-// Layouts
-import { AdminLayout } from "./components/layout/AdminLayout";
-import { EmployeeLayout } from "./components/layout/EmployeeLayout";
+// Unified Layout
+import { UnifiedLayout } from "./components/layout/UnifiedLayout";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -162,49 +161,91 @@ const App = () => (
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
               
-              {/* Admin Routes - Protected */}
+              {/* Unified App Routes - Protected */}
               <Route
-                path="/admin"
+                path="/app"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "hr", "manager"]}>
-                    <AdminLayout />
+                  <ProtectedRoute>
+                    <UnifiedLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<AdminDashboard />} />
+                {/* Admin Dashboard */}
+                <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="profile" element={<AdminProfilePage />} />
                 <Route path="personal-settings" element={<PersonalSettingsPage />} />
+                
+                {/* Employee Dashboard */}
+                <Route path="my-dashboard" element={<EmployeeDashboard />} />
+                <Route path="my-profile" element={<EmployeeProfile />} />
+                <Route path="my-profile/change-requests" element={<EmployeeProfileChangeRequests />} />
+                
+                {/* Employees Management */}
                 <Route path="employees" element={<EmployeeList />} />
                 <Route path="employees/new" element={<AddEmployee />} />
                 <Route path="employees/:id" element={<EmployeeDetails />} />
                 <Route path="employees/:id/edit" element={<EditEmployee />} />
                 <Route path="employees/change-requests" element={<ProfileChangeRequestsPage />} />
+                
+                {/* Attendance */}
                 <Route path="attendance" element={<AttendanceManagement />} />
                 <Route path="attendance/all" element={<AllAttendance />} />
                 <Route path="attendance/regularization" element={<AttendanceRegularizationPage />} />
                 <Route path="attendance/policy" element={<AttendancePolicyPage />} />
+                {/* My Attendance */}
+                <Route path="my-attendance" element={<EmployeeAttendance />} />
+                <Route path="my-attendance/log" element={<EmployeeAttendance />} />
+                <Route path="my-attendance/regularization" element={<EmployeeAttendanceRegularization />} />
+                <Route path="my-attendance/report" element={<EmployeeAttendanceReport />} />
+                
+                {/* Leaves */}
                 <Route path="leaves" element={<LeaveOverview />} />
                 <Route path="leaves/all" element={<AllLeaves />} />
                 <Route path="leaves/requests" element={<LeaveManagement />} />
                 <Route path="leaves/policy" element={<LeavePolicy />} />
+                {/* My Leaves */}
+                <Route path="my-leaves" element={<EmployeeLeaves />} />
+                <Route path="my-leaves/apply" element={<EmployeeLeaves />} />
+                <Route path="my-leaves/history" element={<EmployeeLeaves />} />
+                <Route path="my-leaves/balance" element={<EmployeeLeaveBalance />} />
+                <Route path="my-leaves/report" element={<EmployeeLeaveReport />} />
+                
+                {/* Payroll */}
                 <Route path="payroll/structure" element={<SalaryStructure />} />
                 <Route path="payroll/payslips" element={<PayslipsList />} />
                 <Route path="payroll/templates" element={<PayslipTemplatesPage />} />
-                {/* File Manager Routes */}
+                {/* My Payroll */}
+                <Route path="my-payslips" element={<EmployeePayslips />} />
+                <Route path="my-payslips/salary" element={<EmployeePayslips />} />
+                <Route path="my-payroll/report" element={<EmployeePayrollReport />} />
+                
+                {/* File Manager */}
                 <Route path="file-manager" element={<EmployeeDocumentsPage />} />
                 <Route path="file-manager/:employeeId" element={<EmployeeFolderPage />} />
                 <Route path="file-manager/policies" element={<DocumentPoliciesPage />} />
-                {/* Letter Generation Routes */}
+                {/* My Documents */}
+                <Route path="my-documents" element={<EmployeeDocuments />} />
+                <Route path="my-documents/personal" element={<EmployeeDocuments />} />
+                <Route path="my-documents/policies" element={<EmployeeDocuments />} />
+                <Route path="my-documents/report" element={<EmployeeDocumentsReport />} />
+                
+                {/* Letters */}
                 <Route path="letters/offer" element={<OfferLetterPage />} />
                 <Route path="letters/experience" element={<ExperienceLetterPage />} />
                 <Route path="letters/relieving" element={<RelievingLetterPage />} />
                 <Route path="letters/increment" element={<IncrementLetterPage />} />
                 <Route path="letters/templates" element={<LetterTemplatesPage />} />
+                
+                {/* Announcements */}
                 <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="announcements/templates" element={<AnnouncementTemplatesPage />} />
                 <Route path="announcements/banner-templates" element={<BannerTemplatesPage />} />
+                
+                {/* Notifications */}
                 <Route path="notifications/send" element={<SendNotificationsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
+                
+                {/* Audit Logs */}
                 <Route path="audit-logs" element={<AllAuditLogs />} />
                 <Route path="audit-logs/employee" element={<EmployeeAuditLogs />} />
                 <Route path="audit-logs/attendance" element={<AttendanceAuditLogs />} />
@@ -221,32 +262,43 @@ const App = () => (
                 <Route path="audit-logs/designations" element={<DesignationsAuditLogs />} />
                 <Route path="audit-logs/settings" element={<SettingsAuditLogs />} />
                 <Route path="audit-logs/auth" element={<AuthAuditLogs />} />
+                
+                {/* Reports */}
                 <Route path="reports" element={<ReportsOverview />} />
                 <Route path="reports/employee" element={<EmployeeReports />} />
                 <Route path="reports/attendance" element={<AttendanceReports />} />
                 <Route path="reports/leave" element={<LeaveReports />} />
                 <Route path="reports/payroll" element={<PayrollReports />} />
+                
+                {/* Shifts */}
                 <Route path="shifts" element={<ShiftList />} />
                 <Route path="shifts/assignments" element={<ShiftAssignments />} />
                 <Route path="shifts/rotations" element={<ShiftRotations />} />
                 <Route path="shifts/exchange" element={<ShiftExchange />} />
                 <Route path="shifts/calendar" element={<ShiftCalendar />} />
                 <Route path="shifts/policy" element={<ShiftPolicyPage />} />
-                {/* Location Routes - Stores */}
+                {/* My Shifts */}
+                <Route path="my-shifts" element={<EmployeeMyShift />} />
+                <Route path="all-shifts" element={<EmployeeAllShifts />} />
+                <Route path="my-shift-exchange" element={<EmployeeShiftExchange />} />
+                <Route path="my-shifts/report" element={<EmployeeShiftReport />} />
+                
+                {/* Locations - Stores */}
                 <Route path="locations/stores" element={<StoreList />} />
                 <Route path="locations/stores/add" element={<AddStore />} />
                 <Route path="locations/stores/dashboard" element={<StoreManagerDashboard />} />
                 <Route path="locations/stores/:id" element={<StoreDetails />} />
                 <Route path="locations/stores/:id/edit" element={<EditStore />} />
-                {/* Location Routes - Offices */}
+                {/* Locations - Offices */}
                 <Route path="locations/offices" element={<OfficeList />} />
                 <Route path="locations/offices/add" element={<AddOffice />} />
                 <Route path="locations/offices/dashboard" element={<OfficeDashboard />} />
                 <Route path="locations/offices/:id" element={<OfficeDetails />} />
                 <Route path="locations/offices/:id/edit" element={<EditOffice />} />
-                {/* Location Routes - Transfers */}
+                {/* Locations - Transfers */}
                 <Route path="locations/transfers" element={<EmployeeTransfers />} />
-                {/* Asset Management Routes */}
+                
+                {/* Asset Management */}
                 <Route path="assets" element={<AssetList />} />
                 <Route path="assets/add" element={<AddAsset />} />
                 <Route path="assets/:id" element={<AssetDetails />} />
@@ -256,16 +308,24 @@ const App = () => (
                 <Route path="assets/transfers" element={<AssetTransfers />} />
                 <Route path="assets/maintenance" element={<AssetMaintenance />} />
                 <Route path="assets/reports" element={<AssetReports />} />
-                {/* Helpdesk Routes */}
+                {/* My Assets */}
+                <Route path="my-assets" element={<EmployeeAssets />} />
+                <Route path="my-assets/maintenance" element={<EmployeeAssetMaintenanceRequests />} />
+                <Route path="my-assets/report" element={<EmployeeAssetsReport />} />
+                
+                {/* Helpdesk */}
                 <Route path="helpdesk" element={<HelpdeskManagement />} />
-                {/* Legacy Store Routes - Redirects */}
-                <Route path="stores" element={<StoreList />} />
-                <Route path="stores/add" element={<AddStore />} />
-                <Route path="stores/dashboard" element={<StoreManagerDashboard />} />
-                <Route path="stores/transfers" element={<EmployeeTransfers />} />
-                <Route path="stores/:id" element={<StoreDetails />} />
-                <Route path="stores/:id/edit" element={<EditStore />} />
-                {/* Settings Routes */}
+                {/* My Helpdesk */}
+                <Route path="my-helpdesk" element={<EmployeeHelpdesk />} />
+                <Route path="my-helpdesk/new" element={<EmployeeHelpdesk />} />
+                <Route path="my-helpdesk/tickets" element={<EmployeeHelpdesk />} />
+                <Route path="my-helpdesk/report" element={<EmployeeHelpdeskReport />} />
+                
+                {/* Holidays */}
+                <Route path="holidays" element={<HolidayCalendar />} />
+                
+                {/* Settings */}
+                <Route path="settings" element={<EmployeeSettings />} />
                 <Route path="settings/departments" element={<DepartmentsPage />} />
                 <Route path="settings/designations" element={<DesignationsPage />} />
                 <Route path="settings/roles" element={<RolesPage />} />
@@ -276,58 +336,6 @@ const App = () => (
                 <Route path="settings/system" element={<SystemSettingsPage />} />
                 <Route path="settings/appearance" element={<AppearancePage />} />
                 <Route path="settings/seeder" element={<DataSeederPage />} />
-              </Route>
-
-              {/* Employee Routes - Protected */}
-              <Route
-                path="/employee"
-                element={
-                  <ProtectedRoute>
-                    <EmployeeLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<EmployeeDashboard />} />
-                <Route path="profile" element={<EmployeeProfile />} />
-                <Route path="profile/change-requests" element={<EmployeeProfileChangeRequests />} />
-                {/* Attendance */}
-                <Route path="attendance" element={<EmployeeAttendance />} />
-                <Route path="attendance/log" element={<EmployeeAttendance />} />
-                <Route path="attendance/regularization" element={<EmployeeAttendanceRegularization />} />
-                <Route path="attendance/report" element={<EmployeeAttendanceReport />} />
-                {/* Shifts */}
-                <Route path="shifts" element={<EmployeeMyShift />} />
-                <Route path="all-shifts" element={<EmployeeAllShifts />} />
-                <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
-                <Route path="shifts/report" element={<EmployeeShiftReport />} />
-                {/* Leaves */}
-                <Route path="leaves" element={<EmployeeLeaves />} />
-                <Route path="leaves/apply" element={<EmployeeLeaves />} />
-                <Route path="leaves/history" element={<EmployeeLeaves />} />
-                <Route path="leaves/balance" element={<EmployeeLeaveBalance />} />
-                <Route path="leaves/report" element={<EmployeeLeaveReport />} />
-                {/* Compensation */}
-                <Route path="payslips" element={<EmployeePayslips />} />
-                <Route path="payslips/salary" element={<EmployeePayslips />} />
-                <Route path="payroll/report" element={<EmployeePayrollReport />} />
-                {/* Documents */}
-                <Route path="documents" element={<EmployeeDocuments />} />
-                <Route path="documents/personal" element={<EmployeeDocuments />} />
-                <Route path="documents/policies" element={<EmployeeDocuments />} />
-                <Route path="documents/report" element={<EmployeeDocumentsReport />} />
-                {/* Assets */}
-                <Route path="assets" element={<EmployeeAssets />} />
-                <Route path="assets/maintenance" element={<EmployeeAssetMaintenanceRequests />} />
-                <Route path="assets/report" element={<EmployeeAssetsReport />} />
-                {/* Holidays */}
-                <Route path="holidays" element={<HolidayCalendar />} />
-                {/* Helpdesk */}
-                <Route path="helpdesk" element={<EmployeeHelpdesk />} />
-                <Route path="helpdesk/new" element={<EmployeeHelpdesk />} />
-                <Route path="helpdesk/tickets" element={<EmployeeHelpdesk />} />
-                <Route path="helpdesk/report" element={<EmployeeHelpdeskReport />} />
-                {/* Settings */}
-                <Route path="settings" element={<EmployeeSettings />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
