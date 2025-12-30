@@ -118,8 +118,8 @@ const unifiedNavSections: NavSection[] = [
   {
     label: "Dashboard",
     items: [
-      { title: "Admin Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
-      { title: "Employee Dashboard", href: "/app/my-dashboard", icon: LayoutDashboard },
+      // Single Dashboard item - href will be set dynamically based on roleType
+      { title: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
     ],
   },
   {
@@ -390,9 +390,8 @@ const unifiedNavSections: NavSection[] = [
 
 // Map navigation items to their corresponding RBAC modules
 const navItemToModule: Record<string, string> = {
-  // Dashboard - both map to Dashboard module, but filtered by roleType
-  "Admin Dashboard": "Dashboard",
-  "Employee Dashboard": "Dashboard",
+  // Dashboard - single unified item
+  "Dashboard": "Dashboard",
   // Employee modules
   "My Attendance": "My Attendance",
   "My Shifts": "My Shifts",
@@ -434,34 +433,24 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
 
   // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
-    console.log('[Sidebar] Filtering - permLoading:', permLoading, 'permissions.length:', permissions.length, 'roleType:', roleType);
-    
     if (permLoading || permissions.length === 0) {
       return unifiedNavSections;
     }
 
-    const canReadDashboard = canRead("Dashboard");
-    console.log('[Sidebar] Can read Dashboard:', canReadDashboard, 'roleType:', roleType);
-
     return unifiedNavSections.map(section => ({
       ...section,
       items: section.items.filter(item => {
-        // Dashboard filtering based on roleType
-        if (item.title === "Admin Dashboard") {
-          const show = roleType === "admin" && canReadDashboard;
-          console.log('[Sidebar] Admin Dashboard - show:', show);
-          return show;
-        }
-        if (item.title === "Employee Dashboard") {
-          const show = roleType === "employee" && canReadDashboard;
-          console.log('[Sidebar] Employee Dashboard - show:', show);
-          return show;
-        }
-        
         const module = navItemToModule[item.title];
         if (!module) return true;
         return canRead(module);
       }).map(item => {
+        // Set Dashboard href dynamically based on roleType
+        if (item.title === "Dashboard") {
+          return {
+            ...item,
+            href: roleType === "employee" ? "/app/my-dashboard" : "/app/dashboard",
+          };
+        }
         if (item.children) {
           return {
             ...item,

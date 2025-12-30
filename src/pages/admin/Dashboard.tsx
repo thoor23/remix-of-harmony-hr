@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -18,11 +20,21 @@ import {
   useRecentAnnouncements,
   useAttendanceTrend,
 } from "@/hooks/useDashboard";
+import { usePermissions } from "@/contexts/PermissionContext";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const { roleType, loading: permLoading } = usePermissions();
   const { data: stats, isLoading: loadingStats } = useAdminDashboardStats();
   const { data: announcements = [], isLoading: loadingAnnouncements } = useRecentAnnouncements();
   const { data: attendanceTrend = [] } = useAttendanceTrend(7);
+
+  // Redirect employees to their dashboard
+  useEffect(() => {
+    if (!permLoading && roleType === "employee") {
+      navigate("/app/my-dashboard", { replace: true });
+    }
+  }, [roleType, permLoading, navigate]);
 
   // Transform department data for pie chart
   const departmentChartData = stats?.departmentWiseCount?.map(dept => ({
