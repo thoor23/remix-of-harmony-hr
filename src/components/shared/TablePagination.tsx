@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,20 +19,21 @@ interface TablePaginationProps {
   pageSizeOptions?: number[];
 }
 
-export function TablePagination({
-  currentPage,
-  totalPages,
-  totalItems,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
-}: TablePaginationProps) {
+export const TablePagination = forwardRef<HTMLDivElement, TablePaginationProps>(
+  function TablePagination({
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    onPageChange,
+    onPageSizeChange,
+    pageSizeOptions = [10, 25, 50, 100],
+  }, ref) {
   const startItem = (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
+    <div ref={ref} className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>Rows per page:</span>
         <Select
@@ -99,4 +101,4 @@ export function TablePagination({
       </div>
     </div>
   );
-}
+});
