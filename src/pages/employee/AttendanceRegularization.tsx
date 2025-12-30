@@ -329,21 +329,25 @@ export default function EmployeeAttendanceRegularization() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Original Check-In</Label>
-                <TimePicker
+                <Label htmlFor="original_check_in">Original Check-In</Label>
+                <Input
+                  id="original_check_in"
+                  type="time"
                   value={originalCheckIn}
-                  onChange={setOriginalCheckIn}
-                  placeholder="--:--"
+                  onChange={(e) => setOriginalCheckIn(e.target.value)}
                   disabled
+                  className="bg-muted"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Original Check-Out</Label>
-                <TimePicker
+                <Label htmlFor="original_check_out">Original Check-Out</Label>
+                <Input
+                  id="original_check_out"
+                  type="time"
                   value={originalCheckOut}
-                  onChange={setOriginalCheckOut}
-                  placeholder="--:--"
+                  onChange={(e) => setOriginalCheckOut(e.target.value)}
                   disabled
+                  className="bg-muted"
                 />
               </div>
             </div>
