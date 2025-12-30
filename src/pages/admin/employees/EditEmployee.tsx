@@ -12,15 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff, Phone, Building2 } from "lucide-react";
 import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
 import { useAllLocations } from "@/hooks/useLocations";
-import { toast } from "sonner";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DatePicker } from "@/components/ui/date-picker";
+import { toast } from "sonner";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
@@ -75,7 +74,6 @@ type FormErrors = Partial<Record<keyof z.infer<typeof employeeSchema>, string>>;
 export default function EditEmployee() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState("personal");
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -246,22 +244,6 @@ export default function EditEmployee() {
     }
   };
 
-  const handleNext = () => {
-    const tabs = ["personal", "work", "contact", "bank", "account"];
-    const currentIndex = tabs.indexOf(activeTab);
-    if (currentIndex < tabs.length - 1) {
-      setActiveTab(tabs[currentIndex + 1]);
-    }
-  };
-
-  const handlePrevious = () => {
-    const tabs = ["personal", "work", "contact", "bank", "account"];
-    const currentIndex = tabs.indexOf(activeTab);
-    if (currentIndex > 0) {
-      setActiveTab(tabs[currentIndex - 1]);
-    }
-  };
-
   const renderError = (field: keyof FormErrors) => {
     if (errors[field]) {
       return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
@@ -286,7 +268,10 @@ export default function EditEmployee() {
       <PageContainer>
         <div className="space-y-6">
           <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-[400px] w-full" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-[300px]" />
+            <Skeleton className="h-[300px]" />
+          </div>
         </div>
       </PageContainer>
     );
@@ -321,557 +306,532 @@ export default function EditEmployee() {
         description="Update employee information"
       />
 
-      <form onSubmit={handleSubmit}>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="personal" className="gap-2">
-              <User className="h-4 w-4" />
-              Personal
-            </TabsTrigger>
-            <TabsTrigger value="work" className="gap-2">
-              <Briefcase className="h-4 w-4" />
-              Work
-            </TabsTrigger>
-            <TabsTrigger value="contact" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              Contact
-            </TabsTrigger>
-            <TabsTrigger value="bank" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Bank
-            </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
-              <KeyRound className="h-4 w-4" />
-              Account
-            </TabsTrigger>
-          </TabsList>
-
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Row 1: Personal & Work Information */}
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Personal Information */}
-          <TabsContent value="personal">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name *</Label>
-                    <Input
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      className={errors.firstName ? "border-destructive" : ""}
-                    />
-                    {renderError("firstName")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name *</Label>
-                    <Input
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange("lastName", e.target.value)}
-                      className={errors.lastName ? "border-destructive" : ""}
-                    />
-                    {renderError("lastName")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      className={errors.email ? "border-destructive" : ""}
-                    />
-                    {renderError("email")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      className={errors.phone ? "border-destructive" : ""}
-                    />
-                    {renderError("phone")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth *</Label>
-                    <DatePicker
-                      value={formData.dateOfBirth}
-                      onChange={(value) => handleInputChange("dateOfBirth", value)}
-                      placeholder="Select date of birth"
-                      error={!!errors.dateOfBirth}
-                    />
-                    {renderError("dateOfBirth")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => handleInputChange("gender", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer-not">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5 text-primary" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    className={errors.firstName ? "border-destructive" : ""}
+                  />
+                  {renderError("firstName")}
                 </div>
-
-                <div className="flex justify-end">
-                  <Button type="button" onClick={handleNext}>
-                    Next: Work Information
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    className={errors.lastName ? "border-destructive" : ""}
+                  />
+                  {renderError("lastName")}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={errors.email ? "border-destructive" : ""}
+                  />
+                  {renderError("email")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    className={errors.phone ? "border-destructive" : ""}
+                  />
+                  {renderError("phone")}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth *</Label>
+                  <DatePicker
+                    value={formData.dateOfBirth}
+                    onChange={(value) => handleInputChange("dateOfBirth", value)}
+                    placeholder="Select date of birth"
+                    error={!!errors.dateOfBirth}
+                  />
+                  {renderError("dateOfBirth")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => handleInputChange("gender", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Work Information */}
-          <TabsContent value="work">
-            <Card>
-              <CardHeader>
-                <CardTitle>Work Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="employeeId">Employee ID *</Label>
-                    <Input
-                      id="employeeId"
-                      value={formData.employeeId}
-                      onChange={(e) => handleInputChange("employeeId", e.target.value)}
-                      className={errors.employeeId ? "border-destructive" : ""}
-                    />
-                    {renderError("employeeId")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="joiningDate">Joining Date *</Label>
-                    <DatePicker
-                      value={formData.joiningDate}
-                      onChange={(value) => handleInputChange("joiningDate", value)}
-                      placeholder="Select joining date"
-                      error={!!errors.joiningDate}
-                    />
-                    {renderError("joiningDate")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department *</Label>
-                    <Select
-                      value={formData.department}
-                      onValueChange={(value) => handleInputChange("department", value)}
-                    >
-                      <SelectTrigger className={errors.department ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {renderError("department")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="designation">Designation *</Label>
-                    <Select
-                      value={formData.designation}
-                      onValueChange={(value) => handleInputChange("designation", value)}
-                    >
-                      <SelectTrigger className={errors.designation ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select designation" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {designations.map((des) => (
-                          <SelectItem key={des.id} value={des.id}>
-                            {des.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {renderError("designation")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="employmentType">Employment Type *</Label>
-                    <Select
-                      value={formData.employmentType}
-                      onValueChange={(value) => handleInputChange("employmentType", value)}
-                    >
-                      <SelectTrigger className={errors.employmentType ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full-time">Full Time</SelectItem>
-                        <SelectItem value="part-time">Part Time</SelectItem>
-                        <SelectItem value="contract">Contract</SelectItem>
-                        <SelectItem value="intern">Intern</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderError("employmentType")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Employee Status *</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) => handleInputChange("status", value)}
-                    >
-                      <SelectTrigger className={errors.status ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderError("status")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reportingTo">Reporting To</Label>
-                    <Select
-                      value={formData.reportingTo}
-                      onValueChange={(value) => handleInputChange("reportingTo", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {managers.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.first_name} {emp.last_name} ({emp.designation?.name})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="primaryStore">Primary Location</Label>
-                    <Select
-                      value={formData.primaryStore || "none"}
-                      onValueChange={(value) => handleInputChange("primaryStore", value === "none" ? "" : value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select primary location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No location assigned</SelectItem>
-                        {locations.filter((s: any) => s.is_active).map((loc: any) => (
-                          <SelectItem key={loc.id} value={loc.id}>
-                            {loc.name} ({loc.code}) - {loc.type === 'office' ? 'Office' : 'Store'}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Briefcase className="h-5 w-5 text-orange-500" />
+                Work Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="employeeId">Employee ID *</Label>
+                  <Input
+                    id="employeeId"
+                    value={formData.employeeId}
+                    onChange={(e) => handleInputChange("employeeId", e.target.value)}
+                    className={errors.employeeId ? "border-destructive" : ""}
+                  />
+                  {renderError("employeeId")}
                 </div>
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handlePrevious}>
-                    Previous
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Next: Contact Details
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="joiningDate">Joining Date *</Label>
+                  <DatePicker
+                    value={formData.joiningDate}
+                    onChange={(value) => handleInputChange("joiningDate", value)}
+                    placeholder="Select joining date"
+                    error={!!errors.joiningDate}
+                  />
+                  {renderError("joiningDate")}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => handleInputChange("department", value)}
+                  >
+                    <SelectTrigger className={errors.department ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {renderError("department")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="designation">Designation *</Label>
+                  <Select
+                    value={formData.designation}
+                    onValueChange={(value) => handleInputChange("designation", value)}
+                  >
+                    <SelectTrigger className={errors.designation ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designations.map((des) => (
+                        <SelectItem key={des.id} value={des.id}>
+                          {des.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {renderError("designation")}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="employmentType">Employment Type *</Label>
+                  <Select
+                    value={formData.employmentType}
+                    onValueChange={(value) => handleInputChange("employmentType", value)}
+                  >
+                    <SelectTrigger className={errors.employmentType ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full-time">Full Time</SelectItem>
+                      <SelectItem value="part-time">Part Time</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="intern">Intern</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {renderError("employmentType")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Employee Status *</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => handleInputChange("status", value)}
+                  >
+                    <SelectTrigger className={errors.status ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {renderError("status")}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="reportingTo">Reporting To</Label>
+                  <Select
+                    value={formData.reportingTo}
+                    onValueChange={(value) => handleInputChange("reportingTo", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managers.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.first_name} {emp.last_name} ({emp.designation?.name})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="primaryStore">Primary Location</Label>
+                  <Select
+                    value={formData.primaryStore || "none"}
+                    onValueChange={(value) => handleInputChange("primaryStore", value === "none" ? "" : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select primary location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No location assigned</SelectItem>
+                      {locations.filter((s: any) => s.is_active).map((loc: any) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.name} ({loc.code}) - {loc.type === 'office' ? 'Office' : 'Store'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Contact Information */}
-          <TabsContent value="contact">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact & Address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+        {/* Row 2: Address & Emergency Contact */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Address */}
+          <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-green-500" />
+                Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="street">Street Address *</Label>
+                <Input
+                  id="street"
+                  value={formData.street}
+                  onChange={(e) => handleInputChange("street", e.target.value)}
+                  className={errors.street ? "border-destructive" : ""}
+                />
+                {renderError("street")}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    className={errors.city ? "border-destructive" : ""}
+                  />
+                  {renderError("city")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => handleInputChange("state", e.target.value)}
+                    className={errors.state ? "border-destructive" : ""}
+                  />
+                  {renderError("state")}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">Zip Code *</Label>
+                  <Input
+                    id="zipCode"
+                    value={formData.zipCode}
+                    onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                    className={errors.zipCode ? "border-destructive" : ""}
+                  />
+                  {renderError("zipCode")}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country *</Label>
+                  <Input
+                    id="country"
+                    value={formData.country}
+                    onChange={(e) => handleInputChange("country", e.target.value)}
+                    className={errors.country ? "border-destructive" : ""}
+                  />
+                  {renderError("country")}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Emergency Contact */}
+          <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Phone className="h-5 w-5 text-orange-500" />
+                Emergency Contact
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="emergencyName">Contact Name *</Label>
+                <Input
+                  id="emergencyName"
+                  value={formData.emergencyName}
+                  onChange={(e) => handleInputChange("emergencyName", e.target.value)}
+                  className={errors.emergencyName ? "border-destructive" : ""}
+                />
+                {renderError("emergencyName")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyRelation">Relationship *</Label>
+                <Input
+                  id="emergencyRelation"
+                  value={formData.emergencyRelation}
+                  onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
+                  className={errors.emergencyRelation ? "border-destructive" : ""}
+                />
+                {renderError("emergencyRelation")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyPhone">Phone Number *</Label>
+                <Input
+                  id="emergencyPhone"
+                  value={formData.emergencyPhone}
+                  onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
+                  className={errors.emergencyPhone ? "border-destructive" : ""}
+                />
+                {renderError("emergencyPhone")}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 3: Bank Details */}
+        <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CreditCard className="h-5 w-5 text-purple-500" />
+              Bank Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="bankName">Bank Name *</Label>
+                <Input
+                  id="bankName"
+                  value={formData.bankName}
+                  onChange={(e) => handleInputChange("bankName", e.target.value)}
+                  className={errors.bankName ? "border-destructive" : ""}
+                />
+                {renderError("bankName")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="accountHolder">Account Holder *</Label>
+                <Input
+                  id="accountHolder"
+                  value={formData.accountHolder}
+                  onChange={(e) => handleInputChange("accountHolder", e.target.value)}
+                  className={errors.accountHolder ? "border-destructive" : ""}
+                />
+                {renderError("accountHolder")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="accountNumber">Account Number *</Label>
+                <Input
+                  id="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={(e) => handleInputChange("accountNumber", e.target.value)}
+                  className={errors.accountNumber ? "border-destructive" : ""}
+                />
+                {renderError("accountNumber")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="routingNumber">IFSC Code *</Label>
+                <Input
+                  id="routingNumber"
+                  value={formData.routingNumber}
+                  onChange={(e) => handleInputChange("routingNumber", e.target.value)}
+                  className={errors.routingNumber ? "border-destructive" : ""}
+                />
+                {renderError("routingNumber")}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Row 4: Account Settings */}
+        <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <KeyRound className="h-5 w-5 text-blue-500" />
+              Account Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!hasUserAccount && (
+              <Alert>
+                <AlertDescription>
+                  This employee does not have a user account. Role and password settings are only available for employees with linked accounts.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Role *</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => handleInputChange("role", value)}
+                  disabled={!hasUserAccount}
+                >
+                  <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                {renderError("role")}
+              </div>
+            </div>
+
+            {hasUserAccount && (
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium mb-4">Current Address</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="street">Street Address *</Label>
-                      <Input
-                        id="street"
-                        value={formData.street}
-                        onChange={(e) => handleInputChange("street", e.target.value)}
-                        className={errors.street ? "border-destructive" : ""}
-                      />
-                      {renderError("street")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City *</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => handleInputChange("city", e.target.value)}
-                        className={errors.city ? "border-destructive" : ""}
-                      />
-                      {renderError("city")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">State *</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => handleInputChange("state", e.target.value)}
-                        className={errors.state ? "border-destructive" : ""}
-                      />
-                      {renderError("state")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zipCode">Zip Code *</Label>
-                      <Input
-                        id="zipCode"
-                        value={formData.zipCode}
-                        onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                        className={errors.zipCode ? "border-destructive" : ""}
-                      />
-                      {renderError("zipCode")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="country">Country *</Label>
-                      <Input
-                        id="country"
-                        value={formData.country}
-                        onChange={(e) => handleInputChange("country", e.target.value)}
-                        className={errors.country ? "border-destructive" : ""}
-                      />
-                      {renderError("country")}
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-medium">Change Password</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Leave blank to keep the current password.
+                  </p>
                 </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-4">Emergency Contact</h3>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyName">Name *</Label>
-                      <Input
-                        id="emergencyName"
-                        value={formData.emergencyName}
-                        onChange={(e) => handleInputChange("emergencyName", e.target.value)}
-                        className={errors.emergencyName ? "border-destructive" : ""}
-                      />
-                      {renderError("emergencyName")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyRelation">Relationship *</Label>
-                      <Input
-                        id="emergencyRelation"
-                        value={formData.emergencyRelation}
-                        onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
-                        className={errors.emergencyRelation ? "border-destructive" : ""}
-                      />
-                      {renderError("emergencyRelation")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyPhone">Phone *</Label>
-                      <Input
-                        id="emergencyPhone"
-                        value={formData.emergencyPhone}
-                        onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
-                        className={errors.emergencyPhone ? "border-destructive" : ""}
-                      />
-                      {renderError("emergencyPhone")}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handlePrevious}>
-                    Previous
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Next: Bank Details
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Bank Details */}
-          <TabsContent value="bank">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bank Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="bankName">Bank Name *</Label>
-                    <Input
-                      id="bankName"
-                      value={formData.bankName}
-                      onChange={(e) => handleInputChange("bankName", e.target.value)}
-                      className={errors.bankName ? "border-destructive" : ""}
-                    />
-                    {renderError("bankName")}
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.newPassword}
+                        onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                        className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
+                        placeholder="Enter new password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                    {renderError("newPassword")}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="accountHolder">Account Holder Name *</Label>
-                    <Input
-                      id="accountHolder"
-                      value={formData.accountHolder}
-                      onChange={(e) => handleInputChange("accountHolder", e.target.value)}
-                      className={errors.accountHolder ? "border-destructive" : ""}
-                    />
-                    {renderError("accountHolder")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="accountNumber">Account Number *</Label>
-                    <Input
-                      id="accountNumber"
-                      value={formData.accountNumber}
-                      onChange={(e) => handleInputChange("accountNumber", e.target.value)}
-                      className={errors.accountNumber ? "border-destructive" : ""}
-                    />
-                    {renderError("accountNumber")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="routingNumber">Routing Number / IFSC *</Label>
-                    <Input
-                      id="routingNumber"
-                      value={formData.routingNumber}
-                      onChange={(e) => handleInputChange("routingNumber", e.target.value)}
-                      className={errors.routingNumber ? "border-destructive" : ""}
-                    />
-                    {renderError("routingNumber")}
-                  </div>
-                </div>
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handlePrevious}>
-                    Previous
-                  </Button>
-                  <Button type="button" onClick={handleNext}>
-                    Next: Account Settings
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Account Settings */}
-          <TabsContent value="account">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {!hasUserAccount && (
-                  <Alert>
-                    <AlertDescription>
-                      This employee does not have a user account. Role and password settings are only available for employees with linked accounts.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role *</Label>
-                    <Select
-                      value={formData.role}
-                      onValueChange={(value) => handleInputChange("role", value)}
-                      disabled={!hasUserAccount}
-                    >
-                      <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {renderError("role")}
-                  </div>
-                </div>
-
-                {hasUserAccount && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-4">Change Password</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Leave blank to keep the current password.
-                    </p>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="newPassword"
-                            type={showPassword ? "text" : "password"}
-                            value={formData.newPassword}
-                            onChange={(e) => handleInputChange("newPassword", e.target.value)}
-                            className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
-                            placeholder="Enter new password"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                        {renderError("newPassword")}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="confirmPassword"
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={formData.confirmPassword}
-                            onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                            className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
-                            placeholder="Confirm new password"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                        {renderError("confirmPassword")}
-                      </div>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                        placeholder="Confirm new password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
                     </div>
+                    {renderError("confirmPassword")}
                   </div>
-                )}
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={handlePrevious}>
-                    Previous
-                  </Button>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Update Employee
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4 pt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate("/admin/employees")}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </div>
       </form>
     </PageContainer>
   );
