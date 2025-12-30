@@ -245,8 +245,8 @@ export default function StoreList() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="w-full overflow-x-auto">
+          <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
