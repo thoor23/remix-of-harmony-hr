@@ -246,12 +246,7 @@ export default function EmployeeHelpdesk() {
 
   return (
     <PageContainer>
-      <PageHeader title="My Tickets" description="Submit and track your support requests">
-        <Button onClick={() => setIsNewTicketOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
-      </PageHeader>
+      <PageHeader title="My Tickets" description="Submit and track your support requests" />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -302,6 +297,8 @@ export default function EmployeeHelpdesk() {
               onToggleFilter={() => setShowFilters(!showFilters)}
               showFilter={showFilters}
               isRefreshing={isLoading}
+              onAddRow={() => setIsNewTicketOpen(true)}
+              addRowLabel="New Ticket"
             />
 
             {showFilters && (

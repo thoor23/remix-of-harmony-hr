@@ -269,12 +269,7 @@ export default function EmployeeLeaves() {
 
   return (
     <PageContainer>
-      <PageHeader title="Leave History" description="Apply for leaves and view your leave history">
-        <Button onClick={() => setIsApplyDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Apply Leave
-        </Button>
-      </PageHeader>
+      <PageHeader title="Leave History" description="Apply for leaves and view your leave history" />
 
       {/* Leave Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -361,6 +356,8 @@ export default function EmployeeLeaves() {
           onToggleFilter={() => setShowFilters(!showFilters)}
           showFilter={showFilters}
           isRefreshing={leavesLoading}
+          onAddRow={() => setIsApplyDialogOpen(true)}
+          addRowLabel="Apply Leave"
         />
 
         {showFilters && (
