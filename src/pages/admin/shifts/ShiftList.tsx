@@ -27,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -412,7 +411,7 @@ export default function ShiftList() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -503,8 +502,7 @@ export default function ShiftList() {
               )}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         <TablePagination
           currentPage={currentPage}

@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -366,7 +365,7 @@ export default function LeaveOverview() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -416,8 +415,7 @@ export default function LeaveOverview() {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         {filteredRecords.length === 0 && (
           <div className="p-8 text-center text-muted-foreground">

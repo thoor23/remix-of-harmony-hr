@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, MoreHorizontal, Eye, ArrowRightLeft, ArrowUp, ArrowDown } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAssetTransfers } from "@/hooks/useAssets";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -135,8 +134,8 @@ export default function AssetTransfers() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-          <Table className="w-max min-w-full">
+        <div className="overflow-x-auto">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12"><Checkbox checked={allSelected} onCheckedChange={handleSelectAll} /></TableHead>
@@ -164,8 +163,7 @@ export default function AssetTransfers() {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={sortedTransfers.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </Card>

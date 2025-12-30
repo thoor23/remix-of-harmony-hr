@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search, Store as StoreIcon, Eye, Edit, Trash2, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -246,8 +245,8 @@ export default function StoreList() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-          <Table className="w-max min-w-full">
+        <div className="overflow-x-auto">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
@@ -345,8 +344,7 @@ export default function StoreList() {
               )}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         {filteredStores.length > 0 && (
           <TablePagination

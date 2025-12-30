@@ -27,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -430,7 +429,6 @@ export default function EmployeeLeaves() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -527,8 +525,6 @@ export default function EmployeeLeaves() {
             )}
           </TableBody>
         </Table>
-        <ScrollBar orientation="horizontal" />
-        </ScrollArea>
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}

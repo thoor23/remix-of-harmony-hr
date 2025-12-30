@@ -22,7 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -369,7 +368,7 @@ export default function EmployeeHelpdesk() {
               </div>
             )}
 
-          <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
+          <div className="w-full overflow-x-auto">
             <Table className="w-max min-w-full">
               <TableHeader>
                 <TableRow>
@@ -473,8 +472,7 @@ export default function EmployeeHelpdesk() {
                 )}
               </TableBody>
             </Table>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </div>
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}

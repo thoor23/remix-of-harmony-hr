@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, MoreHorizontal, Eye, Wrench, ArrowUp, ArrowDown, CheckCircle, XCircle, Clock, Pause, PlayCircle } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAssetMaintenance, useCreateMaintenance, useAssets } from "@/hooks/useAssets";
 import { useAllMaintenanceRequests, useUpdateMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -282,8 +281,8 @@ export default function AssetMaintenance() {
               </div>
             )}
 
-            <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-              <Table className="w-max min-w-full">
+            <div className="overflow-x-auto">
+              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12"><Checkbox checked={allSelected} onCheckedChange={handleSelectAll} /></TableHead>
@@ -311,8 +310,189 @@ export default function AssetMaintenance() {
                   ))}
                 </TableBody>
               </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>
+
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={sortedRecords.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
+          </Card>
+        </TabsContent>
+
+        {/* Employee Requests Tab */}
+        <TabsContent value="requests">
+          <Card>
+            <div className="flex flex-wrap items-center gap-3 p-4 border-b">
+              <Select value={requestStatusFilter} onValueChange={setRequestStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="on_hold">On Hold</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => refetchRequests()}>
+                Refresh
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead className="w-12">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requestsLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i}>
+                        {Array.from({ length: 8 }).map((_, j) => (
+                          <TableCell key={j}><Skeleton className="h-4 w-24" /></TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : requestPagination.paginatedData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                          <Wrench className="h-10 w-10 mb-2" />
+                          <p>No maintenance requests found</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    requestPagination.paginatedData.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {request.employee?.first_name} {request.employee?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {request.employee?.employee_id}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{request.asset?.name || "-"}</p>
+                            {request.asset?.asset_tag && (
+                              <p className="text-xs text-muted-foreground font-mono">
+                                {request.asset.asset_tag}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={typeColors[request.type] || ""}>
+                            {request.type.charAt(0).toUpperCase() + request.type.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={priorityColors[request.priority] || ""}>
+                            {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {request.description}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={requestStatusColors[request.status]}>
+                            {formatStatusLabel(request.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(request.created_at), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {request.status === 'pending' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => setActionDialog({ type: 'approve', requestId: request.id })}>
+                                    <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                                    Approve
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setActionDialog({ type: 'reject', requestId: request.id })}>
+                                    <XCircle className="h-4 w-4 mr-2 text-destructive" />
+                                    Reject
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {request.status === 'approved' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'scheduled')}>
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Mark Scheduled
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'in_progress')}>
+                                    <PlayCircle className="h-4 w-4 mr-2" />
+                                    Start Work
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {request.status === 'scheduled' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'in_progress')}>
+                                    <PlayCircle className="h-4 w-4 mr-2" />
+                                    Start Work
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'on_hold')}>
+                                    <Pause className="h-4 w-4 mr-2" />
+                                    Put On Hold
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {request.status === 'in_progress' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => setActionDialog({ type: 'complete', requestId: request.id })}>
+                                    <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                                    Mark Completed
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'on_hold')}>
+                                    <Pause className="h-4 w-4 mr-2" />
+                                    Put On Hold
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {request.status === 'on_hold' && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(request.id, 'in_progress')}>
+                                  <PlayCircle className="h-4 w-4 mr-2" />
+                                  Resume Work
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => navigate(`/admin/assets/${request.asset_id}`)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Asset
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             <TablePagination
               currentPage={requestPagination.currentPage}

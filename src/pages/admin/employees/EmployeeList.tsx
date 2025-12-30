@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -368,7 +367,7 @@ export default function EmployeeList() {
         )}
 
         {/* Table */}
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -449,8 +448,7 @@ export default function EmployeeList() {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         {paginatedData.length === 0 && (
           <div className="py-12 px-4 text-center">

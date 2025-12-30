@@ -17,7 +17,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Search, Send, Trash2, Users, Building2, User, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useTargetedNotifications, useSendTargetedNotification, useDeleteTargetedNotification, SendTargetedNotificationData, TargetedNotification } from "@/hooks/useTargetedNotifications";
 import { useDepartmentsData } from "@/hooks/useDepartments";
@@ -312,8 +311,8 @@ export default function SendNotificationsPage() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-          <Table className="w-max min-w-full">
+        <div className="overflow-x-auto">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
@@ -375,8 +374,7 @@ export default function SendNotificationsPage() {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         {paginatedData.length === 0 && (
           <div className="py-12 px-4 text-center">

@@ -31,7 +31,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -296,8 +295,8 @@ export default function DepartmentsPage() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-          <Table className="w-max min-w-full">
+        <div className="overflow-x-auto">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
@@ -388,8 +387,7 @@ export default function DepartmentsPage() {
               )}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         <TablePagination
           currentPage={currentPage}

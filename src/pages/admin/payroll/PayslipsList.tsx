@@ -35,7 +35,6 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { FileText, Download, Eye, Send, Calendar, LayoutTemplate, Loader2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { usePayslips, useSalaryStructures } from "@/hooks/usePayroll";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePayslipTemplates, useDefaultPayslipTemplate } from "@/hooks/usePayslipTemplates";
@@ -328,8 +327,7 @@ export default function PayslipsList() {
         )}
 
         <CardContent className="p-0">
-          <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
-          <Table className="w-max min-w-full">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
@@ -496,8 +494,6 @@ export default function PayslipsList() {
               )}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-          </ScrollArea>
         </CardContent>
 
         <TablePagination

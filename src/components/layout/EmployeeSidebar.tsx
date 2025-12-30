@@ -195,7 +195,7 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 min-h-0 py-2">
+      <ScrollArea className="flex-1 py-2">
         <TooltipProvider delayDuration={0}>
           <nav className="px-2 space-y-1">
             {employeeNavItems.map((item) => {

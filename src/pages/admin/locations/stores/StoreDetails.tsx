@@ -302,8 +302,8 @@ export default function StoreDetails() {
                 <p className="text-muted-foreground">No employees assigned to this store</p>
               </div>
             ) : (
-              <div className="w-full overflow-x-auto">
-                <Table className="w-max min-w-full">
+              <div className="overflow-x-auto">
+                <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Employee</TableHead>

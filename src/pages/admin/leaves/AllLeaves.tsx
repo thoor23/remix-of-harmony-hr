@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Popover,
   PopoverContent,
@@ -392,7 +391,7 @@ export default function AllLeaves() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -442,8 +441,7 @@ export default function AllLeaves() {
               ))}
             </TableBody>
           </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
 
         {paginatedData.length === 0 && (
           <div className="py-12 px-4 text-center">
