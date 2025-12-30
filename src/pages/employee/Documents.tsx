@@ -8,6 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -49,10 +56,11 @@ export default function EmployeeDocuments() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [activeTab, setActiveTab] = useState("personal");
 
   // Column definitions
@@ -67,46 +75,30 @@ export default function EmployeeDocuments() {
     { id: "created_at", header: "Uploaded", visible: true },
   ]);
 
+  // Get unique document types
+  const uniqueTypes = useMemo(() => {
+    const types = new Set<string>();
+    [...myDocuments, ...companyDocuments].forEach((d) => {
+      if (d.type) types.add(d.type);
+    });
+    return Array.from(types);
+  }, [myDocuments, companyDocuments]);
+
+  const hasActiveFilters = searchQuery || typeFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setTypeFilter("all");
+  };
+
   // Filter and sort documents
   const filteredMyDocs = useMemo(() => {
     let docs = [...myDocuments];
     if (searchQuery) {
       docs = docs.filter((d) => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }
-    return docs.sort((a, b) => {
-      let aVal: string | number = "";
-      let bVal: string | number = "";
-      switch (sortField) {
-        case "name":
-          aVal = a.name;
-          bVal = b.name;
-          break;
-        case "type":
-          aVal = a.type;
-          bVal = b.type;
-          break;
-        case "created_at":
-          aVal = a.created_at;
-          bVal = b.created_at;
-          break;
-        case "file_size":
-          aVal = a.file_size || 0;
-          bVal = b.file_size || 0;
-          break;
-      }
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
-      }
-      return sortDirection === "asc"
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal));
-    });
-  }, [myDocuments, searchQuery, sortField, sortDirection]);
-
-  const filteredCompanyDocs = useMemo(() => {
-    let docs = [...companyDocuments];
-    if (searchQuery) {
-      docs = docs.filter((d) => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (typeFilter !== "all") {
+      docs = docs.filter((d) => d.type === typeFilter);
     }
     return docs.sort((a, b) => {
       let aVal: string | number = "";
@@ -136,7 +128,45 @@ export default function EmployeeDocuments() {
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal));
     });
-  }, [companyDocuments, searchQuery, sortField, sortDirection]);
+  }, [myDocuments, searchQuery, typeFilter, sortField, sortDirection]);
+
+  const filteredCompanyDocs = useMemo(() => {
+    let docs = [...companyDocuments];
+    if (searchQuery) {
+      docs = docs.filter((d) => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    if (typeFilter !== "all") {
+      docs = docs.filter((d) => d.type === typeFilter);
+    }
+    return docs.sort((a, b) => {
+      let aVal: string | number = "";
+      let bVal: string | number = "";
+      switch (sortField) {
+        case "name":
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case "type":
+          aVal = a.type;
+          bVal = b.type;
+          break;
+        case "created_at":
+          aVal = a.created_at;
+          bVal = b.created_at;
+          break;
+        case "file_size":
+          aVal = a.file_size || 0;
+          bVal = b.file_size || 0;
+          break;
+      }
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+      }
+      return sortDirection === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+  }, [companyDocuments, searchQuery, typeFilter, sortField, sortDirection]);
 
   // Pagination for personal documents
   const personalPagination = usePagination({ data: filteredMyDocs, defaultPageSize: 10 });
@@ -304,15 +334,41 @@ export default function EmployeeDocuments() {
       />
 
       {showFilters && (
-        <div className="px-4 py-3 border-b">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+        <div className="p-4 border-b bg-muted/30 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search documents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Type Filter */}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {uniqueTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters */}
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -469,9 +525,10 @@ export default function EmployeeDocuments() {
         </Card>
       </div>
 
+      {/* Document Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
-          <TabsTrigger value="personal">My Documents</TabsTrigger>
+          <TabsTrigger value="personal">Personal Documents</TabsTrigger>
           <TabsTrigger value="company">Company Policies</TabsTrigger>
         </TabsList>
 
@@ -491,33 +548,35 @@ export default function EmployeeDocuments() {
             <DialogTitle>Upload Document</DialogTitle>
           </DialogHeader>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileSelect}
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-          />
-
           <div className="space-y-4 py-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            />
+
             {!selectedFile ? (
               <div
                 className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Click to select a file</p>
-                <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX, JPG, PNG (max 10MB)</p>
+                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <p className="font-medium">Click to upload</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  PDF, Word, Excel, or images up to 10MB
+                </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-3">
                     <FileText className="h-8 w-8 text-primary" />
                     <div>
-                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="font-medium text-sm">{selectedFile.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {(selectedFile.size / 1024).toFixed(1)} KB
+                        {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
                   </div>
@@ -525,8 +584,14 @@ export default function EmployeeDocuments() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
+
                 {uploadProgress > 0 && (
-                  <Progress value={uploadProgress} className="h-2" />
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} />
+                    <p className="text-xs text-center text-muted-foreground">
+                      {uploadProgress < 100 ? "Uploading..." : "Complete!"}
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -536,17 +601,17 @@ export default function EmployeeDocuments() {
             <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpload} disabled={!selectedFile || uploadFile.isPending}>
+            <Button
+              onClick={handleUpload}
+              disabled={!selectedFile || uploadFile.isPending}
+            >
               {uploadFile.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
                 </>
               ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </>
+                "Upload"
               )}
             </Button>
           </DialogFooter>

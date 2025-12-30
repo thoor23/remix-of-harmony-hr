@@ -36,7 +36,7 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
-import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowUpDown, Eye } from "lucide-react";
+import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowUpDown, Eye, Search, X } from "lucide-react";
 import { useMyTickets, useCreateTicket } from "@/hooks/useHelpdesk";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { TicketMessaging } from "@/components/helpdesk/TicketMessaging";
@@ -80,7 +80,11 @@ export default function EmployeeHelpdesk() {
   const [priority, setPriority] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [showFilters, setShowFilters] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -91,13 +95,46 @@ export default function EmployeeHelpdesk() {
 
   const isLoading = employeeLoading || ticketsLoading;
 
-  // Filter by status
+  const hasActiveFilters = statusFilter !== "all" || categoryFilter !== "all" || priorityFilter !== "all" || searchQuery;
+
+  const handleClearFilters = () => {
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setPriorityFilter("all");
+    setSearchQuery("");
+  };
+
+  // Filter by status, category, priority, and search
   const filteredTickets = useMemo(() => {
-    if (statusFilter === "all") return myTickets;
-    if (statusFilter === "open") return myTickets.filter((t) => t.status === "open" || t.status === "in-progress");
-    if (statusFilter === "resolved") return myTickets.filter((t) => t.status === "resolved" || t.status === "closed");
-    return myTickets.filter((t) => t.status === statusFilter);
-  }, [myTickets, statusFilter]);
+    let data = [...myTickets];
+    
+    if (statusFilter !== "all") {
+      if (statusFilter === "open") {
+        data = data.filter((t) => t.status === "open" || t.status === "in-progress");
+      } else if (statusFilter === "resolved") {
+        data = data.filter((t) => t.status === "resolved" || t.status === "closed");
+      } else {
+        data = data.filter((t) => t.status === statusFilter);
+      }
+    }
+    
+    if (categoryFilter !== "all") {
+      data = data.filter((t) => t.category === categoryFilter);
+    }
+    
+    if (priorityFilter !== "all") {
+      data = data.filter((t) => t.priority === priorityFilter);
+    }
+    
+    if (searchQuery) {
+      data = data.filter((t) => 
+        t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return data;
+  }, [myTickets, statusFilter, categoryFilter, priorityFilter, searchQuery]);
 
   // Sort
   const sortedTickets = useMemo(() => {
@@ -253,22 +290,6 @@ export default function EmployeeHelpdesk() {
         </Card>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Tickets Table */}
         <div className="lg:col-span-2">
@@ -278,8 +299,79 @@ export default function EmployeeHelpdesk() {
               onToggleColumn={handleToggleColumn}
               onExport={handleExport}
               onRefresh={() => refetch()}
+              onToggleFilter={() => setShowFilters(!showFilters)}
+              showFilter={showFilters}
               isRefreshing={isLoading}
             />
+
+            {showFilters && (
+              <div className="p-4 border-b bg-muted/30 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Search Input */}
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by subject..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+
+                  {/* Category Filter */}
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {Object.entries(categoryLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Priority Filter */}
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priority</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Clear Filters */}
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                      <X className="h-4 w-4" />
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Table>
               <TableHeader>
                 <TableRow>
@@ -488,7 +580,7 @@ export default function EmployeeHelpdesk() {
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Brief description of your issue"
+                placeholder="Brief summary of your issue"
               />
             </div>
 

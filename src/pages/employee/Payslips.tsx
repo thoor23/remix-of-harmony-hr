@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,7 +33,7 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
-import { Download, Eye, FileText, Wallet, TrendingUp, Loader2, ArrowUpDown } from "lucide-react";
+import { Download, Eye, FileText, Wallet, TrendingUp, Loader2, ArrowUpDown, Search, X } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyPayslips } from "@/hooks/usePayroll";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
@@ -63,7 +64,9 @@ export default function EmployeePayslips() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("pay_period");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const queryClient = useQueryClient();
   const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
@@ -86,13 +89,33 @@ export default function EmployeePayslips() {
     { id: "status", header: "Status", visible: true },
   ]);
 
-  // Filter payslips by selected year
+  const hasActiveFilters = statusFilter !== "all" || searchQuery || selectedYear !== new Date().getFullYear().toString();
+
+  const handleClearFilters = () => {
+    setStatusFilter("all");
+    setSearchQuery("");
+    setSelectedYear(new Date().getFullYear().toString());
+  };
+
+  // Filter payslips by selected year, search, and status
   const filteredPayslips = useMemo(() => {
-    return payslips.filter((p) => {
+    let data = payslips.filter((p) => {
       const year = p.pay_period.split("-")[0];
       return year === selectedYear;
     });
-  }, [payslips, selectedYear]);
+
+    if (statusFilter !== "all") {
+      data = data.filter((p) => p.status === statusFilter);
+    }
+
+    if (searchQuery) {
+      data = data.filter((p) =>
+        p.pay_period.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return data;
+  }, [payslips, selectedYear, statusFilter, searchQuery]);
 
   // Sort payslips
   const sortedPayslips = useMemo(() => {
@@ -337,17 +360,52 @@ export default function EmployeePayslips() {
         />
 
         {showFilters && (
-          <div className="px-4 py-3 border-b flex items-center gap-4">
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={new Date().getFullYear().toString()}>{new Date().getFullYear()}</SelectItem>
-                <SelectItem value={(new Date().getFullYear() - 1).toString()}>{new Date().getFullYear() - 1}</SelectItem>
-                <SelectItem value={(new Date().getFullYear() - 2).toString()}>{new Date().getFullYear() - 2}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="p-4 border-b bg-muted/30 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by pay period..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Year Selector */}
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={new Date().getFullYear().toString()}>{new Date().getFullYear()}</SelectItem>
+                  <SelectItem value={(new Date().getFullYear() - 1).toString()}>{new Date().getFullYear() - 1}</SelectItem>
+                  <SelectItem value={(new Date().getFullYear() - 2).toString()}>{new Date().getFullYear() - 2}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="generated">Generated</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -473,7 +531,7 @@ export default function EmployeePayslips() {
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={filteredPayslips.length}
+          totalItems={sortedPayslips.length}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={setPageSize}
@@ -484,10 +542,11 @@ export default function EmployeePayslips() {
       <Dialog open={!!previewPayslip} onOpenChange={() => setPreviewPayslip(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Payslip - {previewPayslip && formatPayPeriod(previewPayslip.pay_period)}</DialogTitle>
+            <DialogTitle>Payslip Preview</DialogTitle>
           </DialogHeader>
+
           {previewPayslip && (
-            <div className="space-y-4">
+            <div className="space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Employee</p>
@@ -498,42 +557,55 @@ export default function EmployeePayslips() {
                   <p className="font-medium">{currentEmployee?.employee_id}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Department</p>
-                  <p className="font-medium">{currentEmployee?.department?.name || "-"}</p>
+                  <p className="text-muted-foreground">Pay Period</p>
+                  <p className="font-medium">{formatPayPeriod(previewPayslip.pay_period)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pay Date</p>
                   <p className="font-medium">{format(new Date(previewPayslip.pay_date), "MMM dd, yyyy")}</p>
                 </div>
               </div>
-              <hr />
-              <div className="space-y-2">
+
+              <div className="border-t pt-4 space-y-3">
                 <div className="flex justify-between">
-                  <span>Basic Salary</span>
+                  <span className="text-muted-foreground">Basic Salary</span>
                   <span>${previewPayslip.basic_salary.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-success">
-                  <span>Gross Earnings</span>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Gross Earnings</span>
                   <span>${previewPayslip.gross_earnings.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-destructive">
                   <span>Total Deductions</span>
                   <span>-${previewPayslip.total_deductions.toLocaleString()}</span>
                 </div>
-                <hr />
-                <div className="flex justify-between font-bold text-lg">
+                <div className="flex justify-between font-semibold text-lg border-t pt-3">
                   <span>Net Pay</span>
                   <span className="text-primary">${previewPayslip.net_pay.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewPayslip(null)}>Close</Button>
-            <Button onClick={() => previewPayslip && handleDownload(previewPayslip)}>
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF
+            <Button variant="outline" onClick={() => setPreviewPayslip(null)}>
+              Close
             </Button>
+            {previewPayslip && (
+              <Button onClick={() => handleDownload(previewPayslip)} disabled={downloading === previewPayslip.id}>
+                {downloading === previewPayslip.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
