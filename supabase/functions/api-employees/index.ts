@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, checkPermission } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -20,6 +20,11 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
+    
+    // Permission check helper
+    const hasPermission = async (action: 'create' | 'read' | 'update' | 'delete') => {
+      return isAdminOrHR || await checkPermission(auth.userId, 'Employees', action);
+    };
 
     // GET /list - List basic employee info (accessible by all authenticated users)
     // Returns limited fields for privacy - used for shift exchange, etc.
@@ -42,10 +47,10 @@ serve(async (req) => {
       return jsonResponse(employees);
     }
 
-    // GET / - List all employees (admin/HR only - full details)
+    // GET / - List all employees (requires read permission)
     if (method === 'GET' && path === '') {
-      if (!isAdminOrHR) {
-        return errorResponse('Admin or HR access required', 403);
+      if (!await hasPermission('read')) {
+        return errorResponse('Permission denied: read Employees', 403);
       }
 
       const { data: employees, error } = await supabase
@@ -120,8 +125,8 @@ serve(async (req) => {
 
     // POST / - Create employee
     if (method === 'POST' && path === '') {
-      if (!isAdminOrHR) {
-        return errorResponse('Admin or HR access required', 403);
+      if (!await hasPermission('create')) {
+        return errorResponse('Permission denied: create Employees', 403);
       }
 
       const body = await req.json();
@@ -144,8 +149,8 @@ serve(async (req) => {
 
     // POST /create-account - Create employee with user account
     if (method === 'POST' && path === '/create-account') {
-      if (!isAdminOrHR) {
-        return errorResponse('Admin or HR access required', 403);
+      if (!await hasPermission('create')) {
+        return errorResponse('Permission denied: create Employees', 403);
       }
 
       const { email, password, firstName, lastName, phone, role = 'employee', ...employeeData } = await req.json();
@@ -195,8 +200,8 @@ serve(async (req) => {
 
     // PUT /:id - Update employee
     if (method === 'PUT' && idMatch) {
-      if (!isAdminOrHR) {
-        return errorResponse('Admin or HR access required', 403);
+      if (!await hasPermission('update')) {
+        return errorResponse('Permission denied: update Employees', 403);
       }
 
       const id = idMatch[1];
@@ -215,8 +220,8 @@ serve(async (req) => {
 
     // DELETE /:id - Delete employee
     if (method === 'DELETE' && idMatch) {
-      if (!isAdminOrHR) {
-        return errorResponse('Admin or HR access required', 403);
+      if (!await hasPermission('delete')) {
+        return errorResponse('Permission denied: delete Employees', 403);
       }
 
       const id = idMatch[1];

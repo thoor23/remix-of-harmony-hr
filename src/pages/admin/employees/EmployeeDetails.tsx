@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge, StatusType } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useEmployee, useEmployeeAttendance, useEmployeeLeaves } from "@/hooks/useEmployees";
+import { RoleAssignment } from "@/components/settings/RoleAssignment";
 import { format } from "date-fns";
 
 export default function EmployeeDetails() {
@@ -224,6 +226,17 @@ export default function EmployeeDetails() {
                     <StatusBadge status={employee.status as StatusType} />
                   </div>
                 </div>
+                
+                {/* Role Assignment Section */}
+                {employee.user_id && (
+                  <>
+                    <Separator className="my-4" />
+                    <RoleAssignment 
+                      userId={employee.user_id} 
+                      employeeName={fullName}
+                    />
+                  </>
+                )}
               </CardContent>
             </Card>
 
