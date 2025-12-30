@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
+import { useRoles } from "@/hooks/useRoles";
 import { useAllLocations } from "@/hooks/useLocations";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -116,6 +117,7 @@ export default function EditEmployee() {
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useAllLocations();
+  const { data: roles = [] } = useRoles();
   const { data: employeeRole, isLoading: roleLoading } = useEmployeeRole(employee?.user_id || null);
   const updateEmployee = useUpdateEmployee();
   const updateEmployeeAccount = useUpdateEmployeeAccount();
@@ -784,10 +786,11 @@ export default function EditEmployee() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {renderError("role")}

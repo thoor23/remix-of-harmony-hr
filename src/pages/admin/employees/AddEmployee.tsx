@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployees } from "@/hooks/useEmployees";
+import { useRoles } from "@/hooks/useRoles";
 import { useAllLocations } from "@/hooks/useLocations";
 import { useCreateEmployeeAccount } from "@/hooks/useCreateEmployeeAccount";
 import { z } from "zod";
@@ -35,7 +36,7 @@ const employeeSchema = z.object({
   reportingTo: z.string().optional(),
   primaryStore: z.string().optional(),
   status: z.string().min(1, "Status is required"),
-  role: z.enum(["admin", "hr", "manager", "employee"]),
+  role: z.string().min(1, "Role is required"),
   street: z.string().min(1, "Street address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
@@ -78,7 +79,7 @@ export default function AddEmployee() {
     reportingTo: "",
     primaryStore: "",
     status: "active",
-    role: "employee" as "admin" | "hr" | "manager" | "employee",
+    role: "employee",
     street: "",
     city: "",
     state: "",
@@ -99,6 +100,7 @@ export default function AddEmployee() {
   const { data: designations = [] } = useDesignations();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useAllLocations();
+  const { data: roles = [] } = useRoles();
   const createEmployeeAccount = useCreateEmployeeAccount();
 
   const handleInputChange = (field: string, value: string) => {
@@ -132,7 +134,7 @@ export default function AddEmployee() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         phone: formData.phone,
-        role: formData.role,
+        role: formData.role as any,
         employee_data: {
           employee_id: formData.employeeId,
           date_of_birth: formData.dateOfBirth || undefined,
@@ -662,10 +664,11 @@ export default function AddEmployee() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {renderError("role")}

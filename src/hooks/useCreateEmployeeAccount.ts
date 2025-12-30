@@ -8,7 +8,7 @@ interface CreateEmployeeAccountData {
   first_name: string;
   last_name: string;
   phone?: string;
-  role: "admin" | "hr" | "manager" | "employee";
+  role: string;
   employee_data: {
     employee_id: string;
     date_of_birth?: string;
