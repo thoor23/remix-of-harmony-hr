@@ -41,12 +41,38 @@ export interface EmployeeWithDetails {
   } | null;
 }
 
+// For admin/HR - full employee details
 export function useEmployees() {
   return useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
       const data = await api.get<any[]>('/employees');
       return data as EmployeeWithDetails[];
+    },
+  });
+}
+
+// For all authenticated users - basic employee info (for shift exchange, etc.)
+export interface BasicEmployee {
+  id: string;
+  employee_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  status: string;
+  department: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+}
+
+export function useEmployeeList() {
+  return useQuery({
+    queryKey: ["employee-list"],
+    queryFn: async () => {
+      const data = await api.get<any[]>('/employees/list');
+      return data as BasicEmployee[];
     },
   });
 }

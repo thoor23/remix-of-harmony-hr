@@ -21,7 +21,28 @@ serve(async (req) => {
     const supabase = getSupabaseClient();
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
-    // GET / - List all employees
+    // GET /list - List basic employee info (accessible by all authenticated users)
+    // Returns limited fields for privacy - used for shift exchange, etc.
+    if (method === 'GET' && path === '/list') {
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select(`
+          id,
+          employee_id,
+          first_name,
+          last_name,
+          avatar_url,
+          status,
+          department:departments(id, name, code)
+        `)
+        .eq('status', 'active')
+        .order('first_name');
+
+      if (error) throw error;
+      return jsonResponse(employees);
+    }
+
+    // GET / - List all employees (admin/HR only - full details)
     if (method === 'GET' && path === '') {
       if (!isAdminOrHR) {
         return errorResponse('Admin or HR access required', 403);
