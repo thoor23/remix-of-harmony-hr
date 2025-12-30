@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Search, Edit, Trash2, Eye, FileText, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -519,22 +520,20 @@ export default function AnnouncementsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="scheduled_at">Schedule For (Optional)</Label>
-                <Input
-                  id="scheduled_at"
-                  type="datetime-local"
+                <DateTimePicker
                   value={formData.scheduled_at}
-                  onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, scheduled_at: value })}
+                  placeholder="Select date & time"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="expires_at">Expires At (Optional)</Label>
-                <Input
-                  id="expires_at"
-                  type="datetime-local"
+                <DateTimePicker
                   value={formData.expires_at}
-                  onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, expires_at: value })}
+                  placeholder="Select date & time"
                 />
               </div>
             </div>

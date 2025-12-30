@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
@@ -229,7 +230,11 @@ export default function AddAsset() {
                     <FormItem>
                       <FormLabel>Purchase Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select purchase date"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -257,7 +262,11 @@ export default function AddAsset() {
                     <FormItem>
                       <FormLabel>Warranty Expiry</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select warranty expiry"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

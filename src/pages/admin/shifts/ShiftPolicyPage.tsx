@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TimePicker } from "@/components/ui/time-picker";
 import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
 import { Clock, RefreshCw, ArrowLeftRight, Moon, Coffee, DollarSign, Loader2 } from "lucide-react";
 
@@ -279,10 +280,10 @@ export default function ShiftPolicyPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>OT Starts After</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.otStartsAfter}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, otStartsAfter: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, otStartsAfter: value }))}
+                    placeholder="Select time"
                   />
                   <p className="text-xs text-muted-foreground">Time after which overtime begins</p>
                 </div>
@@ -549,18 +550,18 @@ export default function ShiftPolicyPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Night Shift Start Time</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.nightShiftStartTime}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, nightShiftStartTime: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, nightShiftStartTime: value }))}
+                    placeholder="Select start time"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Night Shift End Time</Label>
-                  <Input
-                    type="time"
+                  <TimePicker
                     value={policy.nightShiftEndTime}
-                    onChange={(e) => setPolicy(prev => ({ ...prev, nightShiftEndTime: e.target.value }))}
+                    onChange={(value) => setPolicy(prev => ({ ...prev, nightShiftEndTime: value }))}
+                    placeholder="Select end time"
                   />
                 </div>
               </div>
