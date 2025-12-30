@@ -2,7 +2,6 @@ import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -33,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, CalendarCheck, Clock, CalendarX } from "lucide-react";
 import { useCurrentEmployee, useLeaveBalances } from "@/hooks/useCurrentEmployee";
 import { useLeaveTypes, useMyLeaveRequests, useCreateLeaveRequest, useCancelLeaveRequest } from "@/hooks/useLeaves";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function EmployeeLeaves() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
@@ -367,18 +367,18 @@ export default function EmployeeLeaves() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>From Date *</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={setStartDate}
+                  placeholder="Select start date"
                 />
               </div>
               <div className="space-y-2">
                 <Label>To Date *</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={setEndDate}
+                  placeholder="Select end date"
                 />
               </div>
             </div>

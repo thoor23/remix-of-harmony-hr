@@ -49,6 +49,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift, ShiftData, useShiftAssignments } from "@/hooks/useShifts";
 import { toast } from "sonner";
+import { TimePicker } from "@/components/ui/time-picker";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
@@ -539,18 +540,18 @@ export default function ShiftList() {
               </div>
               <div className="space-y-2">
                 <Label>Start Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={formData.start_time}
-                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, start_time: value })}
+                  placeholder="Select start time"
                 />
               </div>
               <div className="space-y-2">
                 <Label>End Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, end_time: value })}
+                  placeholder="Select end time"
                 />
               </div>
               <div className="space-y-2">
