@@ -45,14 +45,17 @@ function getDefaultPermissionsForRole(role: string): Array<{
 
     case 'employee':
     default:
-      // Read-only for employee-facing modules
-      const employeeModules = ['Dashboard', 'Attendance', 'Leaves', 'Payroll', 'Shifts',
-        'Documents', 'Assets', 'Helpdesk', 'Announcements', 'Holidays'];
-      return allModules.map(m => ({
+      // Employee-specific modules with "My" prefix to match sidebar navigation
+      const employeeModules = [
+        'Employee Dashboard', 'Dashboard', 'My Attendance', 'My Shifts', 
+        'My Leaves', 'My Payslips', 'My Documents', 'My Assets', 
+        'My Helpdesk', 'My Profile', 'My Settings', 'My Reports', 'Holidays'
+      ];
+      return employeeModules.map(m => ({
         module: m,
-        create: ['Helpdesk', 'Leaves', 'Attendance'].includes(m), // Employees can create tickets, leave requests, attendance
-        read: employeeModules.includes(m),
-        update: ['Helpdesk'].includes(m), // Can update their own tickets
+        create: ['My Helpdesk', 'My Leaves', 'My Attendance'].includes(m),
+        read: true,
+        update: ['My Helpdesk', 'My Profile', 'My Settings'].includes(m),
         delete: false
       }));
   }
