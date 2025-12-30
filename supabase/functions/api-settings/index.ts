@@ -63,9 +63,9 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
-    // GET /:key - Get specific setting
+    // GET /:key - Get specific setting (exclude 'roles' which has its own handler)
     const keyMatch = path.match(/^\/([a-zA-Z_]+)$/);
-    if (method === 'GET' && keyMatch) {
+    if (method === 'GET' && keyMatch && keyMatch[1] !== 'roles') {
       const key = keyMatch[1];
       
       const { data, error } = await supabase
