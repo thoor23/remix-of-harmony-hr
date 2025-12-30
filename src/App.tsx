@@ -126,6 +126,7 @@ import EmployeeDocuments from "./pages/employee/Documents";
 import EmployeeAssets from "./pages/employee/Assets";
 import HolidayCalendar from "./pages/employee/Holidays";
 import EmployeeHelpdesk from "./pages/employee/Helpdesk";
+import EmployeeMyShift from "./pages/employee/MyShift";
 import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
 import EmployeeSettings from "./pages/employee/Settings";
 
@@ -286,7 +287,7 @@ const App = () => (
                 <Route path="attendance/regularization" element={<EmployeeAttendanceRegularization />} />
                 <Route path="attendance/report" element={<EmployeeAttendanceReport />} />
                 {/* Shifts */}
-                <Route path="shifts" element={<EmployeeShiftExchange />} />
+                <Route path="shifts" element={<EmployeeMyShift />} />
                 <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
                 <Route path="shifts/report" element={<EmployeeShiftReport />} />
                 {/* Leaves */}
