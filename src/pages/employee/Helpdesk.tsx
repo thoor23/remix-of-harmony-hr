@@ -471,62 +471,12 @@ export default function EmployeeHelpdesk() {
 
         {/* Ticket Detail / Messages */}
         <div>
-          {selectedTicket ? (
+          {selectedTicket && (
             <TicketMessaging
               ticket={selectedTicket}
               onClose={() => setSelectedTicket(null)}
               isAdmin={false}
             />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Quick Help
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Select a ticket to view details and messages, or create a new one for support.
-                </p>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Common Topics:</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setCategory("payroll");
-                      setIsNewTicketOpen(true);
-                    }}
-                  >
-                    Payroll inquiries
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setCategory("leave");
-                      setIsNewTicketOpen(true);
-                    }}
-                  >
-                    Leave balance issues
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setCategory("documents");
-                      setIsNewTicketOpen(true);
-                    }}
-                  >
-                    Document requests
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           )}
         </div>
       </div>
