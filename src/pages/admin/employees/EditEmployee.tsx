@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,22 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  User, 
-  Briefcase, 
-  MapPin, 
-  CreditCard, 
-  ArrowLeft, 
-  Loader2, 
-  KeyRound, 
-  Eye, 
-  EyeOff,
-  AlertCircle,
-  Mail,
-  Phone,
-  Calendar,
-  Building
-} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Briefcase, MapPin, CreditCard, ArrowLeft, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useDepartments, useDesignations, useEmployee, useEmployees, useUpdateEmployee, useUpdateEmployeeAccount, useEmployeeRole } from "@/hooks/useEmployees";
 import { useAllLocations } from "@/hooks/useLocations";
 import { toast } from "sonner";
@@ -91,6 +75,7 @@ type FormErrors = Partial<Record<keyof z.infer<typeof employeeSchema>, string>>;
 export default function EditEmployee() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState("personal");
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -135,6 +120,7 @@ export default function EditEmployee() {
   const updateEmployee = useUpdateEmployee();
   const updateEmployeeAccount = useUpdateEmployeeAccount();
 
+  // Load employee data into form
   useEffect(() => {
     if (employee) {
       setFormData((prev) => ({
@@ -169,6 +155,7 @@ export default function EditEmployee() {
     }
   }, [employee]);
 
+  // Load role when available
   useEffect(() => {
     if (employeeRole) {
       setFormData((prev) => ({
@@ -205,6 +192,7 @@ export default function EditEmployee() {
     if (!id || !employee) return;
     
     if (validateForm()) {
+      // First update employee table data
       updateEmployee.mutate({
         id,
         data: {
@@ -231,6 +219,7 @@ export default function EditEmployee() {
         }
       }, {
         onSuccess: () => {
+          // If employee has a user account, update account-related data
           if (employee.user_id) {
             updateEmployeeAccount.mutate({
               employee_id: id,
@@ -257,6 +246,22 @@ export default function EditEmployee() {
     }
   };
 
+  const handleNext = () => {
+    const tabs = ["personal", "work", "contact", "bank", "account"];
+    const currentIndex = tabs.indexOf(activeTab);
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1]);
+    }
+  };
+
+  const handlePrevious = () => {
+    const tabs = ["personal", "work", "contact", "bank", "account"];
+    const currentIndex = tabs.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1]);
+    }
+  };
+
   const renderError = (field: keyof FormErrors) => {
     if (errors[field]) {
       return <p className="text-sm text-destructive mt-1">{errors[field]}</p>;
@@ -264,6 +269,7 @@ export default function EditEmployee() {
     return null;
   };
 
+  // Get managers for reporting to dropdown
   const managers = employees.filter(emp => 
     emp.id !== id && (
       emp.designation?.name?.toLowerCase().includes('manager') || 
@@ -278,37 +284,9 @@ export default function EditEmployee() {
   if (isLoading) {
     return (
       <PageContainer>
-        <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate("/admin/employees")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Employees
-          </Button>
-        </div>
-        <PageHeader title="Edit Employee" description="Update employee information" />
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex gap-6">
-              <Skeleton className="h-28 w-28 rounded-full" />
-              <div className="flex-1 space-y-3">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-64" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="grid gap-6 md:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-6 w-32 mb-4" />
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-[400px] w-full" />
         </div>
       </PageContainer>
     );
@@ -328,9 +306,6 @@ export default function EditEmployee() {
   }
 
   const hasUserAccount = !!employee.user_id;
-  const department = departments.find(d => d.id === formData.department);
-  const designation = designations.find(d => d.id === formData.designation);
-  const primaryLocation = locations.find((l: any) => l.id === formData.primaryStore);
 
   return (
     <PageContainer>
@@ -343,69 +318,42 @@ export default function EditEmployee() {
 
       <PageHeader
         title="Edit Employee"
-        description={`Update information for ${employee.first_name} ${employee.last_name}`}
+        description="Update employee information"
       />
 
       <form onSubmit={handleSubmit}>
-        {/* Employee Header Card */}
-        <Card className="mb-6 shadow-md">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
-                <AvatarImage src={employee.avatar_url || undefined} />
-                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-                  {employee.first_name?.[0] || ""}{employee.last_name?.[0] || ""}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-1">
-                  {employee.first_name} {employee.last_name}
-                </h2>
-                <p className="text-muted-foreground mb-3">
-                  {designation?.name || employee.designation?.name || "N/A"} • {department?.name || employee.department?.name || "N/A"}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="font-mono">{employee.employee_id}</Badge>
-                  <Badge className="bg-success/10 text-success border-success/20 capitalize">{employee.status}</Badge>
-                  <Badge variant="secondary" className="capitalize">{employee.employment_type}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span>{employee.email || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    <span>{employee.phone || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Joined {employee.date_of_joining}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    <span>{(primaryLocation as any)?.name || "No location"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="personal" className="gap-2">
+              <User className="h-4 w-4" />
+              Personal
+            </TabsTrigger>
+            <TabsTrigger value="work" className="gap-2">
+              <Briefcase className="h-4 w-4" />
+              Work
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Contact
+            </TabsTrigger>
+            <TabsTrigger value="bank" className="gap-2">
+              <CreditCard className="h-4 w-4" />
+              Bank
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-2">
+              <KeyRound className="h-4 w-4" />
+              Account
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Information Grid */}
-        <div className="space-y-6">
-          {/* Personal & Work Info Row */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Personal Information */}
-            <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="h-5 w-5 text-primary" />
-                  Personal Information
-                </CardTitle>
+          {/* Personal Information */}
+          <TabsContent value="personal">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
@@ -475,19 +423,24 @@ export default function EditEmployee() {
                     </Select>
                   </div>
                 </div>
+
+                <div className="flex justify-end">
+                  <Button type="button" onClick={handleNext}>
+                    Next: Work Information
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Work Information */}
-            <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Briefcase className="h-5 w-5 text-blue-500" />
-                  Work Information
-                </CardTitle>
+          {/* Work Information */}
+          <TabsContent value="work">
+            <Card>
+              <CardHeader>
+                <CardTitle>Work Information</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2">
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee ID *</Label>
                     <Input
@@ -618,33 +571,39 @@ export default function EditEmployee() {
                     </Select>
                   </div>
                 </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="button" onClick={handleNext}>
+                    Next: Contact Details
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          {/* Address & Emergency Contact Row */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Address */}
-            <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <MapPin className="h-5 w-5 text-green-500" />
-                  Address
-                </CardTitle>
+          {/* Contact Information */}
+          <TabsContent value="contact">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact & Address</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="street">Street Address *</Label>
-                    <Input
-                      id="street"
-                      value={formData.street}
-                      onChange={(e) => handleInputChange("street", e.target.value)}
-                      className={errors.street ? "border-destructive" : ""}
-                    />
-                    {renderError("street")}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Current Address</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="street">Street Address *</Label>
+                      <Input
+                        id="street"
+                        value={formData.street}
+                        onChange={(e) => handleInputChange("street", e.target.value)}
+                        className={errors.street ? "border-destructive" : ""}
+                      />
+                      {renderError("street")}
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="city">City *</Label>
                       <Input
@@ -687,224 +646,232 @@ export default function EditEmployee() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Emergency Contact */}
-            <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <AlertCircle className="h-5 w-5 text-orange-500" />
-                  Emergency Contact
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyName">Name *</Label>
-                    <Input
-                      id="emergencyName"
-                      value={formData.emergencyName}
-                      onChange={(e) => handleInputChange("emergencyName", e.target.value)}
-                      className={errors.emergencyName ? "border-destructive" : ""}
-                    />
-                    {renderError("emergencyName")}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Emergency Contact</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyName">Name *</Label>
+                      <Input
+                        id="emergencyName"
+                        value={formData.emergencyName}
+                        onChange={(e) => handleInputChange("emergencyName", e.target.value)}
+                        className={errors.emergencyName ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyName")}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyRelation">Relationship *</Label>
+                      <Input
+                        id="emergencyRelation"
+                        value={formData.emergencyRelation}
+                        onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
+                        className={errors.emergencyRelation ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyRelation")}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyPhone">Phone *</Label>
+                      <Input
+                        id="emergencyPhone"
+                        value={formData.emergencyPhone}
+                        onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
+                        className={errors.emergencyPhone ? "border-destructive" : ""}
+                      />
+                      {renderError("emergencyPhone")}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyRelation">Relationship *</Label>
-                    <Input
-                      id="emergencyRelation"
-                      value={formData.emergencyRelation}
-                      onChange={(e) => handleInputChange("emergencyRelation", e.target.value)}
-                      className={errors.emergencyRelation ? "border-destructive" : ""}
-                    />
-                    {renderError("emergencyRelation")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyPhone">Phone *</Label>
-                    <Input
-                      id="emergencyPhone"
-                      value={formData.emergencyPhone}
-                      onChange={(e) => handleInputChange("emergencyPhone", e.target.value)}
-                      className={errors.emergencyPhone ? "border-destructive" : ""}
-                    />
-                    {renderError("emergencyPhone")}
-                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="button" onClick={handleNext}>
+                    Next: Bank Details
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
           {/* Bank Details */}
-          <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="h-5 w-5 text-purple-500" />
-                Bank Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bankName">Bank Name *</Label>
-                  <Input
-                    id="bankName"
-                    value={formData.bankName}
-                    onChange={(e) => handleInputChange("bankName", e.target.value)}
-                    className={errors.bankName ? "border-destructive" : ""}
-                  />
-                  {renderError("bankName")}
+          <TabsContent value="bank">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bank Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bankName">Bank Name *</Label>
+                    <Input
+                      id="bankName"
+                      value={formData.bankName}
+                      onChange={(e) => handleInputChange("bankName", e.target.value)}
+                      className={errors.bankName ? "border-destructive" : ""}
+                    />
+                    {renderError("bankName")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="accountHolder">Account Holder Name *</Label>
+                    <Input
+                      id="accountHolder"
+                      value={formData.accountHolder}
+                      onChange={(e) => handleInputChange("accountHolder", e.target.value)}
+                      className={errors.accountHolder ? "border-destructive" : ""}
+                    />
+                    {renderError("accountHolder")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">Account Number *</Label>
+                    <Input
+                      id="accountNumber"
+                      value={formData.accountNumber}
+                      onChange={(e) => handleInputChange("accountNumber", e.target.value)}
+                      className={errors.accountNumber ? "border-destructive" : ""}
+                    />
+                    {renderError("accountNumber")}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="routingNumber">Routing Number / IFSC *</Label>
+                    <Input
+                      id="routingNumber"
+                      value={formData.routingNumber}
+                      onChange={(e) => handleInputChange("routingNumber", e.target.value)}
+                      className={errors.routingNumber ? "border-destructive" : ""}
+                    />
+                    {renderError("routingNumber")}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountHolder">Account Holder *</Label>
-                  <Input
-                    id="accountHolder"
-                    value={formData.accountHolder}
-                    onChange={(e) => handleInputChange("accountHolder", e.target.value)}
-                    className={errors.accountHolder ? "border-destructive" : ""}
-                  />
-                  {renderError("accountHolder")}
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="button" onClick={handleNext}>
+                    Next: Account Settings
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Account Number *</Label>
-                  <Input
-                    id="accountNumber"
-                    value={formData.accountNumber}
-                    onChange={(e) => handleInputChange("accountNumber", e.target.value)}
-                    className={errors.accountNumber ? "border-destructive" : ""}
-                  />
-                  {renderError("accountNumber")}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="routingNumber">IFSC Code *</Label>
-                  <Input
-                    id="routingNumber"
-                    value={formData.routingNumber}
-                    onChange={(e) => handleInputChange("routingNumber", e.target.value)}
-                    className={errors.routingNumber ? "border-destructive" : ""}
-                  />
-                  {renderError("routingNumber")}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Account Settings */}
-          <Card className="border-l-4 border-l-cyan-500 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <KeyRound className="h-5 w-5 text-cyan-500" />
-                Account Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {!hasUserAccount && (
-                <Alert>
-                  <AlertDescription>
-                    This employee does not have a user account. Role and password settings are only available for employees with linked accounts.
-                  </AlertDescription>
-                </Alert>
-              )}
+          <TabsContent value="account">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!hasUserAccount && (
+                  <Alert>
+                    <AlertDescription>
+                      This employee does not have a user account. Role and password settings are only available for employees with linked accounts.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role *</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) => handleInputChange("role", value)}
-                    disabled={!hasUserAccount}
-                  >
-                    <SelectTrigger className={errors.role ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employee">Employee</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="hr">HR</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {renderError("role")}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleInputChange("role", value)}
+                      disabled={!hasUserAccount}
+                    >
+                      <SelectTrigger className={errors.role ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {renderError("role")}
+                  </div>
                 </div>
 
                 {hasUserAccount && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="newPassword"
-                          type={showPassword ? "text" : "password"}
-                          value={formData.newPassword}
-                          onChange={(e) => handleInputChange("newPassword", e.target.value)}
-                          className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
-                          placeholder="Leave blank to keep"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
+                  <div>
+                    <h3 className="text-sm font-medium mb-4">Change Password</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Leave blank to keep the current password.
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showPassword ? "text" : "password"}
+                            value={formData.newPassword}
+                            onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                            className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
+                            placeholder="Enter new password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        {renderError("newPassword")}
                       </div>
-                      {renderError("newPassword")}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={formData.confirmPassword}
-                          onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                          className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
-                          placeholder="Confirm new password"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={formData.confirmPassword}
+                            onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                            className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                            placeholder="Confirm new password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                        {renderError("confirmPassword")}
                       </div>
-                      {renderError("confirmPassword")}
                     </div>
-                  </>
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Sticky Footer with Actions */}
-        <div className="sticky bottom-0 bg-background border-t mt-6 py-4 -mx-6 px-6 flex justify-end gap-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => navigate("/admin/employees")}
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
-          </Button>
-        </div>
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Update Employee
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </form>
     </PageContainer>
   );
