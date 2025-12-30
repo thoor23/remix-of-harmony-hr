@@ -129,7 +129,7 @@ serve(async (req) => {
       if (userRole?.role_id) {
         const { data: role, error: roleError } = await supabase
           .from('roles')
-          .select('id, name, permissions')
+          .select('id, name, permissions, role_type')
           .eq('id', userRole.role_id)
           .single();
         
@@ -143,6 +143,7 @@ serve(async (req) => {
         return jsonResponse({
           roleId: role?.id || null,
           roleName: role?.name || null,
+          roleType: role?.role_type || 'admin',
           permissions: role?.permissions || []
         });
       }
@@ -156,6 +157,7 @@ serve(async (req) => {
       return jsonResponse({
         roleId: null,
         roleName: legacyRole,
+        roleType: legacyRole === 'employee' ? 'employee' : 'admin',
         permissions: defaultPermissions
       });
     }

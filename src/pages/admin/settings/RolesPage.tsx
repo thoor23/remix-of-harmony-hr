@@ -28,7 +28,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Monitor, User } from "lucide-react";
 import { modules, adminModules, employeeModules } from "@/data/settingsData";
 import { RolePermission } from "@/types/settings";
 import { PermissionMatrix } from "@/components/settings/PermissionMatrix";
@@ -48,10 +55,21 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHasPermission } from "@/components/auth/PermissionGate";
 
+// Get modules for a specific role type
+const getModulesForRoleType = (roleType: 'admin' | 'employee') => {
+  if (roleType === 'admin') {
+    return adminModules;
+  }
+  // Employee role: show employee modules + admin modules (except Admin Dashboard)
+  const adminModulesExceptDashboard = adminModules.filter(m => m !== 'Admin Dashboard');
+  return [...employeeModules, ...adminModulesExceptDashboard];
+};
+
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
   { id: "name", header: "Role Name", accessor: "name", visible: true },
   { id: "description", header: "Description", accessor: "description", visible: true },
+  { id: "role_type", header: "Type", accessor: (row: Role) => row.role_type === 'employee' ? "Employee" : "Admin", visible: true },
   { id: "user_count", header: "Users", accessor: "user_count", visible: true },
   { id: "is_system", header: "System Role", accessor: (row: Role) => row.is_system ? "Yes" : "No", visible: false },
 ];
@@ -71,7 +89,8 @@ export default function RolesPage() {
   const [roleForm, setRoleForm] = useState({
     name: "",
     description: "",
-    permissions: modules.map(m => ({ module: m, create: false, read: true, update: false, delete: false })),
+    roleType: "admin" as 'admin' | 'employee',
+    permissions: adminModules.map(m => ({ module: m, create: false, read: true, update: false, delete: false })),
   });
   const [deleteRoleDialog, setDeleteRoleDialog] = useState<Role | null>(null);
 
@@ -141,22 +160,35 @@ export default function RolesPage() {
   const openRoleDialog = (role?: Role) => {
     if (role) {
       setEditingRole(role);
+      const roleType = role.role_type || 'admin';
+      const availableModules = getModulesForRoleType(roleType);
       setRoleForm({ 
         name: role.name, 
         description: role.description || "", 
+        roleType: roleType,
         permissions: role.permissions?.length > 0 
           ? [...role.permissions] 
-          : modules.map(m => ({ module: m, create: false, read: true, update: false, delete: false }))
+          : availableModules.map(m => ({ module: m, create: false, read: true, update: false, delete: false }))
       });
     } else {
       setEditingRole(null);
       setRoleForm({
         name: "",
         description: "",
-        permissions: modules.map(m => ({ module: m, create: false, read: true, update: false, delete: false })),
+        roleType: "admin",
+        permissions: adminModules.map(m => ({ module: m, create: false, read: true, update: false, delete: false })),
       });
     }
     setRoleDialogOpen(true);
+  };
+
+  const handleRoleTypeChange = (newRoleType: 'admin' | 'employee') => {
+    const availableModules = getModulesForRoleType(newRoleType);
+    setRoleForm(prev => ({
+      ...prev,
+      roleType: newRoleType,
+      permissions: availableModules.map(m => ({ module: m, create: false, read: true, update: false, delete: false })),
+    }));
   };
 
   const saveRole = async () => {
@@ -172,12 +204,14 @@ export default function RolesPage() {
           name: roleForm.name,
           description: roleForm.description || null,
           permissions: roleForm.permissions,
+          role_type: roleForm.roleType,
         });
       } else {
         await createRole.mutateAsync({
           name: roleForm.name,
           description: roleForm.description || undefined,
           permissions: roleForm.permissions,
+          role_type: roleForm.roleType,
         });
       }
       setRoleDialogOpen(false);
@@ -455,12 +489,46 @@ export default function RolesPage() {
                 />
               </div>
             </div>
+            
+            <div className="space-y-2">
+              <Label>Role Type <span className="text-destructive">*</span></Label>
+              <Select
+                value={roleForm.roleType}
+                onValueChange={(value: 'admin' | 'employee') => handleRoleTypeChange(value)}
+                disabled={editingRole?.is_system}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select role type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4" />
+                      <span>Admin Role</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="employee">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>Employee Role</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {roleForm.roleType === 'admin' 
+                  ? "Admin roles are redirected to Admin Dashboard after login. Shows admin panel modules only."
+                  : "Employee roles are redirected to Employee Dashboard after login. Shows employee modules + admin modules (except Admin Dashboard)."}
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Permissions</Label>
               <PermissionMatrix
                 permissions={roleForm.permissions}
                 onChange={(permissions) => setRoleForm(prev => ({ ...prev, permissions }))}
                 disabled={editingRole?.is_system && editingRole.name === "Admin"}
+                roleType={roleForm.roleType}
               />
             </div>
           </div>

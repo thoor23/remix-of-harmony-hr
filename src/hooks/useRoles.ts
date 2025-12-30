@@ -10,6 +10,7 @@ export interface Role {
   permissions: RolePermission[];
   is_system: boolean;
   user_count: number;
+  role_type: 'admin' | 'employee';
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +19,7 @@ export interface CreateRoleInput {
   name: string;
   description?: string;
   permissions: RolePermission[];
+  role_type?: 'admin' | 'employee';
   is_system?: boolean;
 }
 

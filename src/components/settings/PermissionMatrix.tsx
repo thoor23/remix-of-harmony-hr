@@ -16,9 +16,10 @@ interface PermissionMatrixProps {
   permissions: RolePermission[];
   onChange: (permissions: RolePermission[]) => void;
   disabled?: boolean;
+  roleType?: 'admin' | 'employee';
 }
 
-export function PermissionMatrix({ permissions, onChange, disabled }: PermissionMatrixProps) {
+export function PermissionMatrix({ permissions, onChange, disabled, roleType }: PermissionMatrixProps) {
   const handleChange = (module: string, action: 'create' | 'read' | 'update' | 'delete', checked: boolean) => {
     const updated = permissions.map(p => 
       p.module === module ? { ...p, [action]: checked } : p
