@@ -405,7 +405,8 @@ export default function EmployeeAttendance() {
           </div>
         )}
 
-        <Table>
+        <div className="overflow-x-auto show-scrollbar">
+        <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
@@ -478,6 +479,7 @@ export default function EmployeeAttendance() {
             )}
           </TableBody>
         </Table>
+        </div>
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}
