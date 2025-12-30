@@ -494,7 +494,7 @@ export default function ShiftAssignments() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
           <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>
