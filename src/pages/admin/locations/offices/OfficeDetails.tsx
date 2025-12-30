@@ -15,7 +15,7 @@ export default function OfficeDetails() {
   if (isLoading) return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/offices")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Offices
         </Button>
@@ -28,7 +28,7 @@ export default function OfficeDetails() {
   if (!office) return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/offices")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Offices
         </Button>
@@ -40,7 +40,7 @@ export default function OfficeDetails() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/offices")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Offices
         </Button>
@@ -48,7 +48,7 @@ export default function OfficeDetails() {
 
       <PageHeader title={office.name} description={`Office Code: ${office.code}`}>
         <Button asChild>
-          <Link to={`/admin/locations/offices/${id}/edit`}>
+          <Link to={`/app/locations/offices/${id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Link>

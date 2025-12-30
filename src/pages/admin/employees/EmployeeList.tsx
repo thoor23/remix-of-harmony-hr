@@ -322,7 +322,7 @@ export default function EmployeeList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={canCreate ? () => navigate('/admin/employees/new') : undefined}
+          onAddRow={canCreate ? () => navigate('/app/employees/new') : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -428,14 +428,14 @@ export default function EmployeeList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link to={`/admin/employees/${employee.id}`}>
+                          <Link to={`/app/employees/${employee.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </Link>
                         </DropdownMenuItem>
                         {canUpdate && (
                           <DropdownMenuItem asChild>
-                            <Link to={`/admin/employees/${employee.id}/edit`}>
+                            <Link to={`/app/employees/${employee.id}/edit`}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </Link>

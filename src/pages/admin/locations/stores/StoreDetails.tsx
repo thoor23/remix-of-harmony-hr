@@ -98,7 +98,7 @@ export default function StoreDetails() {
     return (
       <PageContainer>
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+          <Button variant="ghost" onClick={() => navigate("/app/locations/stores")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Stores
           </Button>
@@ -123,7 +123,7 @@ export default function StoreDetails() {
     return (
       <PageContainer>
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+          <Button variant="ghost" onClick={() => navigate("/app/locations/stores")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Stores
           </Button>
@@ -136,7 +136,7 @@ export default function StoreDetails() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/stores")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Stores
         </Button>
@@ -144,7 +144,7 @@ export default function StoreDetails() {
 
       <PageHeader title={store.name} description={`Store Code: ${store.code}`}>
         <Button asChild>
-          <Link to={`/admin/locations/stores/${id}/edit`}>
+          <Link to={`/app/locations/stores/${id}/edit`}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Store
           </Link>
@@ -259,7 +259,7 @@ export default function StoreDetails() {
                     <p className="text-sm text-muted-foreground">{store.manager.email}</p>
                   )}
                   <Button variant="outline" size="sm" asChild className="mt-2">
-                    <Link to={`/admin/employees/${store.manager.id}`}>View Profile</Link>
+                    <Link to={`/app/employees/${store.manager.id}`}>View Profile</Link>
                   </Button>
                 </div>
               ) : (
@@ -267,7 +267,7 @@ export default function StoreDetails() {
                   <Users className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No manager assigned</p>
                   <Button variant="outline" size="sm" className="mt-2" asChild>
-                    <Link to={`/admin/locations/stores/${id}/edit`}>Assign Manager</Link>
+                    <Link to={`/app/locations/stores/${id}/edit`}>Assign Manager</Link>
                   </Button>
                 </div>
               )}

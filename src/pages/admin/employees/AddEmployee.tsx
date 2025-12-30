@@ -158,7 +158,7 @@ export default function AddEmployee() {
         },
       }, {
         onSuccess: () => {
-          navigate("/admin/employees");
+          navigate("/app/employees");
         }
       });
     }
@@ -197,7 +197,7 @@ export default function AddEmployee() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/employees")}>
+        <Button variant="ghost" onClick={() => navigate("/app/employees")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Employees
         </Button>

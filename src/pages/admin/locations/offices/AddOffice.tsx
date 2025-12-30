@@ -20,13 +20,13 @@ export default function AddOffice() {
   const [formData, setFormData] = useState<CreateLocationInput>({ name: "", code: "", type: "office", address_street: "", address_city: "", address_state: "", address_zip_code: "", address_country: "", phone: "", email: "", manager_id: undefined, opening_time: "09:00", closing_time: "18:00", is_active: true, timezone: "Asia/Kolkata", date_format: "DD/MM/YYYY", currency: "INR" });
 
   const handleChange = (field: keyof CreateLocationInput, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); await createOffice.mutateAsync(formData); navigate("/admin/locations/offices"); };
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); await createOffice.mutateAsync(formData); navigate("/app/locations/offices"); };
   const generateCode = () => { if (formData.name) handleChange("code", "OFF-" + formData.name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 5)); };
 
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/offices")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Offices
         </Button>
@@ -49,7 +49,7 @@ export default function AddOffice() {
           <div className="space-y-2"><Label>Currency</Label><Select value={formData.currency} onValueChange={(v) => handleChange("currency", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>
         </div></CardContent></Card>
         <Card><CardHeader><CardTitle>Status</CardTitle></CardHeader><CardContent><div className="flex items-center gap-3"><Switch checked={formData.is_active} onCheckedChange={(c) => handleChange("is_active", c)} /><Label>Office is active</Label></div></CardContent></Card>
-        <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => navigate("/admin/locations/offices")}>Cancel</Button><Button type="submit" disabled={createOffice.isPending}><Save className="h-4 w-4 mr-2" />{createOffice.isPending ? "Creating..." : "Create Office"}</Button></div>
+        <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => navigate("/app/locations/offices")}>Cancel</Button><Button type="submit" disabled={createOffice.isPending}><Save className="h-4 w-4 mr-2" />{createOffice.isPending ? "Creating..." : "Create Office"}</Button></div>
       </form>
     </PageContainer>
   );

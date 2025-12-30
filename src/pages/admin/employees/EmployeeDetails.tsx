@@ -59,7 +59,7 @@ export default function EmployeeDetails() {
             The employee you're looking for doesn't exist.
           </p>
           <Button asChild>
-            <Link to="/admin/employees">Back to Employees</Link>
+            <Link to="/app/employees">Back to Employees</Link>
           </Button>
         </div>
       </PageContainer>
@@ -75,7 +75,7 @@ export default function EmployeeDetails() {
     <PageContainer>
       <div className="mb-4">
         <Button variant="ghost" asChild>
-          <Link to="/admin/employees">
+          <Link to="/app/employees">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Employees
           </Link>
@@ -106,7 +106,7 @@ export default function EmployeeDetails() {
                   </div>
                 </div>
                 <Button asChild>
-                  <Link to={`/admin/employees/${employee.id}/edit`}>
+                  <Link to={`/app/employees/${employee.id}/edit`}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Profile
                   </Link>

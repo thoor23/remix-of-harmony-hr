@@ -78,7 +78,7 @@ export default function AddAsset() {
         condition: data.condition,
         notes: data.notes,
       });
-      navigate('/admin/assets');
+      navigate('/app/assets');
     } catch (error) {
       // Error handled in hook
     }
@@ -87,7 +87,7 @@ export default function AddAsset() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate('/admin/assets')}>
+        <Button variant="ghost" onClick={() => navigate('/app/assets')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Assets
         </Button>
@@ -343,7 +343,7 @@ export default function AddAsset() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/admin/assets')}
+                  onClick={() => navigate('/app/assets')}
                 >
                   Cancel
                 </Button>

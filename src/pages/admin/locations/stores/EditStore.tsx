@@ -108,14 +108,14 @@ export default function EditStore() {
     e.preventDefault();
     if (!id) return;
     await updateStore.mutateAsync({ id, ...formData });
-    navigate(`/admin/locations/stores/${id}`);
+    navigate(`/app/locations/stores/${id}`);
   };
 
   if (isLoading) {
     return (
       <PageContainer>
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
+          <Button variant="ghost" onClick={() => navigate(`/app/locations/stores/${id}`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Store Details
           </Button>
@@ -138,7 +138,7 @@ export default function EditStore() {
     return (
       <PageContainer>
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+          <Button variant="ghost" onClick={() => navigate("/app/locations/stores")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Stores
           </Button>
@@ -151,7 +151,7 @@ export default function EditStore() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
+        <Button variant="ghost" onClick={() => navigate(`/app/locations/stores/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Store Details
         </Button>
@@ -394,7 +394,7 @@ export default function EditStore() {
 
         {/* Submit */}
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate(`/admin/locations/stores/${id}`)}>
+          <Button type="button" variant="outline" onClick={() => navigate(`/app/locations/stores/${id}`)}>
             Cancel
           </Button>
           <Button type="submit" disabled={updateStore.isPending}>

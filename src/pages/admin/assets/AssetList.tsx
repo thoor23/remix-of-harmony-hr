@@ -294,7 +294,7 @@ export default function AssetList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={() => refetch()}
-          onAddRow={canCreate ? () => navigate("/admin/assets/add") : undefined}
+          onAddRow={canCreate ? () => navigate("/app/assets/add") : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           addRowLabel="Add Asset"
@@ -404,7 +404,7 @@ export default function AssetList() {
                   <TableRow
                     key={asset.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/admin/assets/${asset.id}`)}
+                    onClick={() => navigate(`/app/assets/${asset.id}`)}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
@@ -423,11 +423,11 @@ export default function AssetList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/admin/assets/${asset.id}`)}>
+                          <DropdownMenuItem onClick={() => navigate(`/app/assets/${asset.id}`)}>
                             <Eye className="h-4 w-4 mr-2" />View
                           </DropdownMenuItem>
                           {canUpdate && (
-                            <DropdownMenuItem onClick={() => navigate(`/admin/assets/${asset.id}/edit`)}>
+                            <DropdownMenuItem onClick={() => navigate(`/app/assets/${asset.id}/edit`)}>
                               <Pencil className="h-4 w-4 mr-2" />Edit
                             </DropdownMenuItem>
                           )}

@@ -25,12 +25,12 @@ export default function EditOffice() {
   useEffect(() => { if (office) setFormData({ name: office.name, code: office.code, type: "office", address_street: office.address_street || "", address_city: office.address_city || "", address_state: office.address_state || "", address_zip_code: office.address_zip_code || "", address_country: office.address_country || "", phone: office.phone || "", email: office.email || "", is_active: office.is_active, timezone: office.timezone || "Asia/Kolkata", date_format: office.date_format || "DD/MM/YYYY", currency: office.currency || "INR" }); }, [office]);
 
   const handleChange = (field: keyof CreateLocationInput, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); if (!id) return; await updateOffice.mutateAsync({ id, ...formData }); navigate(`/admin/locations/offices/${id}`); };
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); if (!id) return; await updateOffice.mutateAsync({ id, ...formData }); navigate(`/app/locations/offices/${id}`); };
 
   if (isLoading) return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate(`/admin/locations/offices/${id}`)}>
+        <Button variant="ghost" onClick={() => navigate(`/app/locations/offices/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Office Details
         </Button>
@@ -43,7 +43,7 @@ export default function EditOffice() {
   if (!office) return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/offices")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/offices")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Offices
         </Button>
@@ -55,7 +55,7 @@ export default function EditOffice() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate(`/admin/locations/offices/${id}`)}>
+        <Button variant="ghost" onClick={() => navigate(`/app/locations/offices/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Office Details
         </Button>
@@ -73,7 +73,7 @@ export default function EditOffice() {
           <div className="space-y-2"><Label>Currency</Label><Select value={formData.currency} onValueChange={(v) => handleChange("currency", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent></Select></div>
         </div></CardContent></Card>
         <Card><CardHeader><CardTitle>Status</CardTitle></CardHeader><CardContent><div className="flex items-center gap-3"><Switch checked={formData.is_active} onCheckedChange={(c) => handleChange("is_active", c)} /><Label>Active</Label></div></CardContent></Card>
-        <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => navigate(`/admin/locations/offices/${id}`)}>Cancel</Button><Button type="submit" disabled={updateOffice.isPending}><Save className="h-4 w-4 mr-2" />{updateOffice.isPending ? "Saving..." : "Save"}</Button></div>
+        <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => navigate(`/app/locations/offices/${id}`)}>Cancel</Button><Button type="submit" disabled={updateOffice.isPending}><Save className="h-4 w-4 mr-2" />{updateOffice.isPending ? "Saving..." : "Save"}</Button></div>
       </form>
     </PageContainer>
   );

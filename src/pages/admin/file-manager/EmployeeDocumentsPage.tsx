@@ -226,7 +226,7 @@ export default function EmployeeDocumentsPage() {
                 <Card
                   key={emp.id}
                   className="cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => navigate(`/admin/file-manager/${emp.id}`)}
+                  onClick={() => navigate(`/app/file-manager/${emp.id}`)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
@@ -321,7 +321,7 @@ export default function EmployeeDocumentsPage() {
                   <TableRow
                     key={emp.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/admin/file-manager/${emp.id}`)}
+                    onClick={() => navigate(`/app/file-manager/${emp.id}`)}
                   >
                     <TableCell>
                       <EmployeeCell

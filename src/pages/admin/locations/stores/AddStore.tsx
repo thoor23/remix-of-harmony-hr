@@ -80,7 +80,7 @@ export default function AddStore() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await createStore.mutateAsync(formData);
-    navigate("/admin/locations/stores");
+    navigate("/app/locations/stores");
   };
 
   const generateCode = () => {
@@ -97,7 +97,7 @@ export default function AddStore() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate("/admin/locations/stores")}>
+        <Button variant="ghost" onClick={() => navigate("/app/locations/stores")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Stores
         </Button>
@@ -341,7 +341,7 @@ export default function AddStore() {
 
         {/* Submit */}
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate("/admin/locations/stores")}>
+          <Button type="button" variant="outline" onClick={() => navigate("/app/locations/stores")}>
             Cancel
           </Button>
           <Button type="submit" disabled={createStore.isPending}>

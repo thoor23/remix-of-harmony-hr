@@ -132,7 +132,7 @@ export default function EmployeeFolderPage() {
     <PageContainer>
 
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/file-manager")}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/app/file-manager")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <PageHeader

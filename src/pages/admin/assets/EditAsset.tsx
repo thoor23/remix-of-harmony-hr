@@ -101,7 +101,7 @@ export default function EditAsset() {
         condition: data.condition,
         notes: data.notes,
       });
-      navigate(`/admin/assets/${id}`);
+      navigate(`/app/assets/${id}`);
     } catch (error) {
       // Error handled in hook
     }
@@ -125,7 +125,7 @@ export default function EditAsset() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate(`/admin/assets/${id}`)}>
+        <Button variant="ghost" onClick={() => navigate(`/app/assets/${id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Asset Details
         </Button>
@@ -381,7 +381,7 @@ export default function EditAsset() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate(`/admin/assets/${id}`)}
+                  onClick={() => navigate(`/app/assets/${id}`)}
                 >
                   Cancel
                 </Button>

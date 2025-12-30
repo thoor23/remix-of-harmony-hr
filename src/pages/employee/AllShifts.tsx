@@ -228,7 +228,7 @@ export default function EmployeeAllShifts() {
           setIsCreateOpen(false);
           setFormData({ targetEmployeeId: "", requestDate: "", reason: "" });
           setPreSelectedTarget(null);
-          navigate("/employee/shift-exchange");
+          navigate("/app/my-shift-exchange");
         },
       }
     );

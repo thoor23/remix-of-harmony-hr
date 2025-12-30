@@ -280,15 +280,15 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
             
             <DropdownMenuSeparator className="my-2" />
             
-            <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md">
-              <Link to={isAdmin ? "/admin/profile" : "/employee/profile"} className="flex items-center gap-3">
+          <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md">
+              <Link to={isAdmin ? "/app/profile" : "/app/my-profile"} className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span>My Profile</span>
               </Link>
             </DropdownMenuItem>
             
             <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md">
-              <Link to={isAdmin ? "/admin/personal-settings" : "/employee/settings"} className="flex items-center gap-3">
+              <Link to={isAdmin ? "/app/personal-settings" : "/app/my-settings"} className="flex items-center gap-3">
                 <Settings className="h-4 w-4 text-muted-foreground" />
                 <span>Personal Settings</span>
               </Link>

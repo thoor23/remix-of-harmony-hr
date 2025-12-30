@@ -64,7 +64,7 @@ export function ActivityTimeline() {
             Recent Activity
           </CardTitle>
           <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-            <Link to="/admin/audit-logs">
+            <Link to="/app/audit-logs">
               View All
               <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
