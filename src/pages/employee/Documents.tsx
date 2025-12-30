@@ -1,23 +1,84 @@
+import { useRef, useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileText, File, FolderOpen, Upload } from "lucide-react";
-import { useMyDocuments, useCompanyDocuments } from "@/hooks/useDocuments";
+import { Progress } from "@/components/ui/progress";
+import { Download, FileText, File, FolderOpen, Upload, Loader2, X } from "lucide-react";
+import { useMyDocuments, useCompanyDocuments, useUploadFile, downloadDocument } from "@/hooks/useDocuments";
 import { toast } from "sonner";
 
 export default function EmployeeDocuments() {
   const { data: myDocuments = [], isLoading: myDocsLoading } = useMyDocuments();
   const { data: companyDocuments = [], isLoading: companyDocsLoading } = useCompanyDocuments();
+  const uploadFile = useUploadFile();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleDownload = (docName: string) => {
-    toast.success(`Downloading ${docName}`);
+  const handleDownload = async (docId: string, docName: string) => {
+    await downloadDocument(docId, docName);
   };
 
   const handleRequestDocument = (type: string) => {
     toast.success(`Request for ${type} submitted. HR will review your request.`);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    
+    setUploadProgress(10);
+    
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 20, 90));
+      }, 200);
+
+      await uploadFile.mutateAsync({
+        file: selectedFile,
+        name: selectedFile.name,
+        type: selectedFile.type || "document",
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      setTimeout(() => {
+        setSelectedFile(null);
+        setUploadProgress(0);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }, 500);
+    } catch {
+      setUploadProgress(0);
+    }
+  };
+
+  const cancelUpload = () => {
+    setSelectedFile(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const isLoading = myDocsLoading || companyDocsLoading;
@@ -71,14 +132,14 @@ export default function EmployeeDocuments() {
                             <div>
                               <p className="font-medium">{doc.name}</p>
                               <p className="text-sm text-muted-foreground">
-                                {doc.type} • Uploaded on {new Date(doc.created_at).toLocaleDateString()}
+                                {doc.type} • {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDownload(doc.name)}
+                            onClick={() => handleDownload(doc.id, doc.name)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -142,15 +203,70 @@ export default function EmployeeDocuments() {
                   <CardTitle>Upload Document</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Drag & drop or click to upload
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Choose File
-                    </Button>
-                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  />
+                  
+                  {!selectedFile ? (
+                    <div 
+                      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Drag & drop or click to upload
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOC, DOCX, JPG, PNG (max 10MB)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{selectedFile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatFileSize(selectedFile.size)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={cancelUpload}
+                          disabled={uploadFile.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {uploadProgress > 0 && (
+                        <Progress value={uploadProgress} className="h-2" />
+                      )}
+                      
+                      <Button 
+                        className="w-full" 
+                        onClick={handleUpload}
+                        disabled={uploadFile.isPending}
+                      >
+                        {uploadFile.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Document
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -182,13 +298,18 @@ export default function EmployeeDocuments() {
                           <p className="font-medium">{doc.name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline">{doc.type}</Badge>
+                            {doc.file_size && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatFileSize(doc.file_size)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownload(doc.name)}
+                        onClick={() => handleDownload(doc.id, doc.name)}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
