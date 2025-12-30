@@ -8,20 +8,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useDesignationsData } from "@/hooks/useDesignations";
 import { useUpdateProfile } from "@/hooks/useProfileUpdate";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { 
   User, 
   Mail, 
   Phone, 
   MapPin, 
-  Calendar,
+  Calendar as CalendarIcon,
   Shield,
   Camera,
   Loader2,
@@ -308,7 +311,7 @@ export default function AdminProfilePage() {
                   <span>{employee?.phone || profile?.phone || "N/A"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
+                  <CalendarIcon className="h-4 w-4" />
                   <span>
                     {employee?.date_of_joining 
                       ? `Joined ${format(new Date(employee.date_of_joining), "MMM yyyy")}`
@@ -372,11 +375,33 @@ export default function AdminProfilePage() {
                   </div>
                   <div className="sm:col-span-2 space-y-2">
                     <Label>Date of Birth</Label>
-                    <Input 
-                      type="date"
-                      value={formData.date_of_birth}
-                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.date_of_birth && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.date_of_birth 
+                            ? format(parse(formData.date_of_birth, "yyyy-MM-dd", new Date()), "PPP")
+                            : <span>Pick a date</span>
+                          }
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.date_of_birth ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()) : undefined}
+                          onSelect={(date) => setFormData({ ...formData, date_of_birth: date ? format(date, "yyyy-MM-dd") : "" })}
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               ) : (
