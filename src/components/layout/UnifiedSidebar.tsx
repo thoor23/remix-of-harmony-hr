@@ -195,7 +195,7 @@ const unifiedNavSections: NavSection[] = [
   {
     label: "Core Operations",
     items: [
-      { title: "Admin Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
       {
         title: "Employees",
         icon: Users,
@@ -397,7 +397,7 @@ const navItemToModule: Record<string, string> = {
   "My Profile": "My Profile",
   "My Settings": "My Settings",
   // Admin modules
-  "Admin Dashboard": "Admin Dashboard",
+  "Dashboard": "Admin Dashboard",
   "Employees": "Employees",
   "Attendance": "Attendance",
   "Leaves": "Leaves",
