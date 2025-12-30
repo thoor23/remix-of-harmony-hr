@@ -301,6 +301,14 @@ export default function EmployeeAssets() {
           onToggleFilter={() => setShowFilters(!showFilters)}
           showFilter={showFilters}
           isRefreshing={isFetching}
+          extraActions={
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" asChild>
+              <Link to="/employee/assets/maintenance">
+                <Wrench className="h-4 w-4" />
+                Maintenance Requests
+              </Link>
+            </Button>
+          }
         />
 
         {showFilters && (
