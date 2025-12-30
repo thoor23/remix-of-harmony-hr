@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -26,13 +27,26 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, CalendarCheck, Clock, CalendarX } from "lucide-react";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { Plus, CalendarCheck, Clock, CalendarX, ArrowUpDown } from "lucide-react";
 import { useCurrentEmployee, useLeaveBalances } from "@/hooks/useCurrentEmployee";
 import { useLeaveTypes, useMyLeaveRequests, useCreateLeaveRequest, useCancelLeaveRequest } from "@/hooks/useLeaves";
 import { DatePicker } from "@/components/ui/date-picker";
+
+const defaultColumns: ColumnDef[] = [
+  { id: "leave_type", header: "Leave Type", accessor: "leave_type.name", visible: true },
+  { id: "start_date", header: "From", accessor: "start_date", visible: true },
+  { id: "end_date", header: "To", accessor: "end_date", visible: true },
+  { id: "days", header: "Days", accessor: "days", visible: true },
+  { id: "reason", header: "Reason", accessor: "reason", visible: true },
+  { id: "created_at", header: "Applied On", accessor: "created_at", visible: true },
+  { id: "status", header: "Status", accessor: "status", visible: true },
+];
 
 export default function EmployeeLeaves() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
@@ -40,14 +54,52 @@ export default function EmployeeLeaves() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: leaveTypes = [], isLoading: typesLoading } = useLeaveTypes();
   const { data: leaveBalances = [], isLoading: balancesLoading } = useLeaveBalances(employee?.id);
-  const { data: myLeaves = [], isLoading: leavesLoading } = useMyLeaveRequests(employee?.id);
+  const { data: myLeaves = [], isLoading: leavesLoading, refetch } = useMyLeaveRequests(employee?.id);
   
   const createLeave = useCreateLeaveRequest();
   const cancelLeave = useCancelLeaveRequest();
+
+  // Filter by status
+  const filteredLeaves = useMemo(() => {
+    if (statusFilter === "all") return myLeaves;
+    return myLeaves.filter((l) => l.status === statusFilter);
+  }, [myLeaves, statusFilter]);
+
+  // Sort
+  const sortedLeaves = useMemo(() => {
+    if (!sortConfig) return filteredLeaves;
+    return [...filteredLeaves].sort((a, b) => {
+      let aValue: any = a[sortConfig.key as keyof typeof a];
+      let bValue: any = b[sortConfig.key as keyof typeof b];
+      if (sortConfig.key === "leave_type") {
+        aValue = a.leave_type?.name || "";
+        bValue = b.leave_type?.name || "";
+      }
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredLeaves, sortConfig]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedLeaves, defaultPageSize: 10 });
 
   const pendingLeaves = myLeaves.filter((r) => r.status === "pending");
   const approvedLeaves = myLeaves.filter((r) => r.status === "approved");
@@ -88,12 +140,60 @@ export default function EmployeeLeaves() {
     cancelLeave.mutate(id);
   };
 
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, visible } : col))
+    );
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? sortedLeaves.filter((l) => selectedRows.has(l.id))
+      : sortedLeaves;
+    
+    const exportData = dataToExport.map((l) => ({
+      ...l,
+      leave_type: l.leave_type?.name || "",
+      created_at: new Date(l.created_at).toLocaleDateString(),
+    }));
+    exportToCSV(exportData, columns, "leave-requests");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map((l) => l.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
   const isLoading = employeeLoading || typesLoading || balancesLoading || leavesLoading;
 
   if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="My Leaves" description="Apply for leaves and view your leave history" />
+        <PageHeader title="Leave History" description="Apply for leaves and view your leave history" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-24" />
@@ -103,9 +203,11 @@ export default function EmployeeLeaves() {
     );
   }
 
+  const visibleColumns = columns.filter((col) => col.visible);
+
   return (
     <PageContainer>
-      <PageHeader title="My Leaves" description="Apply for leaves and view your leave history">
+      <PageHeader title="Leave History" description="Apply for leaves and view your leave history">
         <Button onClick={() => setIsApplyDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Apply Leave
@@ -187,33 +289,67 @@ export default function EmployeeLeaves() {
         </Card>
       </div>
 
-      {/* Leave History */}
-      <Tabs defaultValue="all">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All Requests</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-        </TabsList>
+      {/* Filter */}
+      <div className="flex items-center gap-4 mb-4">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <Card>
-          <TabsContent value="all" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Leave Type</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Days</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Applied On</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myLeaves.length > 0 ? myLeaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <TableCell>
+      {/* Leave Requests Table */}
+      <Card>
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={() => refetch()}
+          isRefreshing={leavesLoading}
+        />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={paginatedData.length > 0 && paginatedData.every((l) => selectedRows.has(l.id))}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+              {visibleColumns.map((col) => (
+                <TableHead key={col.id}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-3 h-8"
+                    onClick={() => handleSort(col.id)}
+                  >
+                    {col.header}
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+              ))}
+              <TableHead>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length > 0 ? paginatedData.map((leave) => (
+              <TableRow key={leave.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedRows.has(leave.id)}
+                    onCheckedChange={(checked) => handleSelectRow(leave.id, checked as boolean)}
+                  />
+                </TableCell>
+                {visibleColumns.map((col) => (
+                  <TableCell key={col.id}>
+                    {col.id === "leave_type" ? (
                       <div className="flex items-center gap-2">
                         <span
                           className="h-2 w-2 rounded-full"
@@ -221,112 +357,50 @@ export default function EmployeeLeaves() {
                         />
                         {leave.leave_type?.name || "Leave"}
                       </div>
-                    </TableCell>
-                    <TableCell>{leave.start_date}</TableCell>
-                    <TableCell>{leave.end_date}</TableCell>
-                    <TableCell>{leave.days}</TableCell>
-                    <TableCell className="max-w-xs truncate">{leave.reason || "-"}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(leave.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
+                    ) : col.id === "status" ? (
                       <StatusBadge status={leave.status as any} />
-                    </TableCell>
-                    <TableCell>
-                      {leave.status === "pending" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCancelLeave(leave.id)}
-                          disabled={cancelLeave.isPending}
-                        >
-                          Cancel
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      No leave requests found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value="pending" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Leave Type</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Days</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingLeaves.length > 0 ? pendingLeaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <TableCell>{leave.leave_type?.name || "Leave"}</TableCell>
-                    <TableCell>{leave.start_date}</TableCell>
-                    <TableCell>{leave.end_date}</TableCell>
-                    <TableCell>{leave.days}</TableCell>
-                    <TableCell>{leave.reason || "-"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleCancelLeave(leave.id)}>
-                        Cancel
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No pending requests
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value="approved" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Leave Type</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Days</TableHead>
-                  <TableHead>Approved On</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvedLeaves.length > 0 ? approvedLeaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <TableCell>{leave.leave_type?.name || "Leave"}</TableCell>
-                    <TableCell>{leave.start_date}</TableCell>
-                    <TableCell>{leave.end_date}</TableCell>
-                    <TableCell>{leave.days}</TableCell>
-                    <TableCell>
-                      {leave.approved_on ? new Date(leave.approved_on).toLocaleDateString() : "-"}
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No approved leaves
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-        </Card>
-      </Tabs>
+                    ) : col.id === "created_at" ? (
+                      <span className="text-muted-foreground">
+                        {new Date(leave.created_at).toLocaleDateString()}
+                      </span>
+                    ) : col.id === "reason" ? (
+                      <span className="max-w-xs truncate block">{leave.reason || "-"}</span>
+                    ) : (
+                      leave[col.id as keyof typeof leave] || "-"
+                    )}
+                  </TableCell>
+                ))}
+                <TableCell>
+                  {leave.status === "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCancelLeave(leave.id)}
+                      disabled={cancelLeave.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                  No leave requests found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
+      </Card>
 
       {/* Apply Leave Dialog */}
       <Dialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>

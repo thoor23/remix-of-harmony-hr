@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,21 +15,57 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowUpDown, Eye } from "lucide-react";
 import { useMyTickets, useCreateTicket } from "@/hooks/useHelpdesk";
 import { TicketMessaging } from "@/components/helpdesk/TicketMessaging";
 import { Tables } from "@/integrations/supabase/types";
 
 type Ticket = Tables<"helpdesk_tickets">;
+
+const defaultColumns: ColumnDef[] = [
+  { id: "subject", header: "Subject", accessor: "subject", visible: true },
+  { id: "category", header: "Category", accessor: "category", visible: true },
+  { id: "priority", header: "Priority", accessor: "priority", visible: true },
+  { id: "status", header: "Status", accessor: "status", visible: true },
+  { id: "created_at", header: "Created", accessor: "created_at", visible: true },
+];
+
+const priorityColors: Record<string, string> = {
+  low: "bg-muted text-muted-foreground",
+  medium: "bg-info/10 text-info",
+  high: "bg-warning/10 text-warning",
+  urgent: "bg-destructive/10 text-destructive",
+};
+
+const categoryLabels: Record<string, string> = {
+  payroll: "Payroll",
+  leave: "Leave",
+  attendance: "Attendance",
+  documents: "Documents",
+  benefits: "Benefits",
+  general: "General",
+  other: "Other",
+};
 
 export default function EmployeeHelpdesk() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
@@ -37,9 +74,45 @@ export default function EmployeeHelpdesk() {
   const [priority, setPriority] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-  const { data: myTickets = [], isLoading } = useMyTickets();
+  const { data: myTickets = [], isLoading, refetch } = useMyTickets();
   const createTicket = useCreateTicket();
+
+  // Filter by status
+  const filteredTickets = useMemo(() => {
+    if (statusFilter === "all") return myTickets;
+    if (statusFilter === "open") return myTickets.filter((t) => t.status === "open" || t.status === "in-progress");
+    if (statusFilter === "resolved") return myTickets.filter((t) => t.status === "resolved" || t.status === "closed");
+    return myTickets.filter((t) => t.status === statusFilter);
+  }, [myTickets, statusFilter]);
+
+  // Sort
+  const sortedTickets = useMemo(() => {
+    if (!sortConfig) return filteredTickets;
+    return [...filteredTickets].sort((a, b) => {
+      const aValue = a[sortConfig.key as keyof typeof a];
+      const bValue = b[sortConfig.key as keyof typeof b];
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredTickets, sortConfig]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedTickets, defaultPageSize: 10 });
 
   const openTickets = myTickets.filter((t) => t.status === "open" || t.status === "in-progress");
   const resolvedTickets = myTickets.filter((t) => t.status === "resolved" || t.status === "closed");
@@ -61,27 +134,57 @@ export default function EmployeeHelpdesk() {
     );
   };
 
-  const priorityColors: Record<string, string> = {
-    low: "bg-muted text-muted-foreground",
-    medium: "bg-info/10 text-info",
-    high: "bg-warning/10 text-warning",
-    urgent: "bg-destructive/10 text-destructive",
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
   };
 
-  const categoryLabels: Record<string, string> = {
-    payroll: "Payroll",
-    leave: "Leave",
-    attendance: "Attendance",
-    documents: "Documents",
-    benefits: "Benefits",
-    general: "General",
-    other: "Other",
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, visible } : col))
+    );
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? sortedTickets.filter((t) => selectedRows.has(t.id))
+      : sortedTickets;
+    
+    const exportData = dataToExport.map((t) => ({
+      ...t,
+      created_at: new Date(t.created_at).toLocaleDateString(),
+    }));
+    exportToCSV(exportData, columns, "helpdesk-tickets");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map((t) => t.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
   };
 
   if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="Helpdesk" description="Submit and track your support requests" />
+        <PageHeader title="My Tickets" description="Submit and track your support requests" />
         <div className="grid gap-4 md:grid-cols-3 mb-6">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-20" />
@@ -91,9 +194,11 @@ export default function EmployeeHelpdesk() {
     );
   }
 
+  const visibleColumns = columns.filter((col) => col.visible);
+
   return (
     <PageContainer>
-      <PageHeader title="Helpdesk" description="Submit and track your support requests">
+      <PageHeader title="My Tickets" description="Submit and track your support requests">
         <Button onClick={() => setIsNewTicketOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Ticket
@@ -137,146 +242,114 @@ export default function EmployeeHelpdesk() {
         </Card>
       </div>
 
+      {/* Filter */}
+      <div className="flex items-center gap-4 mb-4">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Ticket List */}
+        {/* Tickets Table */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="open">
-            <TabsList className="mb-4">
-              <TabsTrigger value="open">Open ({openTickets.length})</TabsTrigger>
-              <TabsTrigger value="resolved">Resolved ({resolvedTickets.length})</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="open">
-              <div className="space-y-3">
-                {openTickets.length > 0 ? openTickets.map((ticket) => (
-                  <Card
-                    key={ticket.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className={priorityColors[ticket.priority]}>
-                              {ticket.priority}
-                            </Badge>
-                          </div>
-                          <h3 className="font-medium truncate">{ticket.subject}</h3>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {ticket.description || "No description"}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span>{categoryLabels[ticket.category] || ticket.category}</span>
-                            <span>•</span>
-                            <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        <StatusBadge status={ticket.status as any} />
-                      </div>
-                    </CardContent>
-                  </Card>
+          <Card>
+            <DataTableToolbar
+              columns={columns}
+              onToggleColumn={handleToggleColumn}
+              onExport={handleExport}
+              onRefresh={() => refetch()}
+              isRefreshing={isLoading}
+            />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={paginatedData.length > 0 && paginatedData.every((t) => selectedRows.has(t.id))}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  {visibleColumns.map((col) => (
+                    <TableHead key={col.id}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="-ml-3 h-8"
+                        onClick={() => handleSort(col.id)}
+                      >
+                        {col.header}
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                  ))}
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedData.length > 0 ? paginatedData.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedRows.has(ticket.id)}
+                        onCheckedChange={(checked) => handleSelectRow(ticket.id, checked as boolean)}
+                      />
+                    </TableCell>
+                    {visibleColumns.map((col) => (
+                      <TableCell key={col.id}>
+                        {col.id === "subject" ? (
+                          <span className="font-medium">{ticket.subject}</span>
+                        ) : col.id === "category" ? (
+                          categoryLabels[ticket.category] || ticket.category
+                        ) : col.id === "priority" ? (
+                          <Badge className={priorityColors[ticket.priority]}>
+                            {ticket.priority}
+                          </Badge>
+                        ) : col.id === "status" ? (
+                          <StatusBadge status={ticket.status as any} />
+                        ) : col.id === "created_at" ? (
+                          new Date(ticket.created_at).toLocaleDateString()
+                        ) : (
+                          ticket[col.id as keyof typeof ticket] || "-"
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedTicket(ticket)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 )) : (
-                  <Card>
-                    <CardContent className="py-12 px-4">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                          <Clock className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-lg font-medium">No open tickets</h3>
-                          <p className="text-muted-foreground text-sm">
-                            All your tickets have been resolved
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <TableRow>
+                    <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                      No tickets found
+                    </TableCell>
+                  </TableRow>
                 )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="resolved">
-              <div className="space-y-3">
-                {resolvedTickets.length > 0 ? resolvedTickets.map((ticket) => (
-                  <Card
-                    key={ticket.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium truncate">{ticket.subject}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Resolved on {ticket.resolved_at ? new Date(ticket.resolved_at).toLocaleDateString() : "N/A"}
-                          </p>
-                        </div>
-                        <StatusBadge status={ticket.status as any} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )) : (
-                  <Card>
-                    <CardContent className="py-12 px-4">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                          <CheckCircle className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-lg font-medium">No resolved tickets</h3>
-                          <p className="text-muted-foreground text-sm">
-                            Resolved tickets will appear here
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="all">
-              <div className="space-y-3">
-                {myTickets.length > 0 ? myTickets.map((ticket) => (
-                  <Card
-                    key={ticket.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium truncate">{ticket.subject}</h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {categoryLabels[ticket.category] || ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <StatusBadge status={ticket.status as any} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )) : (
-                  <Card>
-                    <CardContent className="py-12 px-4">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                          <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <div className="text-center">
-                          <h3 className="text-lg font-medium">No tickets yet</h3>
-                          <p className="text-muted-foreground text-sm">
-                            Create a new ticket to get support
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+              </TableBody>
+            </Table>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          </Card>
         </div>
 
         {/* Ticket Detail / Messages */}
@@ -333,17 +406,6 @@ export default function EmployeeHelpdesk() {
                     }}
                   >
                     Document requests
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setCategory("benefits");
-                      setIsNewTicketOpen(true);
-                    }}
-                  >
-                    Benefits information
                   </Button>
                 </div>
               </CardContent>
