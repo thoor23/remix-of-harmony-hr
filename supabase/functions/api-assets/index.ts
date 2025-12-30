@@ -183,6 +183,34 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // GET /my - Get assets assigned to current employee
+    if (method === 'GET' && path === '/my') {
+      // Get current employee
+      const { data: employee, error: empError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .single();
+
+      if (empError || !employee) {
+        console.log('[api-assets] No employee found for user:', auth.userId);
+        return jsonResponse([]);
+      }
+
+      const { data, error } = await supabase
+        .from('assets')
+        .select(`
+          *,
+          category:asset_categories(id, name, icon)
+        `)
+        .eq('assigned_to', employee.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      console.log(`[api-assets] Found ${data?.length || 0} assets for employee ${employee.id}`);
+      return jsonResponse(data || []);
+    }
+
     // GET / - List all assets
     if (method === 'GET' && path === '') {
       const status = url.searchParams.get('status');

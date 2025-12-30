@@ -55,16 +55,14 @@ export const AttendanceWidget = () => {
     fetchEmployeeId();
   }, [user?.id]);
 
-  // Fetch today's attendance record
+  // Fetch today's attendance record using the employee-accessible endpoint
   const fetchTodayAttendance = useCallback(async () => {
     if (!employeeId) return;
 
-    const today = format(new Date(), "yyyy-MM-dd");
-
     try {
-      const data = await api.get<TodayAttendance[]>(`/attendance?employee_id=${employeeId}&date=${today}`);
-      if (data && data.length > 0) {
-        setTodayRecord(data[0]);
+      const data = await api.get<TodayAttendance | null>(`/attendance/today`);
+      if (data) {
+        setTodayRecord(data);
       } else {
         setTodayRecord(null);
       }
@@ -124,16 +122,9 @@ export const AttendanceWidget = () => {
     }
 
     setLoading(true);
-    const currentTime = format(new Date(), "HH:mm:ss");
-    const today = format(new Date(), "yyyy-MM-dd");
 
     try {
-      const data = await api.post<TodayAttendance>("/attendance", {
-        employee_id: employeeId,
-        date: today,
-        check_in: currentTime,
-        status: "present",
-      });
+      const data = await api.post<TodayAttendance>("/attendance/check-in", {});
 
       if (data) {
         setTodayRecord(data);
@@ -141,7 +132,7 @@ export const AttendanceWidget = () => {
         toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
       }
     } catch (error: any) {
-      if (error.message?.includes("duplicate") || error.message?.includes("already exists")) {
+      if (error.message?.includes("duplicate") || error.message?.includes("already exists") || error.message?.includes("Already checked in")) {
         // Already clocked in, fetch current record
         await fetchTodayAttendance();
         toast.info("Already clocked in for today");
@@ -163,22 +154,9 @@ export const AttendanceWidget = () => {
     }
 
     setLoading(true);
-    const currentTime = format(new Date(), "HH:mm:ss");
-
-    let workHours: number | null = null;
-    if (todayRecord.check_in) {
-      const checkInTime = new Date(`2000-01-01T${todayRecord.check_in}`);
-      const checkOutTime = new Date(`2000-01-01T${currentTime}`);
-      const breakHours = totalBreakMinutes / 60;
-      workHours =
-        (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60) - breakHours;
-    }
 
     try {
-      const data = await api.put<TodayAttendance>(`/attendance/${todayRecord.id}`, {
-        check_out: currentTime,
-        work_hours: workHours,
-      });
+      const data = await api.post<TodayAttendance>("/attendance/check-out", {});
 
       if (data) {
         setTodayRecord(data);
