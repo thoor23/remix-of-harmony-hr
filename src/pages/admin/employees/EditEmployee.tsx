@@ -890,8 +890,8 @@ export default function EditEmployee() {
           </Card>
         </div>
 
-        {/* Footer with Actions */}
-        <div className="border-t mt-6 pt-4 flex justify-end gap-4">
+        {/* Sticky Footer with Actions */}
+        <div className="sticky bottom-0 bg-background border-t mt-6 py-4 -mx-6 px-6 flex justify-end gap-4">
           <Button 
             type="button" 
             variant="outline" 
