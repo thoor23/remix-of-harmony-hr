@@ -193,7 +193,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Core Operations",
+    label: "Core Operations",
     items: [
       { title: "Admin Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
       {
@@ -240,7 +240,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Financial",
+    label: "Financial",
     items: [
       {
         title: "Payroll",
@@ -253,7 +253,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Resources",
+    label: "Resources",
     items: [
       {
         title: "Locations",
@@ -282,7 +282,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Documentation",
+    label: "Documentation",
     items: [
       {
         title: "Documents",
@@ -316,7 +316,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Communication",
+    label: "Communication",
     items: [
       {
         title: "Helpdesk",
@@ -336,7 +336,7 @@ const unifiedNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin - Analytics",
+    label: "Analytics & Settings",
     items: [
       {
         title: "Reports",
