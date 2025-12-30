@@ -75,6 +75,8 @@ export function useUpdateAnnouncement() {
       priority?: string;
       target_audience?: string;
       is_active?: boolean;
+      scheduled_at?: string | null;
+      expires_at?: string | null;
       banner_template_id?: string | null;
     }) => {
       await api.put(`/announcements/${id}`, updates);

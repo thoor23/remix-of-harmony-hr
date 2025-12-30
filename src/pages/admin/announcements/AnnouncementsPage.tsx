@@ -13,7 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Search, Edit, Trash2, Eye, FileText, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -68,8 +69,10 @@ export default function AnnouncementsPage() {
     type: "general",
     priority: "normal",
     target_audience: "all",
-    scheduled_at: "",
-    expires_at: "",
+    scheduled_date: "",
+    scheduled_time: "",
+    expires_date: "",
+    expires_time: "",
     banner_template_id: "none",
   });
 
@@ -80,8 +83,10 @@ export default function AnnouncementsPage() {
       type: "general",
       priority: "normal",
       target_audience: "all",
-      scheduled_at: "",
-      expires_at: "",
+      scheduled_date: "",
+      scheduled_time: "",
+      expires_date: "",
+      expires_time: "",
       banner_template_id: "none",
     });
     setEditingAnnouncement(null);
@@ -90,14 +95,18 @@ export default function AnnouncementsPage() {
   const handleOpenDialog = (announcement?: Announcement) => {
     if (announcement) {
       setEditingAnnouncement(announcement);
+      const scheduledAt = announcement.scheduled_at ? new Date(announcement.scheduled_at) : null;
+      const expiresAt = announcement.expires_at ? new Date(announcement.expires_at) : null;
       setFormData({
         title: announcement.title,
         content: announcement.content,
         type: announcement.type,
         priority: announcement.priority,
         target_audience: announcement.target_audience,
-        scheduled_at: announcement.scheduled_at || "",
-        expires_at: announcement.expires_at || "",
+        scheduled_date: scheduledAt ? scheduledAt.toISOString().split("T")[0] : "",
+        scheduled_time: scheduledAt ? `${scheduledAt.getHours().toString().padStart(2, "0")}:${scheduledAt.getMinutes().toString().padStart(2, "0")}` : "",
+        expires_date: expiresAt ? expiresAt.toISOString().split("T")[0] : "",
+        expires_time: expiresAt ? `${expiresAt.getHours().toString().padStart(2, "0")}:${expiresAt.getMinutes().toString().padStart(2, "0")}` : "",
         banner_template_id: announcement.banner_template_id || "none",
       });
     } else {
@@ -120,18 +129,41 @@ export default function AnnouncementsPage() {
     }
   };
 
+  const combineDateTime = (date: string, time: string): string | null => {
+    if (!date) return null;
+    const dateObj = new Date(date);
+    if (time) {
+      const [hours, minutes] = time.split(":").map(Number);
+      dateObj.setHours(hours, minutes, 0, 0);
+    }
+    return dateObj.toISOString();
+  };
+
   const handleSubmit = async () => {
+    const scheduled_at = combineDateTime(formData.scheduled_date, formData.scheduled_time);
+    const expires_at = combineDateTime(formData.expires_date, formData.expires_time);
+    
     if (editingAnnouncement) {
       await updateAnnouncement.mutateAsync({
         id: editingAnnouncement.id,
-        ...formData,
+        title: formData.title,
+        content: formData.content,
+        type: formData.type,
+        priority: formData.priority,
+        target_audience: formData.target_audience,
+        scheduled_at,
+        expires_at,
         banner_template_id: formData.banner_template_id === "none" ? null : formData.banner_template_id,
       });
     } else {
       await createAnnouncement.mutateAsync({
-        ...formData,
-        scheduled_at: formData.scheduled_at || null,
-        expires_at: formData.expires_at || null,
+        title: formData.title,
+        content: formData.content,
+        type: formData.type,
+        priority: formData.priority,
+        target_audience: formData.target_audience,
+        scheduled_at,
+        expires_at,
         banner_template_id: formData.banner_template_id === "none" ? null : formData.banner_template_id,
       });
     }
@@ -521,19 +553,38 @@ export default function AnnouncementsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduled_at">Schedule For (Optional)</Label>
-                <DateTimePicker
-                  value={formData.scheduled_at}
-                  onChange={(value) => setFormData({ ...formData, scheduled_at: value })}
-                  placeholder="Select date & time"
+                <Label>Schedule Date (Optional)</Label>
+                <DatePicker
+                  value={formData.scheduled_date}
+                  onChange={(value) => setFormData({ ...formData, scheduled_date: value })}
+                  placeholder="Select date"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expires_at">Expires At (Optional)</Label>
-                <DateTimePicker
-                  value={formData.expires_at}
-                  onChange={(value) => setFormData({ ...formData, expires_at: value })}
-                  placeholder="Select date & time"
+                <Label>Schedule Time (Optional)</Label>
+                <TimePicker
+                  value={formData.scheduled_time}
+                  onChange={(value) => setFormData({ ...formData, scheduled_time: value })}
+                  placeholder="Select time"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Expires Date (Optional)</Label>
+                <DatePicker
+                  value={formData.expires_date}
+                  onChange={(value) => setFormData({ ...formData, expires_date: value })}
+                  placeholder="Select date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Expires Time (Optional)</Label>
+                <TimePicker
+                  value={formData.expires_time}
+                  onChange={(value) => setFormData({ ...formData, expires_time: value })}
+                  placeholder="Select time"
                 />
               </div>
             </div>
