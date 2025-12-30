@@ -24,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,17 +45,21 @@ import {
   Clock, 
   CheckCircle, 
   XCircle, 
-  AlertCircle, 
   ArrowUpDown, 
   Plus,
-  FileEdit
+  FileEdit,
+  Search,
+  Calendar as CalendarIcon,
+  X
 } from "lucide-react";
 import { 
   useMyRegularizationRequests, 
   useCreateRegularizationRequest 
 } from "@/hooks/useAttendanceRegularization";
-import { format } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 
 const defaultColumns: ColumnDef[] = [
   { id: "request_date", header: "Request Date", accessor: "request_date", visible: true },
@@ -67,11 +77,22 @@ const requestTypes = [
   { value: "overtime_claim", label: "Overtime Claim" },
 ];
 
+const dateRangePresets = [
+  { label: "Today", getValue: () => ({ from: new Date(), to: new Date() }) },
+  { label: "Last 7 days", getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+  { label: "Last 30 days", getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+  { label: "This month", getValue: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+];
+
 export default function EmployeeAttendanceRegularization() {
   const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [showFilters, setShowFilters] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Form state
@@ -86,11 +107,45 @@ export default function EmployeeAttendanceRegularization() {
   const { data: requests = [], isLoading, refetch } = useMyRegularizationRequests();
   const createRequest = useCreateRegularizationRequest();
 
-  // Filter by status
+  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || searchQuery || dateRange?.from;
+
+  const handleClearFilters = () => {
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setSearchQuery("");
+    setDateRange(undefined);
+  };
+
+  // Filter by status, type, search, and date range
   const filteredRequests = useMemo(() => {
-    if (statusFilter === "all") return requests;
-    return requests.filter((r) => r.status === statusFilter);
-  }, [requests, statusFilter]);
+    let data = [...requests];
+    
+    if (statusFilter !== "all") {
+      data = data.filter((r) => r.status === statusFilter);
+    }
+    
+    if (typeFilter !== "all") {
+      data = data.filter((r) => r.request_type === typeFilter);
+    }
+    
+    if (searchQuery) {
+      data = data.filter((r) => 
+        r.reason.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (dateRange?.from) {
+      data = data.filter((r) => {
+        const requestDate = parseISO(r.request_date);
+        return isWithinInterval(requestDate, {
+          start: dateRange.from!,
+          end: dateRange.to || dateRange.from!,
+        });
+      });
+    }
+    
+    return data;
+  }, [requests, statusFilter, typeFilter, searchQuery, dateRange]);
 
   // Sort records
   const sortedRequests = useMemo(() => {
@@ -235,59 +290,7 @@ export default function EmployeeAttendanceRegularization() {
 
   return (
     <PageContainer>
-      <PageHeader title="Attendance Regularization" description="Request corrections to your attendance records" />
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{pending}</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{approved}</p>
-              <p className="text-xs text-muted-foreground">Approved</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-              <XCircle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{rejected}</p>
-              <p className="text-xs text-muted-foreground">Rejected</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Actions */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-
+      <PageHeader title="Attendance Regularization" description="Request corrections to your attendance records">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -394,6 +397,43 @@ export default function EmployeeAttendanceRegularization() {
             </form>
           </DialogContent>
         </Dialog>
+      </PageHeader>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{pending}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{approved}</p>
+              <p className="text-xs text-muted-foreground">Approved</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <XCircle className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{rejected}</p>
+              <p className="text-xs text-muted-foreground">Rejected</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Requests Table */}
@@ -403,8 +443,115 @@ export default function EmployeeAttendanceRegularization() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={() => refetch()}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
           isRefreshing={isLoading}
         />
+
+        {showFilters && (
+          <div className="p-4 border-b bg-muted/30 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Date Range Preset */}
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  const preset = dateRangePresets.find((p) => p.label === value);
+                  if (preset) setDateRange(preset.getValue());
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dateRangePresets.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Calendar Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !dateRange?.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      "Pick date range"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Type Filter */}
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {requestTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -474,14 +621,7 @@ export default function EmployeeAttendanceRegularization() {
             ) : (
               <TableRow>
                 <TableCell colSpan={visibleColumns.length + 1} className="text-center text-muted-foreground py-8">
-                  <div className="flex flex-col items-center gap-2">
-                    <AlertCircle className="h-8 w-8" />
-                    <p>No regularization requests found</p>
-                    <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create your first request
-                    </Button>
-                  </div>
+                  No regularization requests found
                 </TableCell>
               </TableRow>
             )}

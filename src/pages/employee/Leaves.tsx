@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Table,
   TableBody,
@@ -34,10 +41,13 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
-import { Plus, CalendarCheck, Clock, CalendarX, ArrowUpDown } from "lucide-react";
+import { Plus, CalendarCheck, Clock, CalendarX, ArrowUpDown, Search, Calendar as CalendarIcon, X } from "lucide-react";
 import { useCurrentEmployee, useLeaveBalances } from "@/hooks/useCurrentEmployee";
 import { useLeaveTypes, useMyLeaveRequests, useCreateLeaveRequest, useCancelLeaveRequest } from "@/hooks/useLeaves";
 import { DatePicker } from "@/components/ui/date-picker";
+import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
@@ -53,13 +63,24 @@ const defaultColumns: ColumnDef[] = [
   { id: "status", header: "Status", accessor: "status", visible: true },
 ];
 
+const dateRangePresets = [
+  { label: "Today", getValue: () => ({ from: new Date(), to: new Date() }) },
+  { label: "Last 7 days", getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+  { label: "Last 30 days", getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+  { label: "This month", getValue: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+];
+
 export default function EmployeeLeaves() {
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
   const [leaveType, setLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [showFilters, setShowFilters] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -72,11 +93,45 @@ export default function EmployeeLeaves() {
   const createLeave = useCreateLeaveRequest();
   const cancelLeave = useCancelLeaveRequest();
 
-  // Filter by status
+  const hasActiveFilters = statusFilter !== "all" || leaveTypeFilter !== "all" || searchQuery || dateRange?.from;
+
+  const handleClearFilters = () => {
+    setStatusFilter("all");
+    setLeaveTypeFilter("all");
+    setSearchQuery("");
+    setDateRange(undefined);
+  };
+
+  // Filter by status, leave type, search, and date range
   const filteredLeaves = useMemo(() => {
-    if (statusFilter === "all") return myLeaves;
-    return myLeaves.filter((l) => l.status === statusFilter);
-  }, [myLeaves, statusFilter]);
+    let data = [...myLeaves];
+    
+    if (statusFilter !== "all") {
+      data = data.filter((l) => l.status === statusFilter);
+    }
+    
+    if (leaveTypeFilter !== "all") {
+      data = data.filter((l) => l.leave_type_id === leaveTypeFilter);
+    }
+    
+    if (searchQuery) {
+      data = data.filter((l) => 
+        l.reason?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (dateRange?.from) {
+      data = data.filter((l) => {
+        const leaveStart = parseISO(l.start_date);
+        return isWithinInterval(leaveStart, {
+          start: dateRange.from!,
+          end: dateRange.to || dateRange.from!,
+        });
+      });
+    }
+    
+    return data;
+  }, [myLeaves, statusFilter, leaveTypeFilter, searchQuery, dateRange]);
 
   // Sort
   const sortedLeaves = useMemo(() => {
@@ -296,21 +351,6 @@ export default function EmployeeLeaves() {
         </Card>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Leave Requests Table */}
       <Card>
         <DataTableToolbar
@@ -318,8 +358,115 @@ export default function EmployeeLeaves() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={() => refetch()}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
           isRefreshing={leavesLoading}
         />
+
+        {showFilters && (
+          <div className="p-4 border-b bg-muted/30 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Date Range Preset */}
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  const preset = dateRangePresets.find((p) => p.label === value);
+                  if (preset) setDateRange(preset.getValue());
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dateRangePresets.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Calendar Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !dateRange?.from && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      "Pick date range"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Leave Type Filter */}
+              <Select value={leaveTypeFilter} onValueChange={setLeaveTypeFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Leave Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {leaveTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -462,21 +609,22 @@ export default function EmployeeLeaves() {
               </Select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>From Date *</Label>
-                <DatePicker
+                <Input
+                  type="date"
                   value={startDate}
-                  onChange={setStartDate}
-                  placeholder="Select start date"
+                  onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>To Date *</Label>
-                <DatePicker
+                <Input
+                  type="date"
                   value={endDate}
-                  onChange={setEndDate}
-                  placeholder="Select end date"
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
                 />
               </div>
             </div>
@@ -490,9 +638,9 @@ export default function EmployeeLeaves() {
             <div className="space-y-2">
               <Label>Reason</Label>
               <Textarea
+                placeholder="Enter reason for leave..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Enter reason for leave (optional)"
                 rows={3}
               />
             </div>

@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,7 +26,7 @@ import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown } from "lucide-react";
+import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown, X } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { format } from "date-fns";
@@ -53,10 +60,12 @@ export default function EmployeeAssets() {
   const isLoading = assetsLoading || employeeLoading;
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("assigned_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
@@ -72,9 +81,27 @@ export default function EmployeeAssets() {
     { id: "assigned_date", header: "Assigned Date", visible: true },
   ]);
 
+  // Get unique categories from assets
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set<string>();
+    assets.forEach((a) => {
+      if (a.category?.name) categories.add(a.category.name);
+    });
+    return Array.from(categories);
+  }, [assets]);
+
+  const hasActiveFilters = searchQuery || categoryFilter !== "all" || conditionFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    setConditionFilter("all");
+  };
+
   // Filter and sort assets
   const filteredAssets = useMemo(() => {
     let data = [...assets];
+    
     if (searchQuery) {
       data = data.filter(
         (a) =>
@@ -83,6 +110,15 @@ export default function EmployeeAssets() {
           a.serial_number?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
+
+    if (categoryFilter !== "all") {
+      data = data.filter((a) => a.category?.name === categoryFilter);
+    }
+
+    if (conditionFilter !== "all") {
+      data = data.filter((a) => a.condition?.toLowerCase() === conditionFilter);
+    }
+
     return data.sort((a, b) => {
       let aVal: string | number = "";
       let bVal: string | number = "";
@@ -112,7 +148,7 @@ export default function EmployeeAssets() {
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal));
     });
-  }, [assets, searchQuery, sortField, sortDirection]);
+  }, [assets, searchQuery, categoryFilter, conditionFilter, sortField, sortDirection]);
 
   // Pagination
   const {
@@ -253,15 +289,55 @@ export default function EmployeeAssets() {
         />
 
         {showFilters && (
-          <div className="px-4 py-3 border-b">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, tag, or serial..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          <div className="p-4 border-b bg-muted/30 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, tag, or serial..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {uniqueCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Condition Filter */}
+              <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Conditions</SelectItem>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="poor">Poor</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -396,7 +472,7 @@ export default function EmployeeAssets() {
             {paginatedData.length === 0 && (
               <TableRow>
                 <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                  {assets.length === 0 ? "No assets assigned to you" : "No assets found matching your search"}
+                  {assets.length === 0 ? "No assets assigned to you" : "No assets found matching your filters"}
                 </TableCell>
               </TableRow>
             )}
