@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { defaultRoles, modules } from "@/data/settingsData";
-import { Role } from "@/types/settings";
+import { modules } from "@/data/settingsData";
+import { RolePermission } from "@/types/settings";
 import { PermissionMatrix } from "@/components/settings/PermissionMatrix";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -38,17 +38,29 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { 
+  useRoles, 
+  useCreateRole, 
+  useUpdateRole, 
+  useDeleteRole,
+  Role 
+} from "@/hooks/useRoles";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
   { id: "name", header: "Role Name", accessor: "name", visible: true },
   { id: "description", header: "Description", accessor: "description", visible: true },
-  { id: "userCount", header: "Users", accessor: "userCount", visible: true },
-  { id: "isSystem", header: "System Role", accessor: (row: Role) => row.isSystem ? "Yes" : "No", visible: false },
+  { id: "user_count", header: "Users", accessor: "user_count", visible: true },
+  { id: "is_system", header: "System Role", accessor: (row: Role) => row.is_system ? "Yes" : "No", visible: false },
 ];
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>(defaultRoles);
+  const { data: rolesData, isLoading, refetch } = useRoles();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const deleteRoleMutation = useDeleteRole();
+
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [roleForm, setRoleForm] = useState({
@@ -66,10 +78,12 @@ export default function RolesPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const roles = rolesData || [];
+
   const filteredRoles = useMemo(() => 
     roles.filter(r => 
       r.name.toLowerCase().includes(roleSearch.toLowerCase()) ||
-      r.description.toLowerCase().includes(roleSearch.toLowerCase())
+      (r.description || '').toLowerCase().includes(roleSearch.toLowerCase())
     ), [roles, roleSearch]);
 
   const getColumnValue = (role: Role, column: ColumnDef): any => {
@@ -122,7 +136,13 @@ export default function RolesPage() {
   const openRoleDialog = (role?: Role) => {
     if (role) {
       setEditingRole(role);
-      setRoleForm({ name: role.name, description: role.description, permissions: [...role.permissions] });
+      setRoleForm({ 
+        name: role.name, 
+        description: role.description || "", 
+        permissions: role.permissions?.length > 0 
+          ? [...role.permissions] 
+          : modules.map(m => ({ module: m, create: false, read: true, update: false, delete: false }))
+      });
     } else {
       setEditingRole(null);
       setRoleForm({
@@ -134,38 +154,41 @@ export default function RolesPage() {
     setRoleDialogOpen(true);
   };
 
-  const saveRole = () => {
+  const saveRole = async () => {
     if (!roleForm.name.trim()) {
       toast.error("Role name is required");
       return;
     }
 
-    if (editingRole) {
-      setRoles(prev => prev.map(r => 
-        r.id === editingRole.id 
-          ? { ...r, name: roleForm.name, description: roleForm.description, permissions: roleForm.permissions }
-          : r
-      ));
-      toast.success("Role updated successfully");
-    } else {
-      const newRole: Role = {
-        id: `role-${Date.now()}`,
-        name: roleForm.name,
-        description: roleForm.description,
-        userCount: 0,
-        permissions: roleForm.permissions,
-      };
-      setRoles(prev => [...prev, newRole]);
-      toast.success("Role added successfully");
+    try {
+      if (editingRole) {
+        await updateRole.mutateAsync({
+          id: editingRole.id,
+          name: roleForm.name,
+          description: roleForm.description || null,
+          permissions: roleForm.permissions,
+        });
+      } else {
+        await createRole.mutateAsync({
+          name: roleForm.name,
+          description: roleForm.description || undefined,
+          permissions: roleForm.permissions,
+        });
+      }
+      setRoleDialogOpen(false);
+    } catch (error) {
+      // Error handled by mutation
     }
-    setRoleDialogOpen(false);
   };
 
-  const deleteRole = () => {
+  const handleDeleteRole = async () => {
     if (deleteRoleDialog) {
-      setRoles(prev => prev.filter(r => r.id !== deleteRoleDialog.id));
-      toast.success("Role deleted successfully");
-      setDeleteRoleDialog(null);
+      try {
+        await deleteRoleMutation.mutateAsync(deleteRoleDialog.id);
+        setDeleteRoleDialog(null);
+      } catch (error) {
+        // Error handled by mutation
+      }
     }
   };
 
@@ -186,13 +209,11 @@ export default function RolesPage() {
     toast.success(`Exported ${dataToExport.length} records to CSV`);
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Simulate refresh since roles are local state
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Data refreshed");
-    }, 500);
+    await refetch();
+    setIsRefreshing(false);
+    toast.success("Data refreshed");
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -232,7 +253,7 @@ export default function RolesPage() {
       return (
         <div className="flex items-center gap-2">
           <span className="font-medium">{value}</span>
-          {role.isSystem && (
+          {role.is_system && (
             <Badge variant="outline" className="text-xs">System</Badge>
           )}
         </div>
@@ -240,14 +261,14 @@ export default function RolesPage() {
     }
 
     if (column.id === 'description') {
-      return <span className="text-muted-foreground">{value}</span>;
+      return <span className="text-muted-foreground">{value || "—"}</span>;
     }
 
-    if (column.id === 'userCount') {
+    if (column.id === 'user_count') {
       return (
         <div className="flex items-center gap-1">
           <Users className="h-3.5 w-3.5 text-muted-foreground" />
-          {value}
+          {value || 0}
         </div>
       );
     }
@@ -258,6 +279,8 @@ export default function RolesPage() {
 
     return value || "—";
   };
+
+  const isSaving = createRole.isPending || updateRole.isPending;
 
   return (
     <PageContainer>
@@ -294,89 +317,97 @@ export default function RolesPage() {
         )}
 
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={isAllSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Select all"
-                  />
-                </TableHead>
-                {visibleColumns.map((column) => (
-                  <TableHead 
-                    key={column.id} 
-                    className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
-                    onClick={() => handleSort(column.id)}
-                  >
-                    <div className="flex items-center gap-1">
-                      {column.header}
-                      {sortColumn === column.id ? (
-                        sortDirection === 'asc' 
-                          ? <ArrowUp className="h-4 w-4" /> 
-                          : <ArrowDown className="h-4 w-4" />
-                      ) : (
-                        <ArrowUpDown className="h-4 w-4 opacity-30" />
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.length === 0 ? (
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
-                    No roles found
-                  </TableCell>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                  {visibleColumns.map((column) => (
+                    <TableHead 
+                      key={column.id} 
+                      className="whitespace-nowrap cursor-pointer select-none hover:bg-muted/50"
+                      onClick={() => handleSort(column.id)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {column.header}
+                        {sortColumn === column.id ? (
+                          sortDirection === 'asc' 
+                            ? <ArrowUp className="h-4 w-4" /> 
+                            : <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 opacity-30" />
+                        )}
+                      </div>
+                    </TableHead>
+                  ))}
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
-              ) : (
-                paginatedData.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedRows.has(role.id)}
-                        onCheckedChange={(checked) => handleSelectRow(role.id, !!checked)}
-                        aria-label={`Select ${role.name}`}
-                      />
-                    </TableCell>
-                    {visibleColumns.map((column) => (
-                      <TableCell key={column.id} className="whitespace-nowrap">
-                        {renderCellValue(role, column)}
-                      </TableCell>
-                    ))}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openRoleDialog(role)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          {!role.isSystem && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => setDeleteRoleDialog(role)}
-                              disabled={role.userCount > 0}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              </TableHeader>
+              <TableBody>
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={visibleColumns.length + 2} className="text-center text-muted-foreground py-8">
+                      No roles found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  paginatedData.map((role) => (
+                    <TableRow key={role.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRows.has(role.id)}
+                          onCheckedChange={(checked) => handleSelectRow(role.id, !!checked)}
+                          aria-label={`Select ${role.name}`}
+                        />
+                      </TableCell>
+                      {visibleColumns.map((column) => (
+                        <TableCell key={column.id} className="whitespace-nowrap">
+                          {renderCellValue(role, column)}
+                        </TableCell>
+                      ))}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openRoleDialog(role)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {!role.is_system && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeleteRoleDialog(role)}
+                                disabled={(role.user_count || 0) > 0}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
 
         <TablePagination
@@ -405,7 +436,7 @@ export default function RolesPage() {
                   placeholder="e.g., Team Lead"
                   value={roleForm.name}
                   onChange={(e) => setRoleForm(prev => ({ ...prev, name: e.target.value }))}
-                  disabled={editingRole?.isSystem}
+                  disabled={editingRole?.is_system}
                 />
               </div>
               <div className="space-y-2">
@@ -422,7 +453,7 @@ export default function RolesPage() {
               <PermissionMatrix
                 permissions={roleForm.permissions}
                 onChange={(permissions) => setRoleForm(prev => ({ ...prev, permissions }))}
-                disabled={editingRole?.isSystem && editingRole.name === "Admin"}
+                disabled={editingRole?.is_system && editingRole.name === "Admin"}
               />
             </div>
           </div>
@@ -430,8 +461,8 @@ export default function RolesPage() {
             <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveRole}>
-              {editingRole ? "Update" : "Create"}
+            <Button onClick={saveRole} disabled={isSaving}>
+              {isSaving ? "Saving..." : editingRole ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -443,8 +474,9 @@ export default function RolesPage() {
         title="Delete Role"
         description="Are you sure you want to delete this role? This action cannot be undone."
         itemName={deleteRoleDialog?.name}
-        warningText={deleteRoleDialog?.userCount ? `${deleteRoleDialog.userCount} users are assigned to this role.` : undefined}
-        onConfirm={deleteRole}
+        warningText={deleteRoleDialog?.user_count ? `${deleteRoleDialog.user_count} users are assigned to this role.` : undefined}
+        onConfirm={handleDeleteRole}
+        isLoading={deleteRoleMutation.isPending}
       />
     </PageContainer>
   );

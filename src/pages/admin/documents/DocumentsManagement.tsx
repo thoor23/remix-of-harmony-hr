@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,28 +11,53 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Download, Upload } from "lucide-react";
-import { policyDocuments } from "@/data/mockData";
+import { Plus, FileText, Download, Upload, Eye } from "lucide-react";
+import { useDocuments } from "@/hooks/useDocuments";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 
 const categoryLabels: Record<string, string> = {
-  "hr-policy": "HR Policy",
-  "leave-policy": "Leave Policy",
-  "code-of-conduct": "Code of Conduct",
-  benefits: "Benefits",
-  other: "Other",
+  "hr_policy": "HR Policy",
+  "leave_policy": "Leave Policy",
+  "code_of_conduct": "Code of Conduct",
+  "benefits": "Benefits",
+  "company_policy": "Company Policy",
+  "employee_doc": "Employee Document",
+  "other": "Other",
 };
 
 export default function DocumentsManagement() {
+  const { data: documentsData, isLoading } = useDocuments();
+
+  // Filter for company/policy documents
+  const policyDocuments = useMemo(() => {
+    if (!documentsData) return [];
+    return documentsData.filter(doc => doc.is_company_document);
+  }, [documentsData]);
+
+  const handleDownload = (fileUrl: string | null, name: string) => {
+    if (!fileUrl) return;
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = name;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Documents & Policies"
         description="Manage company policies and document templates"
       >
-        <Button>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Document
-        </Button>
+        <Link to="/admin/file-manager/policies">
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            Manage Documents
+          </Button>
+        </Link>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -39,54 +65,107 @@ export default function DocumentsManagement() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Policy Documents</CardTitle>
+            <Link to="/admin/file-manager/policies">
+              <Button variant="outline" size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Policy
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {policyDocuments.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-primary" />
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : policyDocuments.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium">No policy documents</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Upload company policies to get started
+                    </p>
+                  </div>
+                  <Link to="/admin/file-manager/policies">
+                    <Button className="mt-2">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Policy
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Uploaded</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {policyDocuments.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            {doc.folder_path && (
+                              <p className="text-sm text-muted-foreground">
+                                {doc.folder_path}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{doc.title}</p>
-                          {doc.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {doc.description}
-                            </p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {categoryLabels[doc.document_category || 'other'] || doc.document_category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="uppercase text-xs font-medium text-muted-foreground">
+                        {doc.type}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {doc.file_url && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => window.open(doc.file_url!, '_blank')}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDownload(doc.file_url, doc.name)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {categoryLabels[doc.category] || doc.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>v{doc.version}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(doc.uploadedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
@@ -94,18 +173,20 @@ export default function DocumentsManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Letter Templates</CardTitle>
-            <Button variant="outline" size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Template
-            </Button>
+            <Link to="/admin/letters/templates">
+              <Button variant="outline" size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Template
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[
-                { name: "Offer Letter", type: "offer-letter" },
-                { name: "Experience Letter", type: "experience-letter" },
-                { name: "Relieving Letter", type: "relieving-letter" },
-                { name: "Increment Letter", type: "increment-letter" },
+                { name: "Offer Letter", type: "offer-letter", path: "/admin/letters/offer" },
+                { name: "Experience Letter", type: "experience-letter", path: "/admin/letters/experience" },
+                { name: "Relieving Letter", type: "relieving-letter", path: "/admin/letters/relieving" },
+                { name: "Increment Letter", type: "increment-letter", path: "/admin/letters/increment" },
               ].map((template) => (
                 <div
                   key={template.type}
@@ -118,12 +199,16 @@ export default function DocumentsManagement() {
                     <span className="font-medium">{template.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm">
-                      Edit
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    <Link to="/admin/letters/templates">
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
+                    </Link>
+                    <Link to={template.path}>
+                      <Button variant="ghost" size="sm">
+                        Generate
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -137,18 +222,24 @@ export default function DocumentsManagement() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full justify-start" variant="outline">
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Offer Letter
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Experience Letter
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Relieving Letter
-            </Button>
+            <Link to="/admin/letters/offer" className="block">
+              <Button className="w-full justify-start" variant="outline">
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Offer Letter
+              </Button>
+            </Link>
+            <Link to="/admin/letters/experience" className="block">
+              <Button className="w-full justify-start" variant="outline">
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Experience Letter
+              </Button>
+            </Link>
+            <Link to="/admin/letters/relieving" className="block">
+              <Button className="w-full justify-start" variant="outline">
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Relieving Letter
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

@@ -212,6 +212,59 @@ Deno.serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // ===== SHIFT ROTATIONS =====
+
+    // GET /shifts/rotations - List all rotations
+    if (req.method === 'GET' && subPath[0] === 'rotations' && subPath.length === 1) {
+      const { data, error } = await supabase
+        .from('shift_rotations')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
+    // POST /shifts/rotations - Create rotation
+    if (req.method === 'POST' && subPath[0] === 'rotations' && subPath.length === 1) {
+      const body = await req.json();
+      const { data, error } = await supabase
+        .from('shift_rotations')
+        .insert(body)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return jsonResponse(data, 201);
+    }
+
+    // PUT /shifts/rotations/:id - Update rotation
+    if (req.method === 'PUT' && subPath[0] === 'rotations' && subPath.length === 2) {
+      const id = subPath[1];
+      const body = await req.json();
+      const { data, error } = await supabase
+        .from('shift_rotations')
+        .update(body)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // DELETE /shifts/rotations/:id - Delete rotation
+    if (req.method === 'DELETE' && subPath[0] === 'rotations' && subPath.length === 2) {
+      const id = subPath[1];
+      const { error } = await supabase
+        .from('shift_rotations')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return jsonResponse({ success: true });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('Shifts API error:', error);
