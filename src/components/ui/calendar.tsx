@@ -33,7 +33,7 @@ function CustomDropdown({ value, onChange, children, ...props }: DropdownProps) 
 
   return (
     <Select value={value?.toString()} onValueChange={handleValueChange}>
-      <SelectTrigger className="h-7 w-auto gap-1 border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0 focus:ring-offset-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-70">
+      <SelectTrigger className="h-7 w-auto gap-0 border-none bg-transparent px-2 text-sm font-medium shadow-none focus:ring-0 focus:ring-offset-0 [&>svg]:hidden">
         <SelectValue>{selectedOption?.props.children}</SelectValue>
       </SelectTrigger>
       <SelectContent className="max-h-60">
