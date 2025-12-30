@@ -478,32 +478,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  }
-
-  /* Show scrollbar for data tables */
-  .show-scrollbar::-webkit-scrollbar {
-    display: block;
-    height: 8px;
-  }
-
-  .show-scrollbar::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 4px;
-  }
-
-  .show-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
-  }
-
-  .show-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  .show-scrollbar {
-    -ms-overflow-style: auto;
-    scrollbar-width: thin;
-  }
+}
 
 @layer utilities {
   .text-balance {

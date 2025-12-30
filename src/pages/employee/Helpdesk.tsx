@@ -288,6 +288,7 @@ export default function EmployeeHelpdesk() {
       <div className="space-y-6">
         {/* Tickets Table */}
         <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
             <DataTableToolbar
               columns={columns}
               onToggleColumn={handleToggleColumn}
@@ -368,11 +369,10 @@ export default function EmployeeHelpdesk() {
               </div>
             )}
 
-          <div className="overflow-x-auto show-scrollbar">
-            <Table className="min-w-[1200px]">
+            <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10 whitespace-nowrap">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={paginatedData.length > 0 && paginatedData.every((t) => selectedRows.has(t.id))}
                       onCheckedChange={handleSelectAll}
@@ -381,7 +381,7 @@ export default function EmployeeHelpdesk() {
                   {visibleColumns.map((col) => (
                     <TableHead 
                       key={col.id}
-                      className={`whitespace-nowrap ${
+                      className={
                         col.id === "employee" ? "min-w-[180px]" :
                         col.id === "email" ? "min-w-[180px]" :
                         col.id === "subject" ? "min-w-[200px]" :
@@ -392,7 +392,7 @@ export default function EmployeeHelpdesk() {
                         col.id === "status" ? "min-w-[100px]" :
                         col.id === "created_at" ? "min-w-[100px]" :
                         ""
-                      }`}
+                      }
                     >
                       {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                         <Button
@@ -409,20 +409,20 @@ export default function EmployeeHelpdesk() {
                       )}
                     </TableHead>
                   ))}
-                  <TableHead className="w-16 whitespace-nowrap">Actions</TableHead>
+                  <TableHead className="w-16">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedData.length > 0 ? paginatedData.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell>
                       <Checkbox
                         checked={selectedRows.has(ticket.id)}
                         onCheckedChange={(checked) => handleSelectRow(ticket.id, checked as boolean)}
                       />
                     </TableCell>
                     {visibleColumns.map((col) => (
-                      <TableCell key={col.id} className="whitespace-nowrap">
+                      <TableCell key={col.id}>
                         {col.id === "employee" ? (
                           <EmployeeCell
                             avatarUrl={currentEmployee?.avatar_url}
@@ -453,7 +453,7 @@ export default function EmployeeHelpdesk() {
                         )}
                       </TableCell>
                     ))}
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -472,15 +472,15 @@ export default function EmployeeHelpdesk() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
-          <TablePagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
         </Card>
 
         {/* Ticket Detail / Messages */}
