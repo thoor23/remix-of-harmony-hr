@@ -130,7 +130,14 @@ const employeeNavItems: NavItem[] = [
       { title: "My Report", href: "/employee/helpdesk/report", icon: BarChart3 },
     ],
   },
-  { title: "Profile", href: "/employee/profile", icon: UserCircle },
+  {
+    title: "Profile",
+    icon: UserCircle,
+    children: [
+      { title: "My Profile", href: "/employee/profile", icon: User },
+      { title: "Change Requests", href: "/employee/profile/change-requests", icon: ClipboardEdit },
+    ],
+  },
   { title: "Settings", href: "/employee/settings", icon: Settings },
 ];
 

@@ -34,15 +34,10 @@ import {
   Edit,
   Camera,
   Loader2,
-  Clock,
-  CheckCircle,
-  XCircle,
-  X,
 } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployee } from "@/hooks/useEmployees";
-import { useCreateProfileChangeRequest, useMyProfileChangeRequests, useDeleteProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
-import { format } from "date-fns";
+import { useCreateProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -71,9 +66,7 @@ export default function EmployeeProfile() {
   
   const { data: currentEmployee, isLoading: currentLoading, refetch: refetchCurrentEmployee } = useCurrentEmployee();
   const { data: employee, isLoading: employeeLoading, refetch: refetchEmployee } = useEmployee(currentEmployee?.id || "");
-  const { data: changeRequests = [] } = useMyProfileChangeRequests();
   const createRequest = useCreateProfileChangeRequest();
-  const deleteRequest = useDeleteProfileChangeRequest();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,14 +161,6 @@ export default function EmployeeProfile() {
   const handleFieldChange = (value: string) => {
     setSelectedField(value);
     setCurrentValue(getFieldCurrentValue(value));
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-yellow-500" />;
-    }
   };
 
   const isLoading = currentLoading || employeeLoading;
@@ -477,85 +462,6 @@ export default function EmployeeProfile() {
           </CardContent>
         </Card>
 
-        {/* Change Requests */}
-        <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Edit className="h-5 w-5 text-yellow-500" />
-              My Change Requests
-              {changeRequests.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{changeRequests.length}</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {changeRequests.length > 0 ? (
-              <div className="space-y-4">
-                {changeRequests.map((request) => (
-                  <div key={request.id} className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors relative group">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(request.status)}
-                        <span className="font-medium">
-                          {fieldOptions.find(f => f.value === request.field_name)?.label || request.field_name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}>
-                          {request.status}
-                        </Badge>
-                        {request.status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => deleteRequest.mutate(request.id)}
-                            disabled={deleteRequest.isPending}
-                          >
-                            {deleteRequest.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <X className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Current Value</p>
-                        <p className="font-medium">{request.current_value || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Requested Value</p>
-                        <p className="font-medium">{request.new_value}</p>
-                      </div>
-                    </div>
-                    {request.reason && (
-                      <p className="text-sm text-muted-foreground mt-3">
-                        <span className="font-medium">Reason:</span> {request.reason}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Submitted: {format(new Date(request.created_at), "MMM dd, yyyy")}
-                    </p>
-                    {request.review_comments && (
-                      <div className="text-sm mt-3 p-3 bg-muted rounded-md">
-                        <span className="font-medium">Review Comments:</span> {request.review_comments}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Edit className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No change requests submitted</p>
-                <p className="text-sm mt-1">Click "Request Change" to update your profile information</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Request Change Dialog */}
