@@ -14,6 +14,10 @@ export interface ProfileUpdateData {
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   emergency_contact_relationship?: string;
+  bank_name?: string;
+  bank_account_holder_name?: string;
+  bank_account_number?: string;
+  bank_ifsc_code?: string;
 }
 
 export function useUpdateProfile() {
