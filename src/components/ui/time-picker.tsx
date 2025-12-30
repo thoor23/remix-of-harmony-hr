@@ -85,16 +85,15 @@ export function TimePicker({
           {formatDisplayTime(value)}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4 pointer-events-auto" align="start">
+      <PopoverContent className="w-auto p-4 pointer-events-auto z-50 bg-popover border border-border shadow-md" align="start">
         <div className="flex gap-4">
           {/* Hours */}
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground mb-2 text-center">Hour</span>
-            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border/50 bg-background/40">
-              <div className="flex flex-col gap-1 p-1">
+            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border bg-background">
+              <div className="flex flex-col p-1">
                 {hourOptions.map((h) => {
                   const displayHour = use24Hour ? h : h;
-                  const actualHour = use24Hour ? h : (h === 12 ? 0 : h);
                   const isSelected = use24Hour 
                     ? hours === h 
                     : (hours % 12 || 12) === h;
@@ -103,7 +102,10 @@ export function TimePicker({
                       key={h}
                       variant={isSelected ? "default" : "ghost"}
                       size="sm"
-                      className="w-full"
+                      className={cn(
+                        "w-full justify-center h-8",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
                       onClick={() => {
                         if (use24Hour) {
                           handleHourChange(h);
@@ -124,14 +126,17 @@ export function TimePicker({
           {/* Minutes */}
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground mb-2 text-center">Min</span>
-            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border/50 bg-background/40">
-              <div className="flex flex-col gap-1 p-1">
+            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border bg-background">
+              <div className="flex flex-col p-1">
                 {minuteOptions.filter((m) => m % 5 === 0).map((m) => (
                   <Button
                     key={m}
                     variant={minutes === m ? "default" : "ghost"}
                     size="sm"
-                    className="w-full"
+                    className={cn(
+                      "w-full justify-center h-8",
+                      minutes === m && "bg-primary text-primary-foreground"
+                    )}
                     onClick={() => handleMinuteChange(m)}
                   >
                     {m.toString().padStart(2, "0")}
