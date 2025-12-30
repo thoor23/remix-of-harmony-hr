@@ -1,71 +1,41 @@
+"use client";
+
 import * as React from "react";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronDownIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-interface DatePickerProps {
-  value?: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  className?: string;
-  error?: boolean;
-}
-
-export function DatePicker({
-  value,
-  onChange,
-  placeholder = "Pick a date",
-  disabled = false,
-  className,
-  error = false,
-}: DatePickerProps) {
+export function Calendar22() {
   const [open, setOpen] = React.useState(false);
-
-  const date = value ? new Date(value) : undefined;
-
-  const handleSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      onChange(format(selectedDate, "yyyy-MM-dd"));
-    } else {
-      onChange("");
-    }
-    setOpen(false);
-  };
+  const [date, setDate] = React.useState<Date | undefined>(undefined);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled}
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground",
-            error && "border-destructive",
-            className
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleSelect}
-          initialFocus
-          className="pointer-events-auto"
-        />
-      </PopoverContent>
-    </Popover>
+    <div className="flex flex-col gap-3">
+      <Label htmlFor="date" className="px-1">
+        Date of birth
+      </Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" id="date" className="w-48 justify-between font-normal">
+            {date ? date.toLocaleDateString() : "Select date"}
+            <ChevronDownIcon />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            captionLayout="dropdown"
+            onSelect={(date) => {
+              setDate(date);
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
