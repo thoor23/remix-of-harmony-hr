@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,17 +11,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { defaultSystemPreferences, languages } from "@/data/settingsData";
-import { SystemPreferences } from "@/types/settings";
+import { languages } from "@/data/settingsData";
 import { SettingsCard } from "@/components/settings/SettingsCard";
-import { toast } from "sonner";
+import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface SystemPreferences {
+  language: string;
+  sessionTimeout: number;
+  passwordMinLength: number;
+  requireSpecialChars: boolean;
+  passwordExpiryDays: number;
+}
+
+const defaultPreferences: SystemPreferences = {
+  language: "English",
+  sessionTimeout: 30,
+  passwordMinLength: 8,
+  requireSpecialChars: true,
+  passwordExpiryDays: 90,
+};
 
 export default function SystemSettingsPage() {
-  const [systemPreferences, setSystemPreferences] = useState<SystemPreferences>(defaultSystemPreferences);
+  const { data: settingData, isLoading } = useSystemSetting("system_preferences");
+  const updateSetting = useUpdateSystemSetting();
+  
+  const [systemPreferences, setSystemPreferences] = useState<SystemPreferences>(defaultPreferences);
 
-  const saveSystemPreferences = () => {
-    toast.success("System preferences saved successfully");
+  // Load settings from database
+  useEffect(() => {
+    if (settingData?.value) {
+      setSystemPreferences({
+        ...defaultPreferences,
+        ...(settingData.value as SystemPreferences),
+      });
+    }
+  }, [settingData]);
+
+  const saveSystemPreferences = async () => {
+    await updateSetting.mutateAsync({
+      key: "system_preferences",
+      value: systemPreferences,
+    });
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="System Settings"
+          description="Configure language and security settings"
+        />
+        <div className="grid gap-6">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-60 w-full" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -34,7 +81,14 @@ export default function SystemSettingsPage() {
         <SettingsCard
           title="Display Settings"
           description="Language preferences"
-          action={<Button onClick={saveSystemPreferences}>Save Changes</Button>}
+          action={
+            <Button 
+              onClick={saveSystemPreferences}
+              disabled={updateSetting.isPending}
+            >
+              {updateSetting.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -59,6 +113,14 @@ export default function SystemSettingsPage() {
         <SettingsCard
           title="Security Settings"
           description="Session and password policies"
+          action={
+            <Button 
+              onClick={saveSystemPreferences}
+              disabled={updateSetting.isPending}
+            >
+              {updateSetting.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          }
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">

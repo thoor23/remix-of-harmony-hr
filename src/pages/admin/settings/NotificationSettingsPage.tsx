@@ -1,19 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { defaultNotificationSettings } from "@/data/settingsData";
-import { NotificationSettings } from "@/types/settings";
 import { SettingsCard } from "@/components/settings/SettingsCard";
-import { toast } from "sonner";
+import { useSystemSetting, useUpdateSystemSetting } from "@/hooks/useSystemSettings";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface NotificationSettings {
+  emailNotifications: boolean;
+  leaveApprovalAlerts: boolean;
+  attendanceReminders: boolean;
+  birthdayAnnouncements: boolean;
+  payslipNotifications: boolean;
+  systemUpdates: boolean;
+}
+
+const defaultSettings: NotificationSettings = {
+  emailNotifications: true,
+  leaveApprovalAlerts: true,
+  attendanceReminders: true,
+  birthdayAnnouncements: true,
+  payslipNotifications: true,
+  systemUpdates: true,
+};
 
 export default function NotificationSettingsPage() {
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
+  const { data: settingData, isLoading } = useSystemSetting("notification_settings");
+  const updateSetting = useUpdateSystemSetting();
+  
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultSettings);
 
-  const saveNotificationSettings = () => {
-    toast.success("Notification settings saved successfully");
+  // Load settings from database
+  useEffect(() => {
+    if (settingData?.value) {
+      setNotificationSettings({
+        ...defaultSettings,
+        ...(settingData.value as NotificationSettings),
+      });
+    }
+  }, [settingData]);
+
+  const saveNotificationSettings = async () => {
+    await updateSetting.mutateAsync({
+      key: "notification_settings",
+      value: notificationSettings,
+    });
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Notification Settings"
+          description="Configure email and in-app notification preferences"
+        />
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -25,7 +74,14 @@ export default function NotificationSettingsPage() {
       <SettingsCard
         title="Notification Preferences"
         description="Configure email and in-app notification settings"
-        action={<Button onClick={saveNotificationSettings}>Save Changes</Button>}
+        action={
+          <Button 
+            onClick={saveNotificationSettings}
+            disabled={updateSetting.isPending}
+          >
+            {updateSetting.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        }
       >
         <div className="space-y-4">
           {[

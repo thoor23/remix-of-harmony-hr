@@ -15,13 +15,17 @@ import {
   Play,
   Pause
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { ShiftRotation } from "@/types/settings";
-import { defaultShiftRotations } from "@/data/settingsData";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
-import { useShifts, ShiftData } from "@/hooks/useShifts";
+import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
+import { 
+  useShiftRotations, 
+  useCreateShiftRotation, 
+  useUpdateShiftRotation, 
+  useDeleteShiftRotation,
+  ShiftRotation
+} from "@/hooks/useShiftRotations";
 import {
   Table,
   TableBody,
@@ -49,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface RotationFormData {
   name: string;
@@ -67,11 +72,13 @@ const frequencyLabels: Record<string, string> = {
 };
 
 export default function ShiftRotations() {
-  const { toast } = useToast();
   const { data: shiftsData, isLoading: shiftsLoading } = useShifts();
   const { data: employeesData, isLoading: employeesLoading } = useEmployees();
+  const { data: rotationsData, isLoading: rotationsLoading, refetch } = useShiftRotations();
+  const createRotation = useCreateShiftRotation();
+  const updateRotation = useUpdateShiftRotation();
+  const deleteRotationMutation = useDeleteShiftRotation();
   
-  const [rotations, setRotations] = useState<ShiftRotation[]>(defaultShiftRotations);
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingRotation, setEditingRotation] = useState<ShiftRotation | null>(null);
@@ -84,6 +91,20 @@ export default function ShiftRotations() {
     employeeIds: [],
     isActive: true,
   });
+
+  // Transform rotations from API to local format
+  const rotations = useMemo(() => {
+    if (!rotationsData) return [];
+    return rotationsData.map(r => ({
+      ...r,
+      rotationPattern: r.rotation_pattern || [],
+      rotationFrequency: r.rotation_frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly',
+      employeeIds: r.employee_ids || [],
+      employeeCount: (r.employee_ids || []).length,
+      isActive: r.is_active ?? true,
+      createdAt: r.created_at,
+    }));
+  }, [rotationsData]);
 
   // Transform shifts from API to match local format
   const shifts = useMemo(() => {
@@ -112,12 +133,12 @@ export default function ShiftRotations() {
     r.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleOpenForm = (rotation?: ShiftRotation) => {
+  const handleOpenForm = (rotation?: typeof rotations[0]) => {
     if (rotation) {
-      setEditingRotation(rotation);
+      setEditingRotation(rotation as ShiftRotation);
       setForm({
         name: rotation.name,
-        description: rotation.description,
+        description: rotation.description || "",
         rotationPattern: rotation.rotationPattern,
         rotationFrequency: rotation.rotationFrequency,
         employeeIds: rotation.employeeIds,
@@ -137,58 +158,56 @@ export default function ShiftRotations() {
     setFormOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) {
-      toast({ title: "Please enter a rotation name", variant: "destructive" });
+      toast.error("Please enter a rotation name");
       return;
     }
     if (form.rotationPattern.length < 2) {
-      toast({ title: "Select at least 2 shifts for rotation", variant: "destructive" });
+      toast.error("Select at least 2 shifts for rotation");
       return;
     }
 
-    if (editingRotation) {
-      setRotations(prev =>
-        prev.map(r =>
-          r.id === editingRotation.id
-            ? {
-                ...r,
-                ...form,
-                employeeCount: form.employeeIds.length,
-              }
-            : r
-        )
-      );
-      toast({ title: "Rotation updated successfully" });
-    } else {
-      const newRotation: ShiftRotation = {
-        id: `rotation-${Date.now()}`,
-        ...form,
-        employeeCount: form.employeeIds.length,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setRotations(prev => [...prev, newRotation]);
-      toast({ title: "Rotation created successfully" });
+    const payload = {
+      name: form.name,
+      description: form.description || null,
+      rotation_pattern: form.rotationPattern,
+      rotation_frequency: form.rotationFrequency,
+      employee_ids: form.employeeIds,
+      is_active: form.isActive,
+    };
+
+    try {
+      if (editingRotation) {
+        await updateRotation.mutateAsync({ id: editingRotation.id, ...payload });
+      } else {
+        await createRotation.mutateAsync(payload);
+      }
+      setFormOpen(false);
+    } catch (error) {
+      // Error handled by mutation
     }
-    setFormOpen(false);
   };
 
-  const handleToggleActive = (rotation: ShiftRotation) => {
-    setRotations(prev =>
-      prev.map(r =>
-        r.id === rotation.id ? { ...r, isActive: !r.isActive } : r
-      )
-    );
-    toast({
-      title: `Rotation ${rotation.isActive ? "paused" : "activated"}`,
-    });
+  const handleToggleActive = async (rotation: typeof rotations[0]) => {
+    try {
+      await updateRotation.mutateAsync({
+        id: rotation.id,
+        is_active: !rotation.isActive,
+      });
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteRotation) {
-      setRotations(prev => prev.filter(r => r.id !== deleteRotation.id));
-      toast({ title: "Rotation deleted successfully" });
-      setDeleteRotation(null);
+      try {
+        await deleteRotationMutation.mutateAsync(deleteRotation.id);
+        setDeleteRotation(null);
+      } catch (error) {
+        // Error handled by mutation
+      }
     }
   };
 
@@ -212,7 +231,8 @@ export default function ShiftRotations() {
 
   const getShiftById = (id: string) => shifts.find(s => s.id === id);
 
-  const isLoading = shiftsLoading || employeesLoading;
+  const isLoading = shiftsLoading || employeesLoading || rotationsLoading;
+  const isSaving = createRotation.isPending || updateRotation.isPending;
 
   return (
     <PageContainer>
@@ -281,6 +301,9 @@ export default function ShiftRotations() {
                   className="pl-9 w-[200px]"
                 />
               </div>
+              <Button onClick={() => refetch()} variant="outline" size="icon">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
               <Button onClick={() => handleOpenForm()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Rotation
@@ -366,7 +389,7 @@ export default function ShiftRotations() {
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => setDeleteRotation(rotation)}
+                          onClick={() => setDeleteRotation(rotation as ShiftRotation)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -487,66 +510,69 @@ export default function ShiftRotations() {
                   ))}
                 </div>
               )}
+              
               {form.rotationPattern.length > 0 && (
-                <div className="flex items-center gap-1 mt-2 text-sm">
-                  <span className="text-muted-foreground">Pattern:</span>
-                  {form.rotationPattern.map((id, idx) => {
-                    const shift = getShiftById(id);
-                    return shift ? (
-                      <span key={idx} className="flex items-center gap-1">
-                        <Badge variant="outline" style={{ borderColor: shift.color, color: shift.color }}>
-                          {shift.name}
-                        </Badge>
-                        {idx < form.rotationPattern.length - 1 && "→"}
-                      </span>
-                    ) : null;
-                  })}
+                <div className="mt-3 p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-2">Selected Pattern:</p>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {form.rotationPattern.map((shiftId, idx) => {
+                      const shift = getShiftById(shiftId);
+                      return shift ? (
+                        <div key={idx} className="flex items-center gap-1">
+                          <ShiftBadge name={shift.name} color={shift.color} size="sm" />
+                          {idx < form.rotationPattern.length - 1 && (
+                            <span className="text-muted-foreground">→</span>
+                          )}
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label>Assign Employees</Label>
+              <Label>Assign Employees (Optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Select employees to include in this rotation
+              </p>
               {employees.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
                   No employees available.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-2 mt-2 max-h-[120px] overflow-y-auto border rounded-lg p-2">
+                <div className="max-h-[200px] overflow-y-auto border rounded-lg">
                   {employees.map((emp) => (
                     <div
                       key={emp.id}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted cursor-pointer"
+                      onClick={() => toggleEmployee(emp.id)}
                     >
                       <Checkbox 
-                        id={emp.id}
                         checked={form.employeeIds.includes(emp.id)}
                         onCheckedChange={() => toggleEmployee(emp.id)}
                       />
-                      <label
-                        htmlFor={emp.id}
-                        className="text-sm cursor-pointer truncate"
-                      >
-                        {emp.name}
-                      </label>
+                      <span>{emp.name}</span>
                     </div>
                   ))}
                 </div>
               )}
-              {form.employeeIds.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {form.employeeIds.length} employee(s) selected
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {form.employeeIds.length} employee(s) selected
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div>
+                <Label>Active</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable this rotation immediately
+                </p>
+              </div>
               <Switch
-                id="isActive"
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
               />
-              <Label htmlFor="isActive">Active</Label>
             </div>
           </div>
 
@@ -554,20 +580,22 @@ export default function ShiftRotations() {
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {editingRotation ? "Save Changes" : "Create Rotation"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : editingRotation ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Dialog */}
       <DeleteConfirmDialog
         open={!!deleteRotation}
         onOpenChange={(open) => !open && setDeleteRotation(null)}
-        onConfirm={confirmDelete}
         title="Delete Rotation"
-        description={`Are you sure you want to delete "${deleteRotation?.name}"? This action cannot be undone.`}
+        description="Are you sure you want to delete this rotation pattern? This action cannot be undone."
+        itemName={deleteRotation?.name}
+        onConfirm={confirmDelete}
+        isLoading={deleteRotationMutation.isPending}
       />
     </PageContainer>
   );

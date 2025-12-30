@@ -117,6 +117,97 @@ serve(async (req) => {
       return jsonResponse(result);
     }
 
+    // ===== ROLES MANAGEMENT =====
+
+    // GET /roles - List all roles
+    if (method === 'GET' && path === '/roles') {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
+    // POST /roles - Create role
+    if (method === 'POST' && path === '/roles') {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin access required', 403);
+      }
+
+      const body = await req.json();
+      const { data, error } = await supabase
+        .from('roles')
+        .insert(body)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data, 201);
+    }
+
+    // GET /roles/:id - Get specific role
+    const roleMatch = path.match(/^\/roles\/([a-f0-9-]+)$/);
+    if (method === 'GET' && roleMatch) {
+      const id = roleMatch[1];
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // PUT /roles/:id - Update role
+    if (method === 'PUT' && roleMatch) {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin access required', 403);
+      }
+
+      const id = roleMatch[1];
+      const body = await req.json();
+      const { data, error } = await supabase
+        .from('roles')
+        .update(body)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // DELETE /roles/:id - Delete role
+    if (method === 'DELETE' && roleMatch) {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin access required', 403);
+      }
+
+      const id = roleMatch[1];
+      
+      // Check if system role
+      const { data: role } = await supabase
+        .from('roles')
+        .select('is_system')
+        .eq('id', id)
+        .single();
+
+      if (role?.is_system) {
+        return errorResponse('Cannot delete system roles', 400);
+      }
+
+      const { error } = await supabase
+        .from('roles')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return jsonResponse({ success: true });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-settings] Error:', error);

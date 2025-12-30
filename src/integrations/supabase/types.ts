@@ -1638,6 +1638,39 @@ export type Database = {
           },
         ]
       }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          permissions: Json
+          updated_at: string
+          user_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          permissions?: Json
+          updated_at?: string
+          user_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          permissions?: Json
+          updated_at?: string
+          user_count?: number | null
+        }
+        Relationships: []
+      }
       salary_structures: {
         Row: {
           basic_salary: number
@@ -1822,6 +1855,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shift_rotations: {
+        Row: {
+          created_at: string
+          description: string | null
+          employee_ids: string[] | null
+          id: string
+          is_active: boolean | null
+          name: string
+          rotation_frequency: string
+          rotation_pattern: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          employee_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          rotation_frequency?: string
+          rotation_pattern?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          employee_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          rotation_frequency?: string
+          rotation_pattern?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       shifts: {
         Row: {
