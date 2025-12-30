@@ -65,6 +65,7 @@ import {
 } from "@/hooks/useAnnouncementTemplates";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 interface TemplateForm {
   name: string;
@@ -93,6 +94,10 @@ export default function AnnouncementTemplatesPage() {
   const updateTemplate = useUpdateAnnouncementTemplate();
   const deleteTemplate = useDeleteAnnouncementTemplate();
   const { data: branding } = useCompanyBranding();
+
+  const canCreate = useHasPermission("Templates", "create");
+  const canUpdate = useHasPermission("Templates", "update");
+  const canDelete = useHasPermission("Templates", "delete");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -347,7 +352,7 @@ export default function AnnouncementTemplatesPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => openDialog()}
+          onAddRow={canCreate ? () => openDialog() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -492,30 +497,36 @@ export default function AnnouncementTemplatesPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDuplicate(template)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDialog(template)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setDeleteTemplateId(template.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canCreate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDuplicate(template)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canUpdate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog(template)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setDeleteTemplateId(template.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}

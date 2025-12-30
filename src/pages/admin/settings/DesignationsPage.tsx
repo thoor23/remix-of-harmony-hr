@@ -51,6 +51,7 @@ import {
   useDeleteDesignation,
   Designation,
 } from "@/hooks/useDesignations";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 interface DesignationForm {
   name: string;
@@ -76,6 +77,10 @@ export default function DesignationsPage() {
   const createDesignation = useCreateDesignation();
   const updateDesignation = useUpdateDesignation();
   const deleteDesignation = useDeleteDesignation();
+
+  const canCreate = useHasPermission("Settings", "create");
+  const canUpdate = useHasPermission("Settings", "update");
+  const canDelete = useHasPermission("Settings", "delete");
 
   const [desSearch, setDesSearch] = useState("");
   const [desDialogOpen, setDesDialogOpen] = useState(false);
@@ -293,7 +298,7 @@ export default function DesignationsPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => openDesDialog()}
+          onAddRow={canCreate ? () => openDesDialog() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -386,17 +391,21 @@ export default function DesignationsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openDesDialog(des)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteDesDialog(des)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => openDesDialog(des)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteDesDialog(des)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
