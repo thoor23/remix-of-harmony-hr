@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -82,6 +82,100 @@ import {
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePermissions } from "@/contexts/PermissionContext";
+
+// Map navigation items to their corresponding RBAC modules
+const navItemToModule: Record<string, string> = {
+  'Dashboard': 'Admin Dashboard',
+  'Employee Management': 'Employees',
+  'Employee Directory': 'Employees',
+  'Add New Employee': 'Employees',
+  'Profile Change Requests': 'Employees',
+  'Attendance Management': 'Attendance',
+  'Overview': 'Attendance', // Will be context dependent
+  'Attendance Records': 'Attendance',
+  'Regularization Requests': 'Attendance',
+  'Attendance Policies': 'Attendance',
+  'Leave Management': 'Leaves',
+  'Leave Records': 'Leaves',
+  'Leave Applications': 'Leaves',
+  'Leave Policies': 'Leaves',
+  'Shift Management': 'Shifts',
+  'Shift Schedule': 'Shifts',
+  'Shift Assignments': 'Shifts',
+  'Shift Rotations': 'Shifts',
+  'Shift Exchange': 'Shifts',
+  'Shift Calendar': 'Shifts',
+  'Shift Policies': 'Shifts',
+  'Payroll Management': 'Payroll',
+  'Salary Configuration': 'Payroll',
+  'Payslip Records': 'Payroll',
+  'Location Management': 'Locations',
+  'Store Directory': 'Locations',
+  'Store Dashboard': 'Locations',
+  'Office Directory': 'Locations',
+  'Office Dashboard': 'Locations',
+  'Employee Transfers': 'Locations',
+  'Asset Management': 'Assets',
+  'Asset Inventory': 'Assets',
+  'Add New Asset': 'Assets',
+  'Asset Categories': 'Assets',
+  'Asset Assignments': 'Assets',
+  'Asset Transfers': 'Assets',
+  'Asset Maintenance': 'Assets',
+  'Asset Reports': 'Assets',
+  'Document Management': 'Documents',
+  'Employee Files': 'Documents',
+  'Document Policies': 'Documents',
+  'Letter Generation': 'Documents',
+  'Offer Letter': 'Documents',
+  'Experience Letter': 'Documents',
+  'Relieving Letter': 'Documents',
+  'Increment Letter': 'Documents',
+  'Template Management': 'Templates',
+  'Payslip Templates': 'Templates',
+  'Letter Templates': 'Templates',
+  'Announcement Templates': 'Templates',
+  'Banner Templates': 'Templates',
+  'Email Templates': 'Templates',
+  'Helpdesk': 'Helpdesk',
+  'All Tickets': 'Helpdesk',
+  'Announcement Centre': 'Announcements',
+  'Announcements': 'Announcements',
+  'Send Notifications': 'Announcements',
+  'Reports & Analytics': 'Reports',
+  'Reports Overview': 'Reports',
+  'Employee Reports': 'Reports',
+  'Attendance Reports': 'Reports',
+  'Leave Reports': 'Reports',
+  'Payroll Reports': 'Reports',
+  'Company Settings': 'Settings',
+  'Company Branding': 'Settings',
+  'Departments': 'Settings',
+  'Designations': 'Settings',
+  'Roles & Permissions': 'Settings',
+  'Notification Settings': 'Settings',
+  'Email Configuration': 'Settings',
+  'System Preferences': 'Settings',
+  'Data Management': 'Settings',
+  'Audit Logs': 'Audit Logs',
+  'All Logs': 'Audit Logs',
+  'Employee Logs': 'Audit Logs',
+  'Attendance Logs': 'Audit Logs',
+  'Leave Logs': 'Audit Logs',
+  'Shift Logs': 'Audit Logs',
+  'Payroll Logs': 'Audit Logs',
+  'Asset Logs': 'Audit Logs',
+  'Helpdesk Logs': 'Audit Logs',
+  'Documents Logs': 'Audit Logs',
+  'Letters Logs': 'Audit Logs',
+  'Announcements Logs': 'Audit Logs',
+  'Templates Logs': 'Audit Logs',
+  'Departments Logs': 'Audit Logs',
+  'Designations Logs': 'Audit Logs',
+  'Settings Logs': 'Audit Logs',
+  'Auth Logs': 'Audit Logs',
+};
 
 const fontWeightClasses = {
   normal: "font-normal",
@@ -310,6 +404,36 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const { data: branding } = useCompanyBranding();
+  const { canRead, permissions, loading: permLoading } = usePermissions();
+
+  // Filter navigation based on permissions
+  const filteredNavSections = useMemo(() => {
+    // If permissions not loaded yet or empty, show all (fallback for fresh setup)
+    if (permLoading || permissions.length === 0) {
+      return adminNavSections;
+    }
+
+    return adminNavSections.map(section => ({
+      ...section,
+      items: section.items.filter(item => {
+        const module = navItemToModule[item.title];
+        if (!module) return true; // Show if no mapping
+        return canRead(module);
+      }).map(item => {
+        if (item.children) {
+          return {
+            ...item,
+            children: item.children.filter(child => {
+              const module = navItemToModule[child.title];
+              if (!module) return true;
+              return canRead(module);
+            })
+          };
+        }
+        return item;
+      }).filter(item => !item.children || item.children.length > 0)
+    })).filter(section => section.items.length > 0);
+  }, [permissions, permLoading, canRead]);
 
   // Close all open items when sidebar is collapsed
   useEffect(() => {
@@ -364,7 +488,7 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
       <ScrollArea className="flex-1 py-2">
         <TooltipProvider delayDuration={0}>
           <nav className="px-2">
-            {adminNavSections.map((section, sectionIndex) => (
+            {filteredNavSections.map((section, sectionIndex) => (
               <div key={section.label} className={cn(sectionIndex > 0 && "mt-4")}>
                 {/* Section Label */}
                 {!collapsed && (

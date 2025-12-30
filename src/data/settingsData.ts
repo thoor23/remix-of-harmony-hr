@@ -168,15 +168,42 @@ export const weekDays = [
   'Saturday',
 ];
 
-export const modules = [
+// All modules for RBAC - Admin Panel
+export const adminModules = [
+  'Admin Dashboard',
   'Employees',
   'Attendance',
   'Leaves',
+  'Shifts',
   'Payroll',
   'Documents',
+  'Assets',
+  'Locations',
+  'Helpdesk',
+  'Announcements',
   'Reports',
+  'Audit Logs',
   'Settings',
+  'Templates',
 ];
+
+// Employee Panel modules
+export const employeeModules = [
+  'Employee Dashboard',
+  'My Attendance',
+  'My Shifts',
+  'My Leaves',
+  'My Payslips',
+  'My Documents',
+  'My Assets',
+  'My Helpdesk',
+  'My Profile',
+  'My Settings',
+  'My Reports',
+];
+
+// All modules combined
+export const modules = [...adminModules, ...employeeModules];
 
 // Shift Management Data
 export const shiftColors = [

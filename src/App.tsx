@@ -5,11 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PermissionProvider } from "@/contexts/PermissionContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DynamicFavicon } from "@/components/DynamicFavicon";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
+import Unauthorized from "./pages/Unauthorized";
 
 // Layouts
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -154,9 +156,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider key="auth-provider">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
+            <PermissionProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Admin Routes - Protected */}
               <Route
@@ -327,7 +331,8 @@ const App = () => (
               </Route>
 
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </PermissionProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
