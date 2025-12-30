@@ -33,6 +33,7 @@ import {
   Settings,
   Package,
   ChevronDown,
+  Wrench,
   Clock,
   ClipboardEdit,
   FolderOpen,
@@ -118,6 +119,7 @@ const employeeNavItems: NavItem[] = [
     icon: Package,
     children: [
       { title: "Assigned Assets", href: "/employee/assets", icon: Package },
+      { title: "Maintenance Requests", href: "/employee/assets/maintenance", icon: Wrench },
     ],
   },
   {
