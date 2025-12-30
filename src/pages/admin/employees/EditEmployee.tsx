@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
@@ -396,12 +397,11 @@ export default function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob">Date of Birth *</Label>
-                    <Input
-                      id="dob"
-                      type="date"
+                    <DatePicker
                       value={formData.dateOfBirth}
-                      onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                      className={errors.dateOfBirth ? "border-destructive" : ""}
+                      onChange={(value) => handleInputChange("dateOfBirth", value)}
+                      placeholder="Select date of birth"
+                      error={!!errors.dateOfBirth}
                     />
                     {renderError("dateOfBirth")}
                   </div>
@@ -453,12 +453,11 @@ export default function EditEmployee() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="joiningDate">Joining Date *</Label>
-                    <Input
-                      id="joiningDate"
-                      type="date"
+                    <DatePicker
                       value={formData.joiningDate}
-                      onChange={(e) => handleInputChange("joiningDate", e.target.value)}
-                      className={errors.joiningDate ? "border-destructive" : ""}
+                      onChange={(value) => handleInputChange("joiningDate", value)}
+                      placeholder="Select joining date"
+                      error={!!errors.joiningDate}
                     />
                     {renderError("joiningDate")}
                   </div>

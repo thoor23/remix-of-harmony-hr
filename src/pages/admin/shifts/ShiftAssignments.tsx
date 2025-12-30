@@ -60,6 +60,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface AssignmentFormData {
   employeeId: string;
@@ -668,18 +669,18 @@ export default function ShiftAssignments() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Effective From *</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                  onChange={(value) => setForm({ ...form, startDate: value })}
+                  placeholder="Select start date"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Effective To</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                  onChange={(value) => setForm({ ...form, endDate: value })}
+                  placeholder="Select end date"
                 />
               </div>
             </div>

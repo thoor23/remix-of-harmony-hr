@@ -16,6 +16,7 @@ import {
 import { useCreateLocation, CreateLocationInput } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
 import { ArrowLeft, Save } from "lucide-react";
+import { TimePicker } from "@/components/ui/time-picker";
 
 const TIMEZONES = [
   { value: "Asia/Kolkata", label: "India (IST)" },
@@ -312,20 +313,18 @@ export default function AddStore() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="opening_time">Opening Time</Label>
-                <Input
-                  id="opening_time"
-                  type="time"
+                <TimePicker
                   value={formData.opening_time}
-                  onChange={(e) => handleChange("opening_time", e.target.value)}
+                  onChange={(value) => handleChange("opening_time", value)}
+                  placeholder="Select opening time"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="closing_time">Closing Time</Label>
-                <Input
-                  id="closing_time"
-                  type="time"
+                <TimePicker
                   value={formData.closing_time}
-                  onChange={(e) => handleChange("closing_time", e.target.value)}
+                  onChange={(value) => handleChange("closing_time", value)}
+                  placeholder="Select closing time"
                 />
               </div>
             </div>
