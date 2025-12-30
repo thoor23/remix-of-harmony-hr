@@ -69,6 +69,7 @@ import {
 } from "@/hooks/usePayslipTemplates";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const DEFAULT_TEMPLATE_CONTENT = `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px;">
   <div style="text-align: center; border-bottom: 3px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
@@ -122,6 +123,10 @@ export default function PayslipTemplatesPage() {
   const [editingTemplate, setEditingTemplate] = useState<PayslipTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+
+  const canCreate = useHasPermission("Templates", "create");
+  const canUpdate = useHasPermission("Templates", "update");
+  const canDelete = useHasPermission("Templates", "delete");
 
   // Table state
   const [sortColumn, setSortColumn] = useState<string>("name");
@@ -360,7 +365,7 @@ export default function PayslipTemplatesPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={handleOpenCreate}
+          onAddRow={canCreate ? handleOpenCreate : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -466,15 +471,17 @@ export default function PayslipTemplatesPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(template)}
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {!template.is_default && (
+                        {canUpdate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEdit(template)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canUpdate && !template.is_default && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -484,26 +491,28 @@ export default function PayslipTemplatesPage() {
                             <Star className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingTemplate(null);
-                            setFormData({
-                              name: `${template.name} (Copy)`,
-                              content: template.content,
-                              company_name: template.company_name || "",
-                              company_address: template.company_address || "",
-                              footer_text: template.footer_text || "",
-                              is_active: true,
-                            });
-                            setIsDialogOpen(true);
-                          }}
-                          title="Duplicate"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        {!template.is_default && (
+                        {canCreate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingTemplate(null);
+                              setFormData({
+                                name: `${template.name} (Copy)`,
+                                content: template.content,
+                                company_name: template.company_name || "",
+                                company_address: template.company_address || "",
+                                footer_text: template.footer_text || "",
+                                is_active: true,
+                              });
+                              setIsDialogOpen(true);
+                            }}
+                            title="Duplicate"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && !template.is_default && (
                           <Button
                             variant="ghost"
                             size="icon"

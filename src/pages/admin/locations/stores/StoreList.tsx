@@ -38,6 +38,7 @@ import { useStores, useDeleteLocation, Location } from "@/hooks/useLocations";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "name", header: "Store Name", accessor: "name", visible: true },
@@ -60,6 +61,10 @@ export default function StoreList() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const canCreate = useHasPermission("Locations", "create");
+  const canUpdate = useHasPermission("Locations", "update");
+  const canDelete = useHasPermission("Locations", "delete");
   
   const { data: stores = [], isLoading, refetch, isFetching } = useStores();
   const deleteStoreMutation = useDeleteLocation();
@@ -224,7 +229,7 @@ export default function StoreList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => navigate('/admin/locations/stores/add')}
+          onAddRow={canCreate ? () => navigate('/admin/locations/stores/add') : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -323,19 +328,23 @@ export default function StoreList() {
                               View Details
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to={`/admin/locations/stores/${store.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteStore(store)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem asChild>
+                              <Link to={`/admin/locations/stores/${store.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteStore(store)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

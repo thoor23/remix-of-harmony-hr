@@ -51,6 +51,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const letterTypes: { value: LetterType; label: string }[] = [
   { value: "offer", label: "Offer Letter" },
@@ -74,6 +75,10 @@ export default function LetterTemplatesPage() {
   const createTemplate = useCreateLetterTemplate();
   const updateTemplate = useUpdateLetterTemplate();
   const deleteTemplate = useDeleteLetterTemplate();
+
+  const canCreate = useHasPermission("Templates", "create");
+  const canUpdate = useHasPermission("Templates", "update");
+  const canDelete = useHasPermission("Templates", "delete");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<typeof templates[0] | null>(null);
@@ -287,7 +292,7 @@ export default function LetterTemplatesPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => openDialog()}
+          onAddRow={canCreate ? () => openDialog() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -398,27 +403,33 @@ export default function LetterTemplatesPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDuplicate(template)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDialog(template)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteDialog({ id: template.id, name: template.name })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canCreate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDuplicate(template)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canUpdate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog(template)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteDialog({ id: template.id, name: template.name })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
