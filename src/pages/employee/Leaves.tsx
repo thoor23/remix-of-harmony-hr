@@ -42,6 +42,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
   { id: "email", header: "Email", accessor: "email", visible: true },
+  { id: "department", header: "Department", accessor: "department", visible: true },
+  { id: "store", header: "Store/Location", accessor: "store", visible: true },
   { id: "leave_type", header: "Leave Type", accessor: "leave_type.name", visible: true },
   { id: "start_date", header: "From", accessor: "start_date", visible: true },
   { id: "end_date", header: "To", accessor: "end_date", visible: true },
@@ -167,6 +169,8 @@ export default function EmployeeLeaves() {
       ...l,
       leave_type: l.leave_type?.name || "",
       created_at: new Date(l.created_at).toLocaleDateString(),
+      department: employee?.department?.name || "-",
+      store: employee?.primary_store?.name || "-",
     }));
     exportToCSV(exportData, columns, "leave-requests");
   };
@@ -327,7 +331,7 @@ export default function EmployeeLeaves() {
               </TableHead>
               {visibleColumns.map((col) => (
                 <TableHead key={col.id}>
-                  {col.id !== "employee" && col.id !== "email" ? (
+                  {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -365,6 +369,10 @@ export default function EmployeeLeaves() {
                       />
                     ) : col.id === "email" ? (
                       <span className="text-muted-foreground">{employee?.email || "-"}</span>
+                    ) : col.id === "department" ? (
+                      <span>{employee?.department?.name || "-"}</span>
+                    ) : col.id === "store" ? (
+                      <span>{employee?.primary_store?.name || "-"}</span>
                     ) : col.id === "leave_type" ? (
                       <div className="flex items-center gap-2">
                         <span
@@ -475,16 +483,17 @@ export default function EmployeeLeaves() {
 
             {startDate && endDate && (
               <p className="text-sm text-muted-foreground">
-                Total Days: <span className="font-medium">{calculateDays()}</span>
+                Duration: {calculateDays()} day(s)
               </p>
             )}
 
             <div className="space-y-2">
-              <Label>Reason *</Label>
+              <Label>Reason</Label>
               <Textarea
-                placeholder="Please provide a reason for your leave..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
+                placeholder="Enter reason for leave (optional)"
+                rows={3}
               />
             </div>
           </div>
@@ -493,7 +502,7 @@ export default function EmployeeLeaves() {
             <Button variant="outline" onClick={() => setIsApplyDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleApplyLeave}
               disabled={!leaveType || !startDate || !endDate || createLeave.isPending}
             >

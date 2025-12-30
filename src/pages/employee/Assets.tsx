@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ type SortDirection = "asc" | "desc";
 export default function EmployeeAssets() {
   const { data: assets = [], isLoading: assetsLoading, isFetching } = useMyAssets();
   const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: locations = [] } = useAllLocations();
   const queryClient = useQueryClient();
 
   const isLoading = assetsLoading || employeeLoading;
@@ -58,10 +60,19 @@ export default function EmployeeAssets() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Get location name
+  const getLocationName = (locationId: string | null) => {
+    if (!locationId) return currentEmployee?.primary_store?.name || "-";
+    const location = locations.find((l) => l.id === locationId);
+    return location?.name || "-";
+  };
+
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "employee", header: "Employee", visible: true },
     { id: "email", header: "Email", visible: true },
+    { id: "department", header: "Department", visible: true },
+    { id: "store", header: "Store/Location", visible: true },
     { id: "name", header: "Asset Name", visible: true },
     { id: "category", header: "Category", visible: true },
     { id: "asset_tag", header: "Asset Tag", visible: true },
@@ -176,11 +187,15 @@ export default function EmployeeAssets() {
       model: a.model || "",
       condition: a.condition || "",
       assigned_date: a.assigned_date || "",
+      department: currentEmployee?.department?.name || "-",
+      store: getLocationName(a.location_id),
     }));
 
     const exportColumns: ColumnDef[] = [
       { id: "name", header: "Asset Name", visible: true },
       { id: "category", header: "Category", visible: true },
+      { id: "department", header: "Department", visible: true },
+      { id: "store", header: "Store/Location", visible: true },
       { id: "asset_tag", header: "Asset Tag", visible: true },
       { id: "serial_number", header: "Serial Number", visible: true },
       { id: "brand", header: "Brand", visible: true },
@@ -275,6 +290,12 @@ export default function EmployeeAssets() {
               {columns.find((c) => c.id === "email")?.visible && (
                 <TableHead>Email</TableHead>
               )}
+              {columns.find((c) => c.id === "department")?.visible && (
+                <TableHead>Department</TableHead>
+              )}
+              {columns.find((c) => c.id === "store")?.visible && (
+                <TableHead>Store/Location</TableHead>
+              )}
               {columns.find((c) => c.id === "name")?.visible && (
                 <TableHead><SortableHeader field="name">Asset Name</SortableHeader></TableHead>
               )}
@@ -321,6 +342,12 @@ export default function EmployeeAssets() {
                   )}
                   {columns.find((c) => c.id === "email")?.visible && (
                     <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
+                  )}
+                  {columns.find((c) => c.id === "department")?.visible && (
+                    <TableCell>{currentEmployee?.department?.name || "-"}</TableCell>
+                  )}
+                  {columns.find((c) => c.id === "store")?.visible && (
+                    <TableCell>{getLocationName(asset.location_id)}</TableCell>
                   )}
                   {columns.find((c) => c.id === "name")?.visible && (
                     <TableCell>
@@ -377,7 +404,7 @@ export default function EmployeeAssets() {
             })}
             {paginatedData.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   {assets.length === 0 ? "No assets assigned to you" : "No assets found matching your search"}
                 </TableCell>
               </TableRow>
