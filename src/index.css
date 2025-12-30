@@ -478,12 +478,12 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  }
 
   /* Show scrollbar for data tables */
   .show-scrollbar::-webkit-scrollbar {
-    display: block;
+    display: block !important;
     height: 8px;
+    width: 8px;
   }
 
   .show-scrollbar::-webkit-scrollbar-track {
@@ -501,9 +501,10 @@
   }
 
   .show-scrollbar {
-    -ms-overflow-style: auto;
-    scrollbar-width: thin;
+    -ms-overflow-style: auto !important;
+    scrollbar-width: thin !important;
   }
+}
 
 @layer utilities {
   .text-balance {
