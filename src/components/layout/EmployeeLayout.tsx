@@ -18,7 +18,7 @@ export function EmployeeLayout() {
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <main className="flex-1 overflow-auto scrollbar-hidden">
+        <main className="flex-1 min-h-0 overflow-auto scrollbar-hidden">
           <Outlet />
         </main>
       </div>
