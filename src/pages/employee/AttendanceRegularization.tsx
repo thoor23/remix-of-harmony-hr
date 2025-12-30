@@ -38,6 +38,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { 
@@ -318,53 +320,49 @@ export default function EmployeeAttendanceRegularization() {
 
             <div className="space-y-2">
               <Label htmlFor="request_date">Date *</Label>
-              <Input
-                id="request_date"
-                type="date"
+              <DatePicker
                 value={requestDate}
-                onChange={(e) => setRequestDate(e.target.value)}
-                max={format(new Date(), "yyyy-MM-dd")}
+                onChange={(value) => setRequestDate(value)}
+                placeholder="Select date"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="original_check_in">Original Check-In</Label>
-                <Input
-                  id="original_check_in"
-                  type="time"
+                <Label>Original Check-In</Label>
+                <TimePicker
                   value={originalCheckIn}
-                  onChange={(e) => setOriginalCheckIn(e.target.value)}
+                  onChange={setOriginalCheckIn}
+                  placeholder="--:--"
+                  disabled
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="original_check_out">Original Check-Out</Label>
-                <Input
-                  id="original_check_out"
-                  type="time"
+                <Label>Original Check-Out</Label>
+                <TimePicker
                   value={originalCheckOut}
-                  onChange={(e) => setOriginalCheckOut(e.target.value)}
+                  onChange={setOriginalCheckOut}
+                  placeholder="--:--"
+                  disabled
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="requested_check_in">Requested Check-In</Label>
-                <Input
-                  id="requested_check_in"
-                  type="time"
+                <Label>Requested Check-In</Label>
+                <TimePicker
                   value={requestedCheckIn}
-                  onChange={(e) => setRequestedCheckIn(e.target.value)}
+                  onChange={setRequestedCheckIn}
+                  placeholder="Select time"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="requested_check_out">Requested Check-Out</Label>
-                <Input
-                  id="requested_check_out"
-                  type="time"
+                <Label>Requested Check-Out</Label>
+                <TimePicker
                   value={requestedCheckOut}
-                  onChange={(e) => setRequestedCheckOut(e.target.value)}
+                  onChange={setRequestedCheckOut}
+                  placeholder="Select time"
                 />
               </div>
             </div>
