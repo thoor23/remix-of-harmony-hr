@@ -34,17 +34,17 @@ import {
   ChevronDown,
   Clock,
   ClipboardEdit,
-  FileSpreadsheet,
   FolderOpen,
   FileStack,
   Ticket,
-  MessageSquare,
   Receipt,
   TrendingUp,
+  Plus,
+  History,
+  PieChart,
+  Eye,
+  MessageSquarePlus,
   UserCircle,
-  Cog,
-  Palette,
-  Shield,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,7 +70,7 @@ interface NavSection {
 
 const employeeNavSections: NavSection[] = [
   {
-    label: "Overview",
+    label: "My Dashboard",
     items: [
       { title: "Dashboard", href: "/employee", icon: LayoutDashboard },
     ],
@@ -79,16 +79,18 @@ const employeeNavSections: NavSection[] = [
     label: "Time & Attendance",
     items: [
       {
-        title: "Attendance",
+        title: "My Attendance",
         icon: CalendarDays,
         children: [
-          { title: "My Attendance", href: "/employee/attendance", icon: Clock },
+          { title: "Attendance Log", href: "/employee/attendance", icon: Clock },
+          { title: "Attendance Regularization", href: "/employee/attendance/regularization", icon: ClipboardEdit },
         ],
       },
       {
-        title: "Shifts",
+        title: "My Shifts",
         icon: Clock,
         children: [
+          { title: "Current Shift", href: "/employee/shifts", icon: Eye },
           { title: "Shift Exchange", href: "/employee/shift-exchange", icon: ArrowLeftRight },
         ],
       },
@@ -99,10 +101,12 @@ const employeeNavSections: NavSection[] = [
     label: "Leave Management",
     items: [
       {
-        title: "Leaves",
+        title: "My Leaves",
         icon: CalendarCheck,
         children: [
-          { title: "My Leaves", href: "/employee/leaves", icon: CalendarCheck },
+          { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
+          { title: "Leave History", href: "/employee/leaves", icon: History },
+          { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
         ],
       },
     ],
@@ -111,26 +115,28 @@ const employeeNavSections: NavSection[] = [
     label: "Compensation",
     items: [
       {
-        title: "Payroll",
+        title: "My Payslips",
         icon: Wallet,
         children: [
-          { title: "My Payslips", href: "/employee/payslips", icon: Receipt },
+          { title: "View Payslips", href: "/employee/payslips", icon: Receipt },
+          { title: "Salary Details", href: "/employee/payslips/details", icon: TrendingUp },
         ],
       },
     ],
   },
   {
-    label: "Resources",
+    label: "My Resources",
     items: [
       {
-        title: "Documents",
+        title: "My Documents",
         icon: FileText,
         children: [
-          { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
+          { title: "Personal Documents", href: "/employee/documents", icon: FolderOpen },
+          { title: "Company Policies", href: "/employee/documents/policies", icon: FileStack },
         ],
       },
       {
-        title: "Assets",
+        title: "My Assets",
         icon: Package,
         children: [
           { title: "Assigned Assets", href: "/employee/assets", icon: Package },
@@ -145,6 +151,7 @@ const employeeNavSections: NavSection[] = [
         title: "Helpdesk",
         icon: HelpCircle,
         children: [
+          { title: "Create Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
           { title: "My Tickets", href: "/employee/helpdesk", icon: Ticket },
         ],
       },
@@ -153,7 +160,7 @@ const employeeNavSections: NavSection[] = [
   {
     label: "Account",
     items: [
-      { title: "My Profile", href: "/employee/profile", icon: User },
+      { title: "My Profile", href: "/employee/profile", icon: UserCircle },
       { title: "Settings", href: "/employee/settings", icon: Settings },
     ],
   },
@@ -184,7 +191,7 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
 
   const isActive = (href: string) => location.pathname === href;
   const isChildActive = (children?: { href: string }[]) =>
-    children?.some((child) => location.pathname === child.href);
+    children?.some((child) => location.pathname === child.href || location.pathname.startsWith(child.href + "/"));
 
   return (
     <aside
