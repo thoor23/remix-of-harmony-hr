@@ -306,7 +306,7 @@ export default function EditEmployee() {
         description="Update employee information"
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Row 1: Personal & Work Information */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Personal Information */}
@@ -819,7 +819,7 @@ export default function EditEmployee() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-4 pt-2">
+        <div className="flex justify-end gap-4 pt-4">
           <Button 
             type="button" 
             variant="outline" 
