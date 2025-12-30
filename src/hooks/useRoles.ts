@@ -25,7 +25,8 @@ export function useRoles() {
   return useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      return api.get<Role[]>("/settings/roles");
+      const data = await api.get<Role[]>("/settings/roles");
+      return Array.isArray(data) ? data : [];
     },
   });
 }
