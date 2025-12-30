@@ -3,7 +3,7 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,7 +61,7 @@ export default function EmployeeDocuments() {
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(true);
-  const [activeTab, setActiveTab] = useState("personal");
+  
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
@@ -213,7 +213,7 @@ export default function EmployeeDocuments() {
   };
 
   const handleExport = () => {
-    const docs = activeTab === "personal" ? filteredMyDocs : filteredCompanyDocs;
+    const docs = filteredMyDocs;
     const dataToExport = selectedRows.length > 0
       ? docs.filter((d) => selectedRows.includes(d.id))
       : docs;
@@ -525,21 +525,8 @@ export default function EmployeeDocuments() {
         </Card>
       </div>
 
-      {/* Document Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="personal">Personal Documents</TabsTrigger>
-          <TabsTrigger value="company">Company Policies</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="personal">
-          {renderDocumentTable(filteredMyDocs, personalPagination, true)}
-        </TabsContent>
-
-        <TabsContent value="company">
-          {renderDocumentTable(filteredCompanyDocs, companyPagination, false)}
-        </TabsContent>
-      </Tabs>
+      {/* Documents Table */}
+      {renderDocumentTable(filteredMyDocs, personalPagination, true)}
 
       {/* Upload Dialog */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
