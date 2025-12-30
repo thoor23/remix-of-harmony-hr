@@ -288,7 +288,6 @@ export default function EmployeeHelpdesk() {
       <div className="space-y-6">
         {/* Tickets Table */}
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
             <DataTableToolbar
               columns={columns}
               onToggleColumn={handleToggleColumn}
@@ -369,6 +368,7 @@ export default function EmployeeHelpdesk() {
               </div>
             )}
 
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -472,15 +472,15 @@ export default function EmployeeHelpdesk() {
                 )}
               </TableBody>
             </Table>
-            <TablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-            />
           </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </Card>
 
         {/* Ticket Detail / Messages */}
