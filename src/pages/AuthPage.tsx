@@ -104,7 +104,7 @@ export default function AuthPage() {
   }
 
   if (user && !isPasswordReset) {
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/admin";
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app/dashboard";
     navigate(from, { replace: true });
     return null;
   }
@@ -139,7 +139,8 @@ export default function AuthPage() {
     }
 
     toast.success("Welcome back!");
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/admin";
+    // Redirect based on role type - will be determined by PermissionContext after load
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app/dashboard";
     navigate(from, { replace: true });
   };
 
