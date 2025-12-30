@@ -67,8 +67,9 @@ export default function EmployeeDashboard() {
   const targetWeeklyHours = 40;
   const weeklyProgress = Math.min((weeklyHours / targetWeeklyHours) * 100, 100);
 
-  // Get current shift assignment
-  const currentShiftAssignment = shiftAssignments.find(a => a.is_active);
+  // Get current shift assignment - ensure it's an array
+  const shiftList = Array.isArray(shiftAssignments) ? shiftAssignments : (shiftAssignments ? [shiftAssignments] : []);
+  const currentShiftAssignment = shiftList.find(a => a.is_active);
   const currentShift = shifts.find(s => s.id === currentShiftAssignment?.shift_id);
 
   // Get upcoming holidays
