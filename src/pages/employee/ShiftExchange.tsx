@@ -35,6 +35,7 @@ import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import {
@@ -115,6 +116,8 @@ export default function EmployeeShiftExchange() {
   const [showFilters, setShowFilters] = useState(false);
 
   const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "employee", header: "Employee", visible: true },
+    { id: "email", header: "Email", visible: true },
     { id: "request_date", header: "Exchange Date", visible: true },
     { id: "target_employee", header: "With Employee", visible: true },
     { id: "shifts", header: "Shifts", visible: true },
@@ -404,6 +407,12 @@ export default function EmployeeShiftExchange() {
                 onCheckedChange={(checked) => handleSelectAll(checked as boolean, pagination.paginatedData)}
               />
             </TableHead>
+            {columns.find((c) => c.id === "employee")?.visible && (
+              <TableHead>Employee</TableHead>
+            )}
+            {columns.find((c) => c.id === "email")?.visible && (
+              <TableHead>Email</TableHead>
+            )}
             {columns.find((c) => c.id === "request_date")?.visible && (
               <TableHead><SortableHeader field="request_date">Exchange Date</SortableHeader></TableHead>
             )}
@@ -433,6 +442,21 @@ export default function EmployeeShiftExchange() {
                     onCheckedChange={(checked) => handleSelectRow(exchange.id, checked as boolean)}
                   />
                 </TableCell>
+                {columns.find((c) => c.id === "employee")?.visible && (
+                  <TableCell>
+                    <EmployeeCell
+                      avatarUrl={currentEmployee?.avatar_url}
+                      firstName={currentEmployee?.first_name}
+                      lastName={currentEmployee?.last_name}
+                      employeeId={currentEmployee?.employee_id}
+                    />
+                  </TableCell>
+                )}
+                {columns.find((c) => c.id === "email")?.visible && (
+                  <TableCell className="text-muted-foreground">
+                    {currentEmployee?.email || "-"}
+                  </TableCell>
+                )}
                 {columns.find((c) => c.id === "request_date")?.visible && (
                   <TableCell className="font-medium">
                     {format(new Date(exchange.request_date), "MMM dd, yyyy")}
@@ -500,7 +524,7 @@ export default function EmployeeShiftExchange() {
           })}
           {pagination.paginatedData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                 {isIncoming ? "No incoming requests" : "No exchange requests"}
               </TableCell>
             </TableRow>
