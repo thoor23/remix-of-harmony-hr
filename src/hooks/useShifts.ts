@@ -158,8 +158,11 @@ export function useDeleteShiftAssignment() {
 export function useMyShiftAssignment(employeeId?: string) {
   return useQuery({
     queryKey: ["my-shift-assignment", employeeId],
-    // Use /my endpoint which uses auth context
-    queryFn: () => api.get<any[]>('/shifts/assignments/my'),
+    queryFn: async () => {
+      const data = await api.get<any>('/shifts/assignments/my');
+      // API returns single object, convert to array for Dashboard compatibility
+      return data ? [data] : [];
+    },
     enabled: !!employeeId,
   });
 }
