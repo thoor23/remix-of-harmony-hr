@@ -270,14 +270,34 @@ const App = () => (
               >
                 <Route index element={<EmployeeDashboard />} />
                 <Route path="profile" element={<EmployeeProfile />} />
+                {/* Attendance */}
                 <Route path="attendance" element={<EmployeeAttendance />} />
-                <Route path="leaves" element={<EmployeeLeaves />} />
+                <Route path="attendance/log" element={<EmployeeAttendance />} />
+                <Route path="attendance/regularization" element={<EmployeeAttendance />} />
+                {/* Shifts */}
+                <Route path="shifts" element={<EmployeeShiftExchange />} />
                 <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
+                {/* Leaves */}
+                <Route path="leaves" element={<EmployeeLeaves />} />
+                <Route path="leaves/apply" element={<EmployeeLeaves />} />
+                <Route path="leaves/history" element={<EmployeeLeaves />} />
+                <Route path="leaves/balance" element={<EmployeeLeaves />} />
+                {/* Compensation */}
                 <Route path="payslips" element={<EmployeePayslips />} />
+                <Route path="payslips/salary" element={<EmployeePayslips />} />
+                {/* Documents */}
                 <Route path="documents" element={<EmployeeDocuments />} />
+                <Route path="documents/personal" element={<EmployeeDocuments />} />
+                <Route path="documents/policies" element={<EmployeeDocuments />} />
+                {/* Assets */}
                 <Route path="assets" element={<EmployeeAssets />} />
+                {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />
+                {/* Helpdesk */}
                 <Route path="helpdesk" element={<EmployeeHelpdesk />} />
+                <Route path="helpdesk/new" element={<EmployeeHelpdesk />} />
+                <Route path="helpdesk/tickets" element={<EmployeeHelpdesk />} />
+                {/* Settings */}
                 <Route path="settings" element={<EmployeeSettings />} />
               </Route>
 
