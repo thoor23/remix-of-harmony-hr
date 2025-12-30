@@ -39,25 +39,22 @@ export interface LeaveRequestWithDetails {
 export function useLeaveRequests() {
   return useQuery({
     queryKey: ["leave-requests"],
-    queryFn: () => api.get<LeaveRequestWithDetails[]>('/leaves/requests'),
+    queryFn: () => api.get<LeaveRequestWithDetails[]>("/leaves"),
   });
 }
 
 export function useLeaveTypes() {
   return useQuery({
     queryKey: ["leave-types"],
-    queryFn: () => api.get<any[]>('/leaves/types'),
+    queryFn: () => api.get<any[]>("/leaves/types"),
   });
 }
 
-export function useMyLeaveRequests(employeeId?: string) {
+// For employees - current user's leave requests
+export function useMyLeaveRequests() {
   return useQuery({
-    queryKey: ["my-leave-requests", employeeId],
-    queryFn: async () => {
-      if (!employeeId) return [];
-      return api.get<any[]>(`/leaves/requests/employee/${employeeId}`);
-    },
-    enabled: !!employeeId,
+    queryKey: ["my-leave-requests"],
+    queryFn: async () => api.get<any[]>(`/leaves/my`),
   });
 }
 
@@ -73,7 +70,8 @@ export function useCreateLeaveRequest() {
       days: number;
       reason?: string;
     }) => {
-      await api.post('/leaves/requests', request);
+      // backend infers employee_id from auth; keeping employee_id in payload is harmless but not required
+      await api.post("/leaves", request);
       return request;
     },
     onSuccess: async () => {
@@ -93,11 +91,12 @@ export function useCancelLeaveRequest() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.patch(`/leaves/requests/${id}`, { status: "cancelled" });
+      await api.delete(`/leaves/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
       toast.success("Leave request cancelled");
     },
     onError: (error: Error) => {
