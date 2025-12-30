@@ -1,10 +1,28 @@
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Tag, Calendar } from "lucide-react";
+import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 const categoryIcons: Record<string, React.ElementType> = {
   laptop: Laptop,
@@ -22,22 +40,170 @@ const conditionColors: Record<string, string> = {
   poor: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+type SortField = "name" | "category" | "serial_number" | "assigned_date" | "condition";
+type SortDirection = "asc" | "desc";
+
 export default function EmployeeAssets() {
-  const { data: assets = [], isLoading } = useMyAssets();
+  const { data: assets = [], isLoading, isFetching } = useMyAssets();
+  const queryClient = useQueryClient();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<SortField>("assigned_date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Column definitions
+  const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "name", header: "Asset Name", visible: true },
+    { id: "category", header: "Category", visible: true },
+    { id: "asset_tag", header: "Asset Tag", visible: true },
+    { id: "serial_number", header: "Serial Number", visible: true },
+    { id: "condition", header: "Condition", visible: true },
+    { id: "assigned_date", header: "Assigned Date", visible: true },
+  ]);
+
+  // Filter and sort assets
+  const filteredAssets = useMemo(() => {
+    let data = [...assets];
+    if (searchQuery) {
+      data = data.filter(
+        (a) =>
+          a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          a.asset_tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          a.serial_number?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return data.sort((a, b) => {
+      let aVal: string | number = "";
+      let bVal: string | number = "";
+      switch (sortField) {
+        case "name":
+          aVal = a.name;
+          bVal = b.name;
+          break;
+        case "category":
+          aVal = a.category?.name || "";
+          bVal = b.category?.name || "";
+          break;
+        case "serial_number":
+          aVal = a.serial_number || "";
+          bVal = b.serial_number || "";
+          break;
+        case "assigned_date":
+          aVal = a.assigned_date || "";
+          bVal = b.assigned_date || "";
+          break;
+        case "condition":
+          aVal = a.condition || "";
+          bVal = b.condition || "";
+          break;
+      }
+      return sortDirection === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+  }, [assets, searchQuery, sortField, sortDirection]);
+
+  // Pagination
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: filteredAssets, defaultPageSize: 10 });
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <Button
+      variant="ghost"
+      onClick={() => handleSort(field)}
+      className="h-8 flex items-center gap-1 -ml-3 font-medium hover:bg-transparent"
+    >
+      {children}
+      <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+    </Button>
+  );
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(paginatedData.map((a) => a.id));
+    } else {
+      setSelectedRows([]);
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRows([...selectedRows, id]);
+    } else {
+      setSelectedRows(selectedRows.filter((r) => r !== id));
+    }
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(columns.map((col) => (col.id === columnId ? { ...col, visible } : col)));
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.length > 0
+      ? filteredAssets.filter((a) => selectedRows.includes(a.id))
+      : filteredAssets;
+
+    const exportData = dataToExport.map((a) => ({
+      name: a.name,
+      category: a.category?.name || "",
+      asset_tag: a.asset_tag,
+      serial_number: a.serial_number || "",
+      brand: a.brand || "",
+      model: a.model || "",
+      condition: a.condition || "",
+      assigned_date: a.assigned_date || "",
+    }));
+
+    const exportColumns: ColumnDef[] = [
+      { id: "name", header: "Asset Name", visible: true },
+      { id: "category", header: "Category", visible: true },
+      { id: "asset_tag", header: "Asset Tag", visible: true },
+      { id: "serial_number", header: "Serial Number", visible: true },
+      { id: "brand", header: "Brand", visible: true },
+      { id: "model", header: "Model", visible: true },
+      { id: "condition", header: "Condition", visible: true },
+      { id: "assigned_date", header: "Assigned Date", visible: true },
+    ];
+
+    exportToCSV(exportData, exportColumns, `my-assets-${format(new Date(), "yyyy-MM-dd")}`);
+    toast.success(`Exported ${dataToExport.length} assets`);
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["my-assets"] });
+  };
 
   if (isLoading) {
     return (
       <PageContainer>
         <PageHeader title="My Assets" description="View assets assigned to you" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-40 w-full" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          <Skeleton className="h-24" />
         </div>
+        <Card>
+          <div className="p-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </Card>
       </PageContainer>
     );
   }
@@ -46,93 +212,162 @@ export default function EmployeeAssets() {
     <PageContainer>
       <PageHeader title="My Assets" description="View assets assigned to you" />
 
-      {assets.length === 0 ? (
+      {/* Stats Card */}
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No Assets Assigned</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              You don't have any assets assigned to you yet.
-            </p>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{assets.length}</p>
+              <p className="text-sm text-muted-foreground">Assigned Assets</p>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <div className="flex items-center gap-2 mb-4">
-            <Package className="h-5 w-5 text-primary" />
-            <span className="text-sm text-muted-foreground">
-              {assets.length} asset{assets.length !== 1 ? 's' : ''} assigned to you
-            </span>
-          </div>
+      </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {assets.map((asset) => {
-              const categoryName = asset.category?.name?.toLowerCase() || 'default';
+      {/* Assets Table */}
+      <Card>
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={handleRefresh}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
+          isRefreshing={isFetching}
+        />
+
+        {showFilters && (
+          <div className="px-4 py-3 border-b">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, tag, or serial..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+        )}
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={paginatedData.length > 0 && selectedRows.length === paginatedData.length}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+              {columns.find((c) => c.id === "name")?.visible && (
+                <TableHead><SortableHeader field="name">Asset Name</SortableHeader></TableHead>
+              )}
+              {columns.find((c) => c.id === "category")?.visible && (
+                <TableHead><SortableHeader field="category">Category</SortableHeader></TableHead>
+              )}
+              {columns.find((c) => c.id === "asset_tag")?.visible && (
+                <TableHead>Asset Tag</TableHead>
+              )}
+              {columns.find((c) => c.id === "serial_number")?.visible && (
+                <TableHead><SortableHeader field="serial_number">Serial Number</SortableHeader></TableHead>
+              )}
+              {columns.find((c) => c.id === "condition")?.visible && (
+                <TableHead><SortableHeader field="condition">Condition</SortableHeader></TableHead>
+              )}
+              {columns.find((c) => c.id === "assigned_date")?.visible && (
+                <TableHead><SortableHeader field="assigned_date">Assigned Date</SortableHeader></TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.map((asset) => {
+              const categoryName = asset.category?.name?.toLowerCase() || "default";
               const IconComponent = categoryIcons[categoryName] || categoryIcons.default;
-              const conditionClass = conditionColors[asset.condition?.toLowerCase() || ''] || '';
+              const conditionClass = conditionColors[asset.condition?.toLowerCase() || ""] || "";
 
               return (
-                <Card key={asset.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  {asset.image_url && (
-                    <div className="aspect-video bg-muted relative overflow-hidden">
-                      <img
-                        src={asset.image_url}
-                        alt={asset.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
+                <TableRow key={asset.id} data-state={selectedRows.includes(asset.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedRows.includes(asset.id)}
+                      onCheckedChange={(checked) => handleSelectRow(asset.id, checked as boolean)}
+                    />
+                  </TableCell>
+                  {columns.find((c) => c.id === "name")?.visible && (
+                    <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <IconComponent className="h-5 w-5 text-primary" />
+                        <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                          <IconComponent className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{asset.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            {asset.brand} {asset.model}
-                          </p>
+                          <p className="font-medium">{asset.name}</p>
+                          {(asset.brand || asset.model) && (
+                            <p className="text-xs text-muted-foreground">
+                              {[asset.brand, asset.model].filter(Boolean).join(" ")}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="gap-1">
-                        <Tag className="h-3 w-3" />
-                        {asset.asset_tag}
-                      </Badge>
-                      {asset.category?.name && (
+                    </TableCell>
+                  )}
+                  {columns.find((c) => c.id === "category")?.visible && (
+                    <TableCell>
+                      {asset.category?.name ? (
                         <Badge variant="secondary">{asset.category.name}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
-                      {asset.condition && (
+                    </TableCell>
+                  )}
+                  {columns.find((c) => c.id === "asset_tag")?.visible && (
+                    <TableCell className="font-mono text-sm">{asset.asset_tag}</TableCell>
+                  )}
+                  {columns.find((c) => c.id === "serial_number")?.visible && (
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {asset.serial_number || "-"}
+                    </TableCell>
+                  )}
+                  {columns.find((c) => c.id === "condition")?.visible && (
+                    <TableCell>
+                      {asset.condition ? (
                         <Badge variant="outline" className={conditionClass}>
                           {asset.condition}
                         </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </div>
-
-                    {asset.serial_number && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Serial: </span>
-                        <span className="font-mono">{asset.serial_number}</span>
-                      </div>
-                    )}
-
-                    {asset.assigned_date && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        Assigned {format(new Date(asset.assigned_date), "MMM dd, yyyy")}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </TableCell>
+                  )}
+                  {columns.find((c) => c.id === "assigned_date")?.visible && (
+                    <TableCell className="text-muted-foreground">
+                      {asset.assigned_date ? format(new Date(asset.assigned_date), "MMM dd, yyyy") : "-"}
+                    </TableCell>
+                  )}
+                </TableRow>
               );
             })}
-          </div>
-        </>
-      )}
+            {paginatedData.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {assets.length === 0 ? "No assets assigned to you" : "No assets found matching your search"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredAssets.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
+      </Card>
     </PageContainer>
   );
 }
