@@ -111,7 +111,6 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
       { title: "Document Policies", href: "/employee/documents/policies", icon: FileStack },
-      { title: "My Report", href: "/employee/documents/report", icon: BarChart3 },
     ],
   },
   {
@@ -119,7 +118,6 @@ const employeeNavItems: NavItem[] = [
     icon: Package,
     children: [
       { title: "Assigned Assets", href: "/employee/assets", icon: Package },
-      { title: "My Report", href: "/employee/assets/report", icon: BarChart3 },
     ],
   },
   {
