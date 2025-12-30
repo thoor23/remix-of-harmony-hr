@@ -49,6 +49,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -777,14 +778,11 @@ export default function NotificationCentre() {
                       className="p-3 pointer-events-auto"
                     />
                     <div className="p-3 border-t">
-                      <Input
-                        type="time"
-                        value={announcementForm.scheduled_at 
-                          ? format(announcementForm.scheduled_at, "HH:mm") 
-                          : ""}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const [hours, minutes] = e.target.value.split(":");
+                      <TimePicker
+                        value={announcementForm.scheduled_at ? format(announcementForm.scheduled_at, "HH:mm") : ""}
+                        onChange={(time) => {
+                          if (time) {
+                            const [hours, minutes] = time.split(":");
                             const newDate = announcementForm.scheduled_at 
                               ? new Date(announcementForm.scheduled_at) 
                               : new Date();
@@ -792,6 +790,7 @@ export default function NotificationCentre() {
                             setAnnouncementForm({ ...announcementForm, scheduled_at: newDate });
                           }
                         }}
+                        placeholder="Select time"
                       />
                       {announcementForm.scheduled_at && (
                         <Button 
@@ -834,14 +833,11 @@ export default function NotificationCentre() {
                       className="p-3 pointer-events-auto"
                     />
                     <div className="p-3 border-t">
-                      <Input
-                        type="time"
-                        value={announcementForm.expires_at 
-                          ? format(announcementForm.expires_at, "HH:mm") 
-                          : ""}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const [hours, minutes] = e.target.value.split(":");
+                      <TimePicker
+                        value={announcementForm.expires_at ? format(announcementForm.expires_at, "HH:mm") : ""}
+                        onChange={(time) => {
+                          if (time) {
+                            const [hours, minutes] = time.split(":");
                             const newDate = announcementForm.expires_at 
                               ? new Date(announcementForm.expires_at) 
                               : new Date();
@@ -849,6 +845,7 @@ export default function NotificationCentre() {
                             setAnnouncementForm({ ...announcementForm, expires_at: newDate });
                           }
                         }}
+                        placeholder="Select time"
                       />
                       {announcementForm.expires_at && (
                         <Button 
