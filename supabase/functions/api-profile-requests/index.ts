@@ -5,47 +5,6 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Helper to fetch profiles and merge into requests
-async function mergeProfilesIntoRequests(supabase: any, requests: any[]) {
-  if (!requests || requests.length === 0) return requests;
-
-  // Collect all user IDs
-  const userIds: string[] = [];
-  requests.forEach((r: any) => {
-    if (r?.employee?.user_id) userIds.push(r.employee.user_id);
-    if (r?.reviewer?.user_id) userIds.push(r.reviewer.user_id);
-  });
-
-  const uniqueUserIds = [...new Set(userIds)];
-  if (uniqueUserIds.length === 0) return requests;
-
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('user_id, first_name, last_name, email, avatar_url')
-    .in('user_id', uniqueUserIds);
-
-  if (profilesError) throw profilesError;
-
-  const profilesMap = (profiles || []).reduce((acc: Record<string, any>, p: any) => {
-    acc[p.user_id] = p;
-    return acc;
-  }, {});
-
-  return requests.map((r: any) => {
-    const employeeUserId = r?.employee?.user_id;
-    const reviewerUserId = r?.reviewer?.user_id;
-    return {
-      ...r,
-      employee: r.employee
-        ? { ...r.employee, profile: employeeUserId ? profilesMap[employeeUserId] || null : null }
-        : null,
-      reviewer: r.reviewer
-        ? { ...r.reviewer, profile: reviewerUserId ? profilesMap[reviewerUserId] || null : null }
-        : null,
-    };
-  });
-}
-
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -83,16 +42,14 @@ Deno.serve(async (req) => {
         .from('profile_change_requests')
         .select(`
           *,
-          employee:employees!profile_change_requests_employee_id_fkey(id, employee_id, user_id),
-          reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, user_id)
+          employee:employees!profile_change_requests_employee_id_fkey(id, employee_id, first_name, last_name, email, avatar_url),
+          reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, first_name, last_name, email, avatar_url)
         `)
         .eq('employee_id', employeeId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      const result = await mergeProfilesIntoRequests(supabase, data || []);
-      return jsonResponse(result);
+      return jsonResponse(data || []);
     }
 
     // GET / - Get all change requests (admin/hr only)
@@ -107,8 +64,8 @@ Deno.serve(async (req) => {
         .from('profile_change_requests')
         .select(`
           *,
-          employee:employees!profile_change_requests_employee_id_fkey(id, employee_id, user_id),
-          reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, user_id)
+          employee:employees!profile_change_requests_employee_id_fkey(id, employee_id, first_name, last_name, email, avatar_url),
+          reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, first_name, last_name, email, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
@@ -118,9 +75,7 @@ Deno.serve(async (req) => {
 
       const { data, error } = await query;
       if (error) throw error;
-
-      const result = await mergeProfilesIntoRequests(supabase, data || []);
-      return jsonResponse(result);
+      return jsonResponse(data || []);
     }
 
     // POST / - Create a change request
