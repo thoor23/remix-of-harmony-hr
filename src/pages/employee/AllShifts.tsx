@@ -47,7 +47,7 @@ import {
 import { useCreateShiftExchangeRequest } from "@/hooks/useShiftExchange";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyShiftAssignment, useShiftAssignments, useShifts } from "@/hooks/useShifts";
-import { useEmployees, useDepartments } from "@/hooks/useEmployees";
+import { useEmployeeList, useDepartments } from "@/hooks/useEmployees";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -57,7 +57,7 @@ export default function EmployeeAllShifts() {
   const { data: myShiftAssignments = [] } = useMyShiftAssignment(currentEmployee?.id);
   const { data: shiftAssignments = [], isFetching } = useShiftAssignments();
   const { data: shifts = [] } = useShifts();
-  const { data: employees = [], isLoading: isLoadingEmployees } = useEmployees();
+  const { data: employees = [], isLoading: isLoadingEmployees } = useEmployeeList();
   const { data: departments = [] } = useDepartments();
   const queryClient = useQueryClient();
 
