@@ -14,14 +14,30 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/shared/StatCard";
 import { CalendarDays, Clock, CheckCircle, TrendingUp } from "lucide-react";
-import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
 import { format } from "date-fns";
 import { useMemo } from "react";
 
+// Helper to safely format date
+const safeFormatDate = (dateStr: string | null | undefined, formatStr: string): string => {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
+    return format(date, formatStr);
+  } catch {
+    return "-";
+  }
+};
+
+// Helper to format time string (HH:mm:ss)
+const formatTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "-";
+  return timeStr.slice(0, 5); // Take HH:mm from HH:mm:ss
+};
+
 export default function EmployeeAttendanceReport() {
-  const { data: currentEmployee } = useCurrentEmployee();
-  const { data: attendanceRecords = [] } = useMyAttendance(currentEmployee?.id || "", undefined);
+  const { data: attendanceRecords = [] } = useMyAttendance();
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -42,8 +58,10 @@ export default function EmployeeAttendanceReport() {
   const monthlyTrendData = useMemo(() => {
     const monthMap = new Map<string, number>();
     attendanceRecords.forEach(record => {
-      const month = format(new Date(record.date), "MMM");
-      monthMap.set(month, (monthMap.get(month) || 0) + 1);
+      const dateStr = safeFormatDate(record.date, "MMM");
+      if (dateStr !== "-") {
+        monthMap.set(dateStr, (monthMap.get(dateStr) || 0) + 1);
+      }
     });
     return Array.from(monthMap.entries()).slice(-6).map(([name, value]) => ({ name, value }));
   }, [attendanceRecords]);
@@ -60,12 +78,14 @@ export default function EmployeeAttendanceReport() {
   const workHoursByDay = useMemo(() => {
     const dayMap = new Map<string, { hours: number; count: number }>();
     attendanceRecords.forEach(record => {
-      const day = format(new Date(record.date), "EEE");
-      const current = dayMap.get(day) || { hours: 0, count: 0 };
-      dayMap.set(day, { 
-        hours: current.hours + (record.work_hours || 0), 
-        count: current.count + 1 
-      });
+      const day = safeFormatDate(record.date, "EEE");
+      if (day !== "-") {
+        const current = dayMap.get(day) || { hours: 0, count: 0 };
+        dayMap.set(day, { 
+          hours: current.hours + (record.work_hours || 0), 
+          count: current.count + 1 
+        });
+      }
     });
     return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
       .map(day => {
@@ -81,9 +101,9 @@ export default function EmployeeAttendanceReport() {
   const exportData = {
     headers: ["Date", "Check In", "Check Out", "Hours", "Status"],
     rows: attendanceRecords.map(r => [
-      format(new Date(r.date), "dd MMM yyyy"),
-      r.check_in ? format(new Date(r.check_in), "HH:mm") : "-",
-      r.check_out ? format(new Date(r.check_out), "HH:mm") : "-",
+      safeFormatDate(r.date, "dd MMM yyyy"),
+      formatTime(r.check_in),
+      formatTime(r.check_out),
       r.work_hours?.toFixed(1) || "-",
       r.status,
     ]),
@@ -168,11 +188,11 @@ export default function EmployeeAttendanceReport() {
               ) : (
                 recentRecords.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{format(new Date(record.date), "dd MMM yyyy")}</TableCell>
-                    <TableCell>{record.check_in ? format(new Date(record.check_in), "HH:mm") : "-"}</TableCell>
-                    <TableCell>{record.check_out ? format(new Date(record.check_out), "HH:mm") : "-"}</TableCell>
+                    <TableCell>{safeFormatDate(record.date, "dd MMM yyyy")}</TableCell>
+                    <TableCell>{formatTime(record.check_in)}</TableCell>
+                    <TableCell>{formatTime(record.check_out)}</TableCell>
                     <TableCell className="text-center">{record.work_hours?.toFixed(1) || "-"}</TableCell>
-                    <TableCell className="capitalize">{record.status.replace("_", " ")}</TableCell>
+                    <TableCell className="capitalize">{record.status?.replace("_", " ") || "-"}</TableCell>
                   </TableRow>
                 ))
               )}

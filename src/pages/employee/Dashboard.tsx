@@ -38,7 +38,7 @@ export default function EmployeeDashboard() {
   const { data: shifts = [] } = useShifts();
   
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-  const { data: attendanceRecords = [] } = useMyAttendance(employee?.id || "", currentMonth);
+  const { data: attendanceRecords = [] } = useMyAttendance(currentMonth);
 
   // Calculate stats
   const presentCount = attendanceRecords.filter(r => r.status === "present").length;
