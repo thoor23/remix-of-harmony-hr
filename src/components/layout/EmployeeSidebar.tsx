@@ -63,107 +63,68 @@ interface NavItem {
   children?: { title: string; href: string; icon: React.ElementType }[];
 }
 
-interface NavSection {
-  label: string;
-  items: NavItem[];
-}
-
-const employeeNavSections: NavSection[] = [
+// Flat navigation items - no section groupings
+const employeeNavItems: NavItem[] = [
+  { title: "Dashboard", href: "/employee", icon: LayoutDashboard },
   {
-    label: "Core Operations",
-    items: [
-      { title: "Dashboard", href: "/employee", icon: LayoutDashboard },
+    title: "Attendance",
+    icon: CalendarDays,
+    children: [
+      { title: "Attendance Records", href: "/employee/attendance", icon: Clock },
+      { title: "Regularization Requests", href: "/employee/attendance/regularization", icon: ClipboardEdit },
     ],
   },
   {
-    label: "Attendance Management",
-    items: [
-      {
-        title: "Attendance",
-        icon: CalendarDays,
-        children: [
-          { title: "Attendance Records", href: "/employee/attendance", icon: Clock },
-          { title: "Regularization Requests", href: "/employee/attendance/regularization", icon: ClipboardEdit },
-        ],
-      },
-      {
-        title: "Shift Management",
-        icon: Clock,
-        children: [
-          { title: "My Shift Schedule", href: "/employee/shifts", icon: Eye },
-          { title: "Shift Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
-        ],
-      },
-      { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
+    title: "Shift Management",
+    icon: Clock,
+    children: [
+      { title: "My Shift Schedule", href: "/employee/shifts", icon: Eye },
+      { title: "Shift Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
+    ],
+  },
+  { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
+  {
+    title: "Leave Requests",
+    icon: CalendarCheck,
+    children: [
+      { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
+      { title: "Leave Records", href: "/employee/leaves", icon: History },
+      { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
     ],
   },
   {
-    label: "Leave Management",
-    items: [
-      {
-        title: "Leave Requests",
-        icon: CalendarCheck,
-        children: [
-          { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
-          { title: "Leave Records", href: "/employee/leaves", icon: History },
-          { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
-        ],
-      },
+    title: "Payroll",
+    icon: Wallet,
+    children: [
+      { title: "Payslip Records", href: "/employee/payslips", icon: Receipt },
+      { title: "Salary Configuration", href: "/employee/payslips/details", icon: TrendingUp },
     ],
   },
   {
-    label: "Financial",
-    items: [
-      {
-        title: "Payroll Management",
-        icon: Wallet,
-        children: [
-          { title: "Payslip Records", href: "/employee/payslips", icon: Receipt },
-          { title: "Salary Configuration", href: "/employee/payslips/details", icon: TrendingUp },
-        ],
-      },
+    title: "Documents",
+    icon: FileText,
+    children: [
+      { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
+      { title: "Document Policies", href: "/employee/documents/policies", icon: FileStack },
     ],
   },
   {
-    label: "Resources",
-    items: [
-      {
-        title: "Document Management",
-        icon: FileText,
-        children: [
-          { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
-          { title: "Document Policies", href: "/employee/documents/policies", icon: FileStack },
-        ],
-      },
-      {
-        title: "Asset Management",
-        icon: Package,
-        children: [
-          { title: "Assigned Assets", href: "/employee/assets", icon: Package },
-        ],
-      },
+    title: "Assets",
+    icon: Package,
+    children: [
+      { title: "Assigned Assets", href: "/employee/assets", icon: Package },
     ],
   },
   {
-    label: "Communication",
-    items: [
-      {
-        title: "Helpdesk",
-        icon: HelpCircle,
-        children: [
-          { title: "New Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
-          { title: "All Tickets", href: "/employee/helpdesk", icon: Ticket },
-        ],
-      },
+    title: "Helpdesk",
+    icon: HelpCircle,
+    children: [
+      { title: "New Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
+      { title: "All Tickets", href: "/employee/helpdesk", icon: Ticket },
     ],
   },
-  {
-    label: "Account Settings",
-    items: [
-      { title: "Profile", href: "/employee/profile", icon: UserCircle },
-      { title: "Settings", href: "/employee/settings", icon: Settings },
-    ],
-  },
+  { title: "Profile", href: "/employee/profile", icon: UserCircle },
+  { title: "Settings", href: "/employee/settings", icon: Settings },
 ];
 
 interface EmployeeSidebarProps {
@@ -228,160 +189,141 @@ export function EmployeeSidebar({ collapsed, onCollapsedChange }: EmployeeSideba
       {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
         <TooltipProvider delayDuration={0}>
-          <nav className="px-2">
-            {employeeNavSections.map((section, sectionIndex) => (
-              <div key={section.label} className={cn(sectionIndex > 0 && "mt-4")}>
-                {/* Section Label */}
-                {!collapsed && (
-                  <div className="px-3 py-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {section.label}
-                    </span>
-                  </div>
-                )}
-                {collapsed && sectionIndex > 0 && (
-                  <div className="mx-2 my-2 border-t border-sidebar-border" />
-                )}
-                
-                {/* Section Items */}
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    if (item.children) {
-                      const isOpen = openItems.includes(item.title);
-                      const hasActiveChild = isChildActive(item.children);
+          <nav className="px-2 space-y-1">
+            {employeeNavItems.map((item) => {
+              if (item.children) {
+                const isOpen = openItems.includes(item.title);
+                const hasActiveChild = isChildActive(item.children);
 
-                      if (collapsed) {
-                        return (
-                          <Popover key={item.title}>
-                            <PopoverTrigger asChild>
-                              <button
-                                className={cn(
-                                  "flex items-center justify-center h-10 w-full rounded-md transition-colors",
-                                  hasActiveChild
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                )}
-                              >
-                                <item.icon className="h-5 w-5" />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent side="right" align="start" className="w-48 p-2">
-                              <div className="font-medium text-sm mb-2 px-2 text-muted-foreground">
-                                {item.title}
-                              </div>
-                              <div className="space-y-1">
-                                {item.children.map((child) => (
-                                  <Link
-                                    key={child.href}
-                                    to={child.href}
-                                    className={cn(
-                                      "flex items-center gap-2 py-2 px-2 rounded-md text-sm transition-colors",
-                                      isActive(child.href)
-                                        ? "bg-accent text-accent-foreground font-medium"
-                                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                                    )}
-                                  >
-                                    <child.icon className="h-4 w-4" />
-                                    {child.title}
-                                  </Link>
-                                ))}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        );
-                      }
-
-                      return (
-                        <Collapsible
-                          key={item.title}
-                          open={isOpen}
-                          onOpenChange={() => toggleItem(item.title)}
+                if (collapsed) {
+                  return (
+                    <Popover key={item.title}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "flex items-center justify-center h-10 w-full rounded-md transition-colors",
+                            hasActiveChild
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
                         >
-                          <CollapsibleTrigger asChild>
-                            <button
-                              className={cn(
-                                "flex items-center justify-between w-full h-10 px-3 rounded-md text-sm transition-colors",
-                                hasActiveChild
-                                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                              )}
-                            >
-                              <span className="flex items-center gap-3">
-                                <item.icon className="h-5 w-5" />
-                                {item.title}
-                              </span>
-                              <ChevronDown
-                                className={cn(
-                                  "h-4 w-4 transition-transform",
-                                  isOpen && "rotate-180"
-                                )}
-                              />
-                            </button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-1 ml-4 pl-4 border-l">
-                            {item.children.map((child) => (
-                              <Link
-                                key={child.href}
-                                to={child.href}
-                                className={cn(
-                                  "flex items-center gap-2 h-9 px-3 rounded-md text-sm transition-colors",
-                                  isActive(child.href)
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                )}
-                              >
-                                <child.icon className="h-4 w-4" />
-                                {child.title}
-                              </Link>
-                            ))}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      );
-                    }
-
-                    // Simple nav item without children
-                    if (collapsed) {
-                      return (
-                        <Tooltip key={item.title}>
-                          <TooltipTrigger asChild>
+                          <item.icon className="h-5 w-5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="right" align="start" className="w-48 p-2">
+                        <div className="font-medium text-sm mb-2 px-2 text-muted-foreground">
+                          {item.title}
+                        </div>
+                        <div className="space-y-1">
+                          {item.children.map((child) => (
                             <Link
-                              to={item.href!}
+                              key={child.href}
+                              to={child.href}
                               className={cn(
-                                "flex items-center justify-center h-10 w-full rounded-md transition-colors",
-                                isActive(item.href!)
-                                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                "flex items-center gap-2 py-2 px-2 rounded-md text-sm transition-colors",
+                                isActive(child.href)
+                                  ? "bg-accent text-accent-foreground font-medium"
+                                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
                               )}
                             >
-                              <item.icon className="h-5 w-5" />
+                              <child.icon className="h-4 w-4" />
+                              {child.title}
                             </Link>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            {item.title}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    }
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                }
 
-                    return (
+                return (
+                  <Collapsible
+                    key={item.title}
+                    open={isOpen}
+                    onOpenChange={() => toggleItem(item.title)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex items-center justify-between w-full h-10 px-3 rounded-md text-sm transition-colors",
+                          hasActiveChild
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <span className="flex items-center gap-3">
+                          <item.icon className="h-5 w-5" />
+                          {item.title}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            isOpen && "rotate-180"
+                          )}
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-1 ml-4 pl-4 border-l">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          to={child.href}
+                          className={cn(
+                            "flex items-center gap-2 h-9 px-3 rounded-md text-sm transition-colors",
+                            isActive(child.href)
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <child.icon className="h-4 w-4" />
+                          {child.title}
+                        </Link>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              }
+
+              // Simple nav item without children
+              if (collapsed) {
+                return (
+                  <Tooltip key={item.title}>
+                    <TooltipTrigger asChild>
                       <Link
-                        key={item.title}
                         to={item.href!}
                         className={cn(
-                          "flex items-center gap-3 h-10 px-3 rounded-md text-sm transition-colors",
+                          "flex items-center justify-center h-10 w-full rounded-md transition-colors",
                           isActive(item.href!)
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
                         <item.icon className="h-5 w-5" />
-                        {item.title}
                       </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.title}
+                  to={item.href!}
+                  className={cn(
+                    "flex items-center gap-3 h-10 px-3 rounded-md text-sm transition-colors",
+                    isActive(item.href!)
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.title}
+                </Link>
+              );
+            })}
           </nav>
         </TooltipProvider>
       </ScrollArea>
