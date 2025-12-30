@@ -15,16 +15,20 @@ import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { ReportFilters } from "@/components/reports/ReportFilters";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
-import { Clock, CheckCircle, XCircle, AlertCircle, Timer, ArrowUpDown } from "lucide-react";
+import { Clock, CheckCircle, XCircle, AlertCircle, Timer, ArrowUpDown, Search, Calendar as CalendarIcon, X } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
 import { useAllLocations } from "@/hooks/useLocations";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRange } from "react-day-picker";
-import { subDays } from "date-fns";
+import { subDays, startOfMonth, endOfMonth, subMonths, format, parseISO, isWithinInterval } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
@@ -38,6 +42,13 @@ const defaultColumns: ColumnDef[] = [
   { id: "status", header: "Status", accessor: "status", visible: true },
 ];
 
+const datePresets = [
+  { label: "Last 7 days", getValue: () => ({ from: subDays(new Date(), 7), to: new Date() }) },
+  { label: "Last 30 days", getValue: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+  { label: "This month", getValue: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Last 3 months", getValue: () => ({ from: subMonths(new Date(), 3), to: new Date() }) },
+];
+
 export default function EmployeeAttendance() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
@@ -46,6 +57,12 @@ export default function EmployeeAttendance() {
   const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedPreset, setSelectedPreset] = useState("Last 30 days");
+  const [showFilters, setShowFilters] = useState(true);
 
   const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: myRecords = [], isLoading: recordsLoading, refetch } = useMyAttendance();
@@ -58,15 +75,48 @@ export default function EmployeeAttendance() {
     return location?.name || "-";
   };
 
-  // Filter records by date range
+  // Get unique statuses for filter dropdown
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set(myRecords.map((r) => r.status));
+    return Array.from(statuses).sort();
+  }, [myRecords]);
+
+  // Filter records by date range, status, and search
   const filteredRecords = useMemo(() => {
     return myRecords.filter((r) => {
-      const recordDate = new Date(r.date);
-      if (dateRange?.from && recordDate < dateRange.from) return false;
-      if (dateRange?.to && recordDate > dateRange.to) return false;
+      // Date range filter
+      if (dateRange?.from || dateRange?.to) {
+        const recordDate = new Date(r.date);
+        if (dateRange.from && dateRange.to) {
+          if (!isWithinInterval(recordDate, { start: dateRange.from, end: dateRange.to })) {
+            return false;
+          }
+        } else if (dateRange.from && recordDate < dateRange.from) {
+          return false;
+        } else if (dateRange.to && recordDate > dateRange.to) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (statusFilter !== "all" && r.status !== statusFilter) {
+        return false;
+      }
+
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const dateStr = r.date.toLowerCase();
+        const notes = (r.notes || "").toLowerCase();
+        const status = r.status.toLowerCase();
+        if (!dateStr.includes(query) && !notes.includes(query) && !status.includes(query)) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [myRecords, dateRange]);
+  }, [myRecords, dateRange, statusFilter, searchQuery]);
 
   // Sort records
   const sortedRecords = useMemo(() => {
@@ -98,6 +148,29 @@ export default function EmployeeAttendance() {
   const absent = filteredRecords.filter((r) => r.status === "absent").length;
   const leaves = filteredRecords.filter((r) => r.status === "on-leave").length;
   const totalHours = filteredRecords.reduce((sum, r) => sum + Number(r.work_hours || 0), 0);
+
+  const handlePresetChange = (preset: string) => {
+    setSelectedPreset(preset);
+    if (preset === "Custom") return;
+    const presetConfig = datePresets.find((p) => p.label === preset);
+    if (presetConfig) {
+      setDateRange(presetConfig.getValue());
+    }
+  };
+
+  const handleDateSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setSelectedPreset("Custom");
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setSelectedPreset("Last 30 days");
+    setDateRange({ from: subDays(new Date(), 30), to: new Date() });
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== "all" || selectedPreset !== "Last 30 days";
 
   const handleSort = (key: string) => {
     setSortConfig((prev) => {
@@ -227,14 +300,6 @@ export default function EmployeeAttendance() {
         </Card>
       </div>
 
-      {/* Date Range Filter */}
-      <ReportFilters
-        onDateRangeChange={setDateRange}
-        showDepartmentFilter={false}
-        showStoreFilter={false}
-        className="mb-4"
-      />
-
       {/* Attendance Table */}
       <Card>
         <DataTableToolbar
@@ -242,8 +307,104 @@ export default function EmployeeAttendance() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={() => refetch()}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
           isRefreshing={recordsLoading}
         />
+
+        {/* Filters Section */}
+        {showFilters && (
+          <div className="p-4 border-b bg-muted/30 space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search records..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Date Range Preset */}
+              <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {datePresets.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="Custom">Custom range</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal min-w-[240px]",
+                      !dateRange && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "MMM d, yyyy")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={handleDateSelect}
+                    numberOfMonths={2}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {uniqueStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -311,7 +472,7 @@ export default function EmployeeAttendance() {
             ) : (
               <TableRow>
                 <TableCell colSpan={visibleColumns.length + 1} className="text-center text-muted-foreground py-8">
-                  No attendance records found for the selected date range
+                  No attendance records found for the selected filters
                 </TableCell>
               </TableRow>
             )}
