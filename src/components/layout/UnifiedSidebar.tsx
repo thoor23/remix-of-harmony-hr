@@ -116,9 +116,15 @@ interface NavSection {
 // Items will be filtered based on user permissions
 const unifiedNavSections: NavSection[] = [
   {
+    label: "Dashboard",
+    items: [
+      { title: "Admin Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+      { title: "Employee Dashboard", href: "/app/my-dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
     label: "My Workspace",
     items: [
-      { title: "My Dashboard", href: "/app/my-dashboard", icon: LayoutDashboard },
       {
         title: "My Attendance",
         icon: CalendarDays,
@@ -195,7 +201,6 @@ const unifiedNavSections: NavSection[] = [
   {
     label: "Core Operations",
     items: [
-      { title: "Admin Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
       {
         title: "Employees",
         icon: Users,
@@ -385,8 +390,10 @@ const unifiedNavSections: NavSection[] = [
 
 // Map navigation items to their corresponding RBAC modules
 const navItemToModule: Record<string, string> = {
+  // Dashboard
+  "Admin Dashboard": "Admin Dashboard",
+  "Employee Dashboard": "Employee Dashboard",
   // Employee modules
-  "My Dashboard": "Employee Dashboard",
   "My Attendance": "My Attendance",
   "My Shifts": "My Shifts",
   "My Leaves": "My Leaves",
@@ -397,7 +404,6 @@ const navItemToModule: Record<string, string> = {
   "My Profile": "My Profile",
   "My Settings": "My Settings",
   // Admin modules
-  "Admin Dashboard": "Admin Dashboard",
   "Employees": "Employees",
   "Attendance": "Attendance",
   "Leaves": "Leaves",
