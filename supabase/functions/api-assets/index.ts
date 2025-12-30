@@ -493,6 +493,184 @@ serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // ========== MAINTENANCE REQUESTS ENDPOINTS ==========
+
+    // GET /maintenance-requests - List maintenance requests
+    if (method === 'GET' && path === '/maintenance-requests') {
+      const isMyRequests = url.searchParams.get('my') === 'true';
+      const statusFilter = url.searchParams.get('status');
+      const priorityFilter = url.searchParams.get('priority');
+
+      // Get current employee
+      const { data: currentEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .single();
+
+      let query = supabase
+        .from('asset_maintenance_requests')
+        .select(`
+          *,
+          asset:assets(id, asset_tag, name, brand, model),
+          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id),
+          reviewer:employees!asset_maintenance_requests_reviewed_by_fkey(id, first_name, last_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      // If employee requesting their own requests
+      if (isMyRequests || !isAdminOrHR) {
+        if (!currentEmployee) {
+          return errorResponse('Employee not found', 404);
+        }
+        query = query.eq('employee_id', currentEmployee.id);
+      }
+
+      if (statusFilter) {
+        query = query.eq('status', statusFilter);
+      }
+      if (priorityFilter) {
+        query = query.eq('priority', priorityFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // POST /maintenance-requests - Create a new maintenance request
+    if (method === 'POST' && path === '/maintenance-requests') {
+      const { asset_id, type, description, priority } = await req.json();
+
+      if (!asset_id || !description) {
+        return errorResponse('Asset and description are required', 400);
+      }
+
+      // Get current employee
+      const { data: currentEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .single();
+
+      if (!currentEmployee) {
+        return errorResponse('Employee not found', 404);
+      }
+
+      // Verify the asset is assigned to this employee
+      const { data: asset } = await supabase
+        .from('assets')
+        .select('id, assigned_to')
+        .eq('id', asset_id)
+        .single();
+
+      if (!asset) {
+        return errorResponse('Asset not found', 404);
+      }
+
+      if (asset.assigned_to !== currentEmployee.id) {
+        return errorResponse('You can only request maintenance for assets assigned to you', 403);
+      }
+
+      const { data, error } = await supabase
+        .from('asset_maintenance_requests')
+        .insert({
+          asset_id,
+          employee_id: currentEmployee.id,
+          type: type || 'repair',
+          description,
+          priority: priority || 'medium',
+          status: 'pending',
+        })
+        .select(`
+          *,
+          asset:assets(id, asset_tag, name, brand, model),
+          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id)
+        `)
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data, 201);
+    }
+
+    // PUT /maintenance-requests/:id - Update a maintenance request
+    const maintenanceRequestMatch = path.match(/^\/maintenance-requests\/([a-f0-9-]+)$/);
+    if (method === 'PUT' && maintenanceRequestMatch) {
+      const id = maintenanceRequestMatch[1];
+      const body = await req.json();
+
+      // Get current employee
+      const { data: currentEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .single();
+
+      // Get the request
+      const { data: request } = await supabase
+        .from('asset_maintenance_requests')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!request) {
+        return errorResponse('Maintenance request not found', 404);
+      }
+
+      // If not admin/HR, employee can only cancel their own pending requests
+      if (!isAdminOrHR) {
+        if (request.employee_id !== currentEmployee?.id) {
+          return errorResponse('You can only update your own requests', 403);
+        }
+        if (request.status !== 'pending') {
+          return errorResponse('You can only cancel pending requests', 403);
+        }
+        if (body.status !== 'cancelled') {
+          return errorResponse('You can only cancel requests', 403);
+        }
+      }
+
+      // Admin/HR can update all fields
+      const updateData: Record<string, unknown> = {};
+
+      if (body.status) {
+        updateData.status = body.status;
+        
+        // If status is being approved/rejected, set reviewed fields
+        if (['approved', 'rejected'].includes(body.status)) {
+          updateData.reviewed_by = currentEmployee?.id;
+          updateData.reviewed_at = new Date().toISOString();
+        }
+        
+        // If completed, set completed_at
+        if (body.status === 'completed') {
+          updateData.completed_at = new Date().toISOString();
+        }
+      }
+
+      if (body.review_comments !== undefined) updateData.review_comments = body.review_comments;
+      if (body.assigned_to !== undefined) updateData.assigned_to = body.assigned_to;
+      if (body.scheduled_date !== undefined) updateData.scheduled_date = body.scheduled_date;
+      if (body.estimated_cost !== undefined) updateData.estimated_cost = body.estimated_cost;
+      if (body.actual_cost !== undefined) updateData.actual_cost = body.actual_cost;
+      if (body.resolution_notes !== undefined) updateData.resolution_notes = body.resolution_notes;
+
+      const { data, error } = await supabase
+        .from('asset_maintenance_requests')
+        .update(updateData)
+        .eq('id', id)
+        .select(`
+          *,
+          asset:assets(id, asset_tag, name, brand, model),
+          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id),
+          reviewer:employees!asset_maintenance_requests_reviewed_by_fkey(id, first_name, last_name)
+        `)
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-assets] Error:', error);
