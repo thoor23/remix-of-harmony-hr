@@ -2,6 +2,63 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
+// Helper function to generate default permissions based on legacy role enum
+function getDefaultPermissionsForRole(role: string): Array<{
+  module: string;
+  create: boolean;
+  read: boolean;
+  update: boolean;
+  delete: boolean;
+}> {
+  const allModules = [
+    'Dashboard', 'Employees', 'Departments', 'Designations', 'Attendance',
+    'Leaves', 'Payroll', 'Shifts', 'Documents', 'Assets', 'Helpdesk',
+    'Announcements', 'Reports', 'Settings', 'Audit Logs', 'Holidays',
+    'Locations', 'Templates', 'Letters', 'Notifications'
+  ];
+
+  switch (role) {
+    case 'admin':
+    case 'hr':
+      // Full access to everything
+      return allModules.map(m => ({ module: m, create: true, read: true, update: true, delete: true }));
+
+    case 'manager':
+      // Read all, CRUD on team management modules
+      return allModules.map(m => ({
+        module: m,
+        create: ['Employees', 'Attendance', 'Leaves', 'Shifts', 'Announcements', 'Helpdesk'].includes(m),
+        read: true,
+        update: ['Employees', 'Attendance', 'Leaves', 'Shifts', 'Announcements', 'Helpdesk'].includes(m),
+        delete: false
+      }));
+
+    case 'store_manager':
+      // Similar to manager but store-focused
+      return allModules.map(m => ({
+        module: m,
+        create: ['Attendance', 'Announcements', 'Shifts'].includes(m),
+        read: true,
+        update: ['Attendance', 'Shifts', 'Announcements'].includes(m),
+        delete: false
+      }));
+
+    case 'employee':
+    default:
+      // Read-only for employee-facing modules
+      const employeeModules = ['Dashboard', 'Attendance', 'Leaves', 'Payroll', 'Shifts',
+        'Documents', 'Assets', 'Helpdesk', 'Announcements', 'Holidays'];
+      return allModules.map(m => ({
+        module: m,
+        create: ['Helpdesk', 'Leaves', 'Attendance'].includes(m), // Employees can create tickets, leave requests, attendance
+        read: employeeModules.includes(m),
+        update: ['Helpdesk'].includes(m), // Can update their own tickets
+        delete: false
+      }));
+  }
+}
+
+
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -56,10 +113,10 @@ serve(async (req) => {
     if (method === 'GET' && path === '/user-permissions') {
       console.log('[api-settings] Fetching user permissions for:', auth.userId);
       
-      // Get user's role_id from user_roles
+      // Get user's role and role_id from user_roles
       const { data: userRole, error: userRoleError } = await supabase
         .from('user_roles')
-        .select('role_id')
+        .select('role, role_id')
         .eq('user_id', auth.userId)
         .maybeSingle();
       
@@ -68,33 +125,38 @@ serve(async (req) => {
         throw userRoleError;
       }
 
-      if (!userRole?.role_id) {
-        console.log('[api-settings] No role_id found for user, returning empty permissions');
+      // If user has a custom role_id, use that role's permissions
+      if (userRole?.role_id) {
+        const { data: role, error: roleError } = await supabase
+          .from('roles')
+          .select('id, name, permissions')
+          .eq('id', userRole.role_id)
+          .single();
+        
+        if (roleError) {
+          console.error('[api-settings] Error fetching role:', roleError);
+          throw roleError;
+        }
+
+        console.log('[api-settings] Found custom role:', role?.name, 'with', (role?.permissions as any[])?.length || 0, 'permissions');
+        
         return jsonResponse({
-          roleId: null,
-          roleName: null,
-          permissions: []
+          roleId: role?.id || null,
+          roleName: role?.name || null,
+          permissions: role?.permissions || []
         });
       }
 
-      // Get role details
-      const { data: role, error: roleError } = await supabase
-        .from('roles')
-        .select('id, name, permissions')
-        .eq('id', userRole.role_id)
-        .single();
+      // Fallback: Generate default permissions based on the legacy role enum
+      const legacyRole = userRole?.role || 'employee';
+      console.log('[api-settings] No role_id found, using fallback permissions for:', legacyRole);
       
-      if (roleError) {
-        console.error('[api-settings] Error fetching role:', roleError);
-        throw roleError;
-      }
-
-      console.log('[api-settings] Found role:', role?.name, 'with', (role?.permissions as any[])?.length || 0, 'permissions');
+      const defaultPermissions = getDefaultPermissionsForRole(legacyRole);
       
       return jsonResponse({
-        roleId: role?.id || null,
-        roleName: role?.name || null,
-        permissions: role?.permissions || []
+        roleId: null,
+        roleName: legacyRole,
+        permissions: defaultPermissions
       });
     }
 
