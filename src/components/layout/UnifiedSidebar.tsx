@@ -390,9 +390,9 @@ const unifiedNavSections: NavSection[] = [
 
 // Map navigation items to their corresponding RBAC modules
 const navItemToModule: Record<string, string> = {
-  // Dashboard
-  "Admin Dashboard": "Admin Dashboard",
-  "Employee Dashboard": "Employee Dashboard",
+  // Dashboard - both map to Dashboard module, but filtered by roleType
+  "Admin Dashboard": "Dashboard",
+  "Employee Dashboard": "Dashboard",
   // Employee modules
   "My Attendance": "My Attendance",
   "My Shifts": "My Shifts",
@@ -430,9 +430,9 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const { data: branding } = useCompanyBranding();
-  const { canRead, permissions, loading: permLoading } = usePermissions();
+  const { canRead, permissions, loading: permLoading, roleType } = usePermissions();
 
-  // Filter navigation based on permissions
+  // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
     if (permLoading || permissions.length === 0) {
       return unifiedNavSections;
@@ -441,6 +441,14 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
     return unifiedNavSections.map(section => ({
       ...section,
       items: section.items.filter(item => {
+        // Dashboard filtering based on roleType
+        if (item.title === "Admin Dashboard") {
+          return roleType === "admin" && canRead("Dashboard");
+        }
+        if (item.title === "Employee Dashboard") {
+          return roleType === "employee" && canRead("Dashboard");
+        }
+        
         const module = navItemToModule[item.title];
         if (!module) return true;
         return canRead(module);
@@ -454,7 +462,7 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
         return item;
       }).filter(item => !item.children || item.children.length > 0)
     })).filter(section => section.items.length > 0);
-  }, [permissions, permLoading, canRead]);
+  }, [permissions, permLoading, canRead, roleType]);
 
   useEffect(() => {
     if (collapsed) {
