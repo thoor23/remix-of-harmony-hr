@@ -121,6 +121,7 @@ import EmployeeProfile from "./pages/employee/Profile";
 import EmployeeAttendance from "./pages/employee/Attendance";
 import EmployeeAttendanceRegularization from "./pages/employee/AttendanceRegularization";
 import EmployeeLeaves from "./pages/employee/Leaves";
+import EmployeeLeaveBalance from "./pages/employee/LeaveBalance";
 import EmployeePayslips from "./pages/employee/Payslips";
 import EmployeeDocuments from "./pages/employee/Documents";
 import EmployeeAssets from "./pages/employee/Assets";
@@ -297,7 +298,7 @@ const App = () => (
                 <Route path="leaves" element={<EmployeeLeaves />} />
                 <Route path="leaves/apply" element={<EmployeeLeaves />} />
                 <Route path="leaves/history" element={<EmployeeLeaves />} />
-                <Route path="leaves/balance" element={<EmployeeLeaves />} />
+                <Route path="leaves/balance" element={<EmployeeLeaveBalance />} />
                 <Route path="leaves/report" element={<EmployeeLeaveReport />} />
                 {/* Compensation */}
                 <Route path="payslips" element={<EmployeePayslips />} />
