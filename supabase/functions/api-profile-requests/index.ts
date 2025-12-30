@@ -133,6 +133,39 @@ Deno.serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // DELETE /:id - Delete a change request (own pending requests only, or admin/hr)
+    if (req.method === 'DELETE' && idMatch && subPath.length === 1) {
+      const id = subPath[0];
+      const employeeId = await getEmployeeId();
+
+      // Check if the request belongs to the user and is pending
+      const { data: existingRequest, error: fetchError } = await supabase
+        .from('profile_change_requests')
+        .select('employee_id, status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!existingRequest) {
+        return errorResponse('Request not found', 404);
+      }
+
+      // Allow delete if admin/hr OR if it's their own pending request
+      const canDelete = isAdminOrHR || (existingRequest.employee_id === employeeId && existingRequest.status === 'pending');
+      
+      if (!canDelete) {
+        return errorResponse('You can only delete your own pending requests', 403);
+      }
+
+      const { error } = await supabase
+        .from('profile_change_requests')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return jsonResponse({ success: true });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-profile-requests] Error:', error);

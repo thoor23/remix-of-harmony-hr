@@ -37,11 +37,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Building2,
+  X,
 } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployee } from "@/hooks/useEmployees";
-import { useCreateProfileChangeRequest, useMyProfileChangeRequests } from "@/hooks/useProfileChangeRequests";
+import { useCreateProfileChangeRequest, useMyProfileChangeRequests, useDeleteProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -73,6 +73,7 @@ export default function EmployeeProfile() {
   const { data: employee, isLoading: employeeLoading, refetch: refetchEmployee } = useEmployee(currentEmployee?.id || "");
   const { data: changeRequests = [] } = useMyProfileChangeRequests();
   const createRequest = useCreateProfileChangeRequest();
+  const deleteRequest = useDeleteProfileChangeRequest();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -491,7 +492,7 @@ export default function EmployeeProfile() {
             {changeRequests.length > 0 ? (
               <div className="space-y-4">
                 {changeRequests.map((request) => (
-                  <div key={request.id} className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div key={request.id} className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors relative group">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(request.status)}
@@ -499,9 +500,26 @@ export default function EmployeeProfile() {
                           {fieldOptions.find(f => f.value === request.field_name)?.label || request.field_name}
                         </span>
                       </div>
-                      <Badge variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}>
-                        {request.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={request.status === 'approved' ? 'default' : request.status === 'rejected' ? 'destructive' : 'secondary'}>
+                          {request.status}
+                        </Badge>
+                        {request.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => deleteRequest.mutate(request.id)}
+                            disabled={deleteRequest.isPending}
+                          >
+                            {deleteRequest.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>

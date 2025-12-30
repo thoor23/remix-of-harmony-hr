@@ -100,3 +100,21 @@ export function useReviewProfileChangeRequest() {
     },
   });
 }
+
+export function useDeleteProfileChangeRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.delete(`/profile-requests/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-profile-change-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["all-profile-change-requests"] });
+      toast.success("Change request deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete request: ${error.message}`);
+    },
+  });
+}
