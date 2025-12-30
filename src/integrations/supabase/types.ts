@@ -1731,6 +1731,7 @@ export type Database = {
           is_system: boolean | null
           name: string
           permissions: Json
+          role_type: string | null
           updated_at: string
           user_count: number | null
         }
@@ -1741,6 +1742,7 @@ export type Database = {
           is_system?: boolean | null
           name: string
           permissions?: Json
+          role_type?: string | null
           updated_at?: string
           user_count?: number | null
         }
@@ -1751,6 +1753,7 @@ export type Database = {
           is_system?: boolean | null
           name?: string
           permissions?: Json
+          role_type?: string | null
           updated_at?: string
           user_count?: number | null
         }
