@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -37,12 +38,15 @@ import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowUpDown, Eye } from "lucide-react";
 import { useMyTickets, useCreateTicket } from "@/hooks/useHelpdesk";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { TicketMessaging } from "@/components/helpdesk/TicketMessaging";
 import { Tables } from "@/integrations/supabase/types";
 
 type Ticket = Tables<"helpdesk_tickets">;
 
 const defaultColumns: ColumnDef[] = [
+  { id: "employee", header: "Employee", accessor: "employee", visible: true },
+  { id: "email", header: "Email", accessor: "email", visible: true },
   { id: "subject", header: "Subject", accessor: "subject", visible: true },
   { id: "category", header: "Category", accessor: "category", visible: true },
   { id: "priority", header: "Priority", accessor: "priority", visible: true },
@@ -79,8 +83,11 @@ export default function EmployeeHelpdesk() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-  const { data: myTickets = [], isLoading, refetch } = useMyTickets();
+  const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: myTickets = [], isLoading: ticketsLoading, refetch } = useMyTickets();
   const createTicket = useCreateTicket();
+
+  const isLoading = employeeLoading || ticketsLoading;
 
   // Filter by status
   const filteredTickets = useMemo(() => {
@@ -280,15 +287,19 @@ export default function EmployeeHelpdesk() {
                   </TableHead>
                   {visibleColumns.map((col) => (
                     <TableHead key={col.id}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="-ml-3 h-8"
-                        onClick={() => handleSort(col.id)}
-                      >
-                        {col.header}
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
+                      {col.id !== "employee" && col.id !== "email" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-ml-3 h-8"
+                          onClick={() => handleSort(col.id)}
+                        >
+                          {col.header}
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      ) : (
+                        col.header
+                      )}
                     </TableHead>
                   ))}
                   <TableHead>Actions</TableHead>
@@ -305,7 +316,16 @@ export default function EmployeeHelpdesk() {
                     </TableCell>
                     {visibleColumns.map((col) => (
                       <TableCell key={col.id}>
-                        {col.id === "subject" ? (
+                        {col.id === "employee" ? (
+                          <EmployeeCell
+                            avatarUrl={currentEmployee?.avatar_url}
+                            firstName={currentEmployee?.first_name}
+                            lastName={currentEmployee?.last_name}
+                            employeeId={currentEmployee?.employee_id}
+                          />
+                        ) : col.id === "email" ? (
+                          <span className="text-muted-foreground">{currentEmployee?.email || "-"}</span>
+                        ) : col.id === "subject" ? (
                           <span className="font-medium">{ticket.subject}</span>
                         ) : col.id === "category" ? (
                           categoryLabels[ticket.category] || ticket.category

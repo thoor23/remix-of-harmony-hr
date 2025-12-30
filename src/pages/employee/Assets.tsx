@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/table";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,8 +46,11 @@ type SortField = "name" | "category" | "serial_number" | "assigned_date" | "cond
 type SortDirection = "asc" | "desc";
 
 export default function EmployeeAssets() {
-  const { data: assets = [], isLoading, isFetching } = useMyAssets();
+  const { data: assets = [], isLoading: assetsLoading, isFetching } = useMyAssets();
+  const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
   const queryClient = useQueryClient();
+
+  const isLoading = assetsLoading || employeeLoading;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -55,6 +60,8 @@ export default function EmployeeAssets() {
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "employee", header: "Employee", visible: true },
+    { id: "email", header: "Email", visible: true },
     { id: "name", header: "Asset Name", visible: true },
     { id: "category", header: "Category", visible: true },
     { id: "asset_tag", header: "Asset Tag", visible: true },
@@ -262,6 +269,12 @@ export default function EmployeeAssets() {
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
+              {columns.find((c) => c.id === "employee")?.visible && (
+                <TableHead>Employee</TableHead>
+              )}
+              {columns.find((c) => c.id === "email")?.visible && (
+                <TableHead>Email</TableHead>
+              )}
               {columns.find((c) => c.id === "name")?.visible && (
                 <TableHead><SortableHeader field="name">Asset Name</SortableHeader></TableHead>
               )}
@@ -296,6 +309,19 @@ export default function EmployeeAssets() {
                       onCheckedChange={(checked) => handleSelectRow(asset.id, checked as boolean)}
                     />
                   </TableCell>
+                  {columns.find((c) => c.id === "employee")?.visible && (
+                    <TableCell>
+                      <EmployeeCell
+                        avatarUrl={currentEmployee?.avatar_url}
+                        firstName={currentEmployee?.first_name}
+                        lastName={currentEmployee?.last_name}
+                        employeeId={currentEmployee?.employee_id}
+                      />
+                    </TableCell>
+                  )}
+                  {columns.find((c) => c.id === "email")?.visible && (
+                    <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
+                  )}
                   {columns.find((c) => c.id === "name")?.visible && (
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -351,7 +377,7 @@ export default function EmployeeAssets() {
             })}
             {paginatedData.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   {assets.length === 0 ? "No assets assigned to you" : "No assets found matching your search"}
                 </TableCell>
               </TableRow>

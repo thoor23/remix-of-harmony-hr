@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -39,6 +40,8 @@ import { useLeaveTypes, useMyLeaveRequests, useCreateLeaveRequest, useCancelLeav
 import { DatePicker } from "@/components/ui/date-picker";
 
 const defaultColumns: ColumnDef[] = [
+  { id: "employee", header: "Employee", accessor: "employee", visible: true },
+  { id: "email", header: "Email", accessor: "email", visible: true },
   { id: "leave_type", header: "Leave Type", accessor: "leave_type.name", visible: true },
   { id: "start_date", header: "From", accessor: "start_date", visible: true },
   { id: "end_date", header: "To", accessor: "end_date", visible: true },
@@ -324,15 +327,19 @@ export default function EmployeeLeaves() {
               </TableHead>
               {visibleColumns.map((col) => (
                 <TableHead key={col.id}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-3 h-8"
-                    onClick={() => handleSort(col.id)}
-                  >
-                    {col.header}
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                  {col.id !== "employee" && col.id !== "email" ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-3 h-8"
+                      onClick={() => handleSort(col.id)}
+                    >
+                      {col.header}
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    col.header
+                  )}
                 </TableHead>
               ))}
               <TableHead>Action</TableHead>
@@ -349,7 +356,16 @@ export default function EmployeeLeaves() {
                 </TableCell>
                 {visibleColumns.map((col) => (
                   <TableCell key={col.id}>
-                    {col.id === "leave_type" ? (
+                    {col.id === "employee" ? (
+                      <EmployeeCell
+                        avatarUrl={employee?.avatar_url}
+                        firstName={employee?.first_name}
+                        lastName={employee?.last_name}
+                        employeeId={employee?.employee_id}
+                      />
+                    ) : col.id === "email" ? (
+                      <span className="text-muted-foreground">{employee?.email || "-"}</span>
+                    ) : col.id === "leave_type" ? (
                       <div className="flex items-center gap-2">
                         <span
                           className="h-2 w-2 rounded-full"

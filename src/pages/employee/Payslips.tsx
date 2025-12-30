@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -73,6 +74,8 @@ export default function EmployeePayslips() {
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "employee", header: "Employee", visible: true },
+    { id: "email", header: "Email", visible: true },
     { id: "pay_period", header: "Pay Period", visible: true },
     { id: "gross_earnings", header: "Gross Earnings", visible: true },
     { id: "total_deductions", header: "Deductions", visible: true },
@@ -347,6 +350,12 @@ export default function EmployeePayslips() {
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
+              {columns.find((c) => c.id === "employee")?.visible && (
+                <TableHead>Employee</TableHead>
+              )}
+              {columns.find((c) => c.id === "email")?.visible && (
+                <TableHead>Email</TableHead>
+              )}
               {columns.find((c) => c.id === "pay_period")?.visible && (
                 <TableHead><SortableHeader field="pay_period">Pay Period</SortableHeader></TableHead>
               )}
@@ -377,6 +386,19 @@ export default function EmployeePayslips() {
                     onCheckedChange={(checked) => handleSelectRow(payslip.id, checked as boolean)}
                   />
                 </TableCell>
+                {columns.find((c) => c.id === "employee")?.visible && (
+                  <TableCell>
+                    <EmployeeCell
+                      avatarUrl={currentEmployee?.avatar_url}
+                      firstName={currentEmployee?.first_name}
+                      lastName={currentEmployee?.last_name}
+                      employeeId={currentEmployee?.employee_id}
+                    />
+                  </TableCell>
+                )}
+                {columns.find((c) => c.id === "email")?.visible && (
+                  <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
+                )}
                 {columns.find((c) => c.id === "pay_period")?.visible && (
                   <TableCell className="font-medium">{formatPayPeriod(payslip.pay_period)}</TableCell>
                 )}
@@ -418,7 +440,7 @@ export default function EmployeePayslips() {
             ))}
             {paginatedData.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   No payslips found for {selectedYear}
                 </TableCell>
               </TableRow>
