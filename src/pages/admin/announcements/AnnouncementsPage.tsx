@@ -552,87 +552,78 @@ export default function AnnouncementsPage() {
               </Select>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Schedule (Optional)</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-between text-left font-normal",
-                          !formData.scheduled_date && "text-muted-foreground"
-                        )}
-                      >
-                        {formData.scheduled_date 
-                          ? new Date(formData.scheduled_date).toLocaleDateString() 
-                          : "Select date"}
-                        <ChevronDownIcon className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.scheduled_date ? new Date(formData.scheduled_date) : undefined}
-                        onSelect={(date) => setFormData({ ...formData, scheduled_date: date ? format(date, "yyyy-MM-dd") : "" })}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Time</Label>
-                  <Input
-                    type="text"
-                    placeholder="10:30:00 AM"
-                    value={formData.scheduled_time}
-                    onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
-                  />
-                </div>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Schedule Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-between text-left font-normal",
+                        !formData.scheduled_date && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.scheduled_date 
+                        ? new Date(formData.scheduled_date).toLocaleDateString() 
+                        : "Select date"}
+                      <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.scheduled_date ? new Date(formData.scheduled_date) : undefined}
+                      onSelect={(date) => setFormData({ ...formData, scheduled_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Expires (Optional)</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-between text-left font-normal",
-                          !formData.expires_date && "text-muted-foreground"
-                        )}
-                      >
-                        {formData.expires_date 
-                          ? new Date(formData.expires_date).toLocaleDateString() 
-                          : "Select date"}
-                        <ChevronDownIcon className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.expires_date ? new Date(formData.expires_date) : undefined}
-                        onSelect={(date) => setFormData({ ...formData, expires_date: date ? format(date, "yyyy-MM-dd") : "" })}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Time</Label>
-                  <Input
-                    type="text"
-                    placeholder="10:30:00 AM"
-                    value={formData.expires_time}
-                    onChange={(e) => setFormData({ ...formData, expires_time: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Schedule Time</Label>
+                <Input
+                  type="text"
+                  placeholder="10:30:00 AM"
+                  value={formData.scheduled_time}
+                  onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Expires Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-between text-left font-normal",
+                        !formData.expires_date && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.expires_date 
+                        ? new Date(formData.expires_date).toLocaleDateString() 
+                        : "Select date"}
+                      <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.expires_date ? new Date(formData.expires_date) : undefined}
+                      onSelect={(date) => setFormData({ ...formData, expires_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Expires Time</Label>
+                <Input
+                  type="text"
+                  placeholder="10:30:00 AM"
+                  value={formData.expires_time}
+                  onChange={(e) => setFormData({ ...formData, expires_time: e.target.value })}
+                />
               </div>
             </div>
 
