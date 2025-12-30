@@ -296,11 +296,6 @@ export default function EmployeeLeaves() {
                     <p>Total: {balance.total_days}</p>
                   </div>
                 </div>
-                {Number(balance.pending_days) > 0 && (
-                  <p className="text-xs text-warning mt-2">
-                    {balance.pending_days} pending approval
-                  </p>
-                )}
               </CardContent>
             </Card>
           );
