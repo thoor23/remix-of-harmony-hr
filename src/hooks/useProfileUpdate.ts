@@ -6,10 +6,12 @@ export interface ProfileUpdateData {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  date_of_birth?: string;
   address_street?: string;
   address_city?: string;
   address_state?: string;
   address_zip_code?: string;
+  address_country?: string;
   avatar_url?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
