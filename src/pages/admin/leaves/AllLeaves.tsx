@@ -392,7 +392,7 @@ export default function AllLeaves() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
           <Table>
             <TableHeader>
               <TableRow>

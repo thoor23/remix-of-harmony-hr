@@ -19,7 +19,7 @@ export function AdminLayout() {
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto scrollbar-hidden">
           <Outlet />
         </main>
       </div>

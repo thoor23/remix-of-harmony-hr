@@ -328,7 +328,7 @@ export default function PayslipsList() {
         )}
 
         <CardContent className="p-0">
-          <ScrollArea className="w-full whitespace-nowrap">
+          <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
           <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>

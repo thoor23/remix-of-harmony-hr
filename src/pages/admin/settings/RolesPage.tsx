@@ -317,7 +317,7 @@ export default function RolesPage() {
           </div>
         )}
 
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
           {isLoading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3, 4].map(i => (

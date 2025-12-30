@@ -358,7 +358,7 @@ export default function EmployeeAssetMaintenanceRequests() {
           </div>
         ) : (
           <>
-            <ScrollArea className="w-full whitespace-nowrap">
+            <ScrollArea className="w-full whitespace-nowrap" hideScrollbar={false}>
             <Table>
               <TableHeader>
                 <TableRow>
