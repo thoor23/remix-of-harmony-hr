@@ -30,7 +30,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -45,10 +44,6 @@ import { Tables } from "@/integrations/supabase/types";
 type Ticket = Tables<"helpdesk_tickets">;
 
 const defaultColumns: ColumnDef[] = [
-  { id: "employee", header: "Employee", accessor: "employee", visible: true },
-  { id: "email", header: "Email", accessor: "email", visible: true },
-  { id: "department", header: "Department", accessor: "department", visible: true },
-  { id: "store", header: "Store/Location", accessor: "store", visible: true },
   { id: "subject", header: "Subject", accessor: "subject", visible: true },
   { id: "category", header: "Category", accessor: "category", visible: true },
   { id: "priority", header: "Priority", accessor: "priority", visible: true },
@@ -380,19 +375,15 @@ export default function EmployeeHelpdesk() {
                   </TableHead>
                   {visibleColumns.map((col) => (
                     <TableHead key={col.id}>
-                      {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="-ml-3 h-8"
-                          onClick={() => handleSort(col.id)}
-                        >
-                          {col.header}
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      ) : (
-                        col.header
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="-ml-3 h-8"
+                        onClick={() => handleSort(col.id)}
+                      >
+                        {col.header}
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
                     </TableHead>
                   ))}
                   <TableHead>Actions</TableHead>
@@ -409,23 +400,10 @@ export default function EmployeeHelpdesk() {
                     </TableCell>
                     {visibleColumns.map((col) => (
                       <TableCell key={col.id}>
-                        {col.id === "employee" ? (
-                          <EmployeeCell
-                            avatarUrl={currentEmployee?.avatar_url}
-                            firstName={currentEmployee?.first_name}
-                            lastName={currentEmployee?.last_name}
-                            employeeId={currentEmployee?.employee_id}
-                          />
-                        ) : col.id === "email" ? (
-                          <span className="text-muted-foreground">{currentEmployee?.email || "-"}</span>
-                        ) : col.id === "department" ? (
-                          <span>{currentEmployee?.department?.name || "-"}</span>
-                        ) : col.id === "store" ? (
-                          <span>{currentEmployee?.primary_store?.name || "-"}</span>
-                        ) : col.id === "subject" ? (
+                        {col.id === "subject" ? (
                           <span className="font-medium">{ticket.subject}</span>
                         ) : col.id === "category" ? (
-                          categoryLabels[ticket.category] || ticket.category
+                          <Badge variant="secondary">{categoryLabels[ticket.category] || ticket.category}</Badge>
                         ) : col.id === "priority" ? (
                           <Badge className={priorityColors[ticket.priority]}>
                             {ticket.priority}
