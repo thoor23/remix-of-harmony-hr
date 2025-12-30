@@ -562,7 +562,9 @@ export default function AnnouncementsPage() {
               <div className="space-y-2">
                 <Label>Schedule Time (Optional)</Label>
                 <Input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="HH:MM"
                   value={formData.scheduled_time}
                   onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
                 />
@@ -581,7 +583,9 @@ export default function AnnouncementsPage() {
               <div className="space-y-2">
                 <Label>Expires Time (Optional)</Label>
                 <Input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="HH:MM"
                   value={formData.expires_time}
                   onChange={(e) => setFormData({ ...formData, expires_time: e.target.value })}
                 />
