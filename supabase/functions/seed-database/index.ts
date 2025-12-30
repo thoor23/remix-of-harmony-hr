@@ -173,6 +173,187 @@ const employeeDistribution = [
   { department: 'Operations', count: 3, roles: ['employee', 'employee', 'admin'] }
 ];
 
+// Letter templates data
+const letterTemplates = [
+  {
+    name: 'Standard Offer Letter',
+    type: 'offer',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">OFFER LETTER</h1>
+      <p style="text-align: right;">Date: {{date}}</p>
+      <p>Dear <strong>{{employee_name}}</strong>,</p>
+      <p>We are pleased to offer you the position of <strong>{{designation}}</strong> in our <strong>{{department}}</strong> department at {{company_name}}.</p>
+      <h3>Terms of Employment:</h3>
+      <ul>
+        <li><strong>Position:</strong> {{designation}}</li>
+        <li><strong>Department:</strong> {{department}}</li>
+        <li><strong>Start Date:</strong> {{joining_date}}</li>
+        <li><strong>CTC:</strong> ₹{{ctc}} per annum</li>
+        <li><strong>Location:</strong> {{location}}</li>
+      </ul>
+      <p>This offer is contingent upon successful completion of background verification and submission of required documents.</p>
+      <p>Please sign and return this letter to confirm your acceptance by {{acceptance_deadline}}.</p>
+      <br/>
+      <p>Best Regards,</p>
+      <p><strong>{{hr_name}}</strong><br/>Human Resources<br/>{{company_name}}</p>
+    </div>`,
+    placeholders: ['employee_name', 'designation', 'department', 'company_name', 'joining_date', 'ctc', 'location', 'acceptance_deadline', 'hr_name', 'date'],
+    is_default: true
+  },
+  {
+    name: 'Experience Letter',
+    type: 'experience',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">EXPERIENCE CERTIFICATE</h1>
+      <p style="text-align: right;">Date: {{date}}<br/>Ref: EXP/{{reference_number}}</p>
+      <h3>TO WHOM IT MAY CONCERN</h3>
+      <p>This is to certify that <strong>{{employee_name}}</strong> (Employee ID: {{employee_id}}) was employed with <strong>{{company_name}}</strong> from <strong>{{joining_date}}</strong> to <strong>{{last_working_date}}</strong>.</p>
+      <p>During their tenure, they held the position of <strong>{{designation}}</strong> in the <strong>{{department}}</strong> department.</p>
+      <h3>Key Responsibilities:</h3>
+      <p>{{responsibilities}}</p>
+      <p>We found {{employee_name}} to be sincere, hardworking, and dedicated. Their conduct and character have been good during their association with us.</p>
+      <p>We wish them all the best for their future endeavors.</p>
+      <br/>
+      <p>For {{company_name}}</p>
+      <br/><br/>
+      <p><strong>{{hr_name}}</strong><br/>{{hr_designation}}<br/>Human Resources</p>
+    </div>`,
+    placeholders: ['employee_name', 'employee_id', 'company_name', 'joining_date', 'last_working_date', 'designation', 'department', 'responsibilities', 'hr_name', 'hr_designation', 'date', 'reference_number'],
+    is_default: true
+  },
+  {
+    name: 'Relieving Letter',
+    type: 'relieving',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">RELIEVING LETTER</h1>
+      <p style="text-align: right;">Date: {{date}}<br/>Ref: REL/{{reference_number}}</p>
+      <p>Dear <strong>{{employee_name}}</strong>,</p>
+      <p>With reference to your resignation letter dated {{resignation_date}}, this is to inform you that your resignation has been accepted and you are relieved from your duties effective <strong>{{last_working_date}}</strong>.</p>
+      <p><strong>Details:</strong></p>
+      <ul>
+        <li><strong>Employee ID:</strong> {{employee_id}}</li>
+        <li><strong>Designation:</strong> {{designation}}</li>
+        <li><strong>Department:</strong> {{department}}</li>
+        <li><strong>Date of Joining:</strong> {{joining_date}}</li>
+        <li><strong>Last Working Date:</strong> {{last_working_date}}</li>
+      </ul>
+      <p>All company assets and dues have been settled, and you have completed all the exit formalities as required.</p>
+      <p>We thank you for your contributions and wish you success in your future endeavors.</p>
+      <br/>
+      <p>For {{company_name}}</p>
+      <br/><br/>
+      <p><strong>{{hr_name}}</strong><br/>Human Resources</p>
+    </div>`,
+    placeholders: ['employee_name', 'employee_id', 'resignation_date', 'last_working_date', 'designation', 'department', 'joining_date', 'company_name', 'hr_name', 'date', 'reference_number'],
+    is_default: true
+  },
+  {
+    name: 'Increment Letter',
+    type: 'increment',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">SALARY REVISION LETTER</h1>
+      <p style="text-align: right;">Date: {{date}}</p>
+      <p>Dear <strong>{{employee_name}}</strong>,</p>
+      <p>We are pleased to inform you that based on your performance evaluation and contribution to the organization, the management has decided to revise your compensation effective <strong>{{effective_date}}</strong>.</p>
+      <h3>Revised Compensation Details:</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Previous CTC:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">₹{{previous_ctc}} per annum</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Revised CTC:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">₹{{new_ctc}} per annum</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Increment:</strong></td><td style="padding: 8px; border: 1px solid #ddd;">{{increment_percentage}}%</td></tr>
+      </table>
+      <p>We appreciate your dedication and hard work. We look forward to your continued contribution to the organization's success.</p>
+      <br/>
+      <p>Best Regards,</p>
+      <p><strong>{{hr_name}}</strong><br/>Human Resources<br/>{{company_name}}</p>
+    </div>`,
+    placeholders: ['employee_name', 'effective_date', 'previous_ctc', 'new_ctc', 'increment_percentage', 'hr_name', 'company_name', 'date'],
+    is_default: true
+  },
+  {
+    name: 'Promotion Letter',
+    type: 'promotion',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">PROMOTION LETTER</h1>
+      <p style="text-align: right;">Date: {{date}}</p>
+      <p>Dear <strong>{{employee_name}}</strong>,</p>
+      <p>Congratulations! We are delighted to inform you that based on your exceptional performance and dedication, you have been promoted to the position of <strong>{{new_designation}}</strong> effective <strong>{{effective_date}}</strong>.</p>
+      <h3>Promotion Details:</h3>
+      <ul>
+        <li><strong>Previous Designation:</strong> {{previous_designation}}</li>
+        <li><strong>New Designation:</strong> {{new_designation}}</li>
+        <li><strong>Department:</strong> {{department}}</li>
+        <li><strong>Revised CTC:</strong> ₹{{new_ctc}} per annum</li>
+      </ul>
+      <p>With this new role comes additional responsibilities. We are confident that you will continue to excel and contribute significantly to our organization's growth.</p>
+      <br/>
+      <p>Best Regards,</p>
+      <p><strong>{{hr_name}}</strong><br/>Human Resources<br/>{{company_name}}</p>
+    </div>`,
+    placeholders: ['employee_name', 'previous_designation', 'new_designation', 'department', 'new_ctc', 'effective_date', 'hr_name', 'company_name', 'date'],
+    is_default: false
+  },
+  {
+    name: 'Appointment Letter',
+    type: 'appointment',
+    content: `<div style="font-family: Arial, sans-serif; padding: 40px;">
+      <h1 style="text-align: center; color: #1a365d;">APPOINTMENT LETTER</h1>
+      <p style="text-align: right;">Date: {{date}}</p>
+      <p>Dear <strong>{{employee_name}}</strong>,</p>
+      <p>Following the offer letter dated {{offer_date}}, we are pleased to confirm your appointment as <strong>{{designation}}</strong> in our <strong>{{department}}</strong> department, effective <strong>{{joining_date}}</strong>.</p>
+      <h3>Employment Terms:</h3>
+      <ul>
+        <li><strong>Employee ID:</strong> {{employee_id}}</li>
+        <li><strong>Designation:</strong> {{designation}}</li>
+        <li><strong>Department:</strong> {{department}}</li>
+        <li><strong>Reporting To:</strong> {{reporting_manager}}</li>
+        <li><strong>Annual CTC:</strong> ₹{{ctc}}</li>
+        <li><strong>Work Location:</strong> {{location}}</li>
+        <li><strong>Probation Period:</strong> {{probation_period}} months</li>
+      </ul>
+      <p>Please find attached the detailed terms and conditions of your employment. By signing this letter, you acknowledge that you have read and accepted all terms.</p>
+      <br/>
+      <p>Welcome to the team!</p>
+      <p><strong>{{hr_name}}</strong><br/>Human Resources<br/>{{company_name}}</p>
+    </div>`,
+    placeholders: ['employee_name', 'offer_date', 'designation', 'department', 'joining_date', 'employee_id', 'reporting_manager', 'ctc', 'location', 'probation_period', 'hr_name', 'company_name', 'date'],
+    is_default: false
+  }
+];
+
+// Announcement templates
+const announcementTemplates = [
+  { name: 'General Announcement', type: 'general', priority: 'medium', target_audience: 'all', title: 'Important Update', content: 'Dear Team, we would like to share an important update with you...' },
+  { name: 'Policy Update', type: 'policy', priority: 'high', target_audience: 'all', title: 'Policy Change Notice', content: 'Please be informed about the following policy updates effective from...' },
+  { name: 'Event Announcement', type: 'event', priority: 'medium', target_audience: 'all', title: 'Upcoming Event', content: 'We are excited to announce an upcoming event that will be held on...' },
+  { name: 'Holiday Notice', type: 'holiday', priority: 'low', target_audience: 'all', title: 'Holiday Notice', content: 'Please note that the office will remain closed on the following dates...' },
+  { name: 'Urgent Notice', type: 'urgent', priority: 'high', target_audience: 'all', title: 'Urgent: Immediate Attention Required', content: 'This is an urgent notice that requires your immediate attention...' },
+  { name: 'Welcome New Joinees', type: 'general', priority: 'low', target_audience: 'all', title: 'Welcome New Team Members', content: 'Please join us in welcoming our new team members who have joined...' }
+];
+
+// Banner templates
+const bannerTemplates = [
+  { name: 'High Priority Banner', priority_type: 'high', html_content: '<div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px; text-align: center; font-weight: bold; border-radius: 8px;"><span style="margin-right: 8px;">🚨</span>{{message}}</div>' },
+  { name: 'Medium Priority Banner', priority_type: 'medium', html_content: '<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; text-align: center; font-weight: 600; border-radius: 8px;"><span style="margin-right: 8px;">⚠️</span>{{message}}</div>' },
+  { name: 'Low Priority Banner', priority_type: 'low', html_content: '<div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 16px; text-align: center; border-radius: 8px;"><span style="margin-right: 8px;">ℹ️</span>{{message}}</div>' },
+  { name: 'Event Banner', priority_type: 'event', html_content: '<div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 16px; text-align: center; border-radius: 8px;"><span style="margin-right: 8px;">🎉</span>{{message}}</div>' }
+];
+
+// Document types for employees
+const documentTypes = [
+  { type: 'pdf', category: 'ID Proof', name: 'Aadhar Card' },
+  { type: 'pdf', category: 'ID Proof', name: 'PAN Card' },
+  { type: 'pdf', category: 'ID Proof', name: 'Passport' },
+  { type: 'pdf', category: 'Educational', name: 'Degree Certificate' },
+  { type: 'pdf', category: 'Educational', name: '10th Marksheet' },
+  { type: 'pdf', category: 'Educational', name: '12th Marksheet' },
+  { type: 'pdf', category: 'Employment', name: 'Previous Experience Letter' },
+  { type: 'pdf', category: 'Employment', name: 'Previous Relieving Letter' },
+  { type: 'pdf', category: 'Employment', name: 'Offer Letter' },
+  { type: 'pdf', category: 'Policy', name: 'Employee Handbook' },
+  { type: 'pdf', category: 'Policy', name: 'Code of Conduct' },
+  { type: 'pdf', category: 'Other', name: 'Address Proof' }
+];
+
 function getRandomDate(start: Date, end: Date): string {
   const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
   return date.toISOString().split('T')[0];
@@ -221,6 +402,7 @@ Deno.serve(async (req) => {
     // Step 1: Clear existing data in order (including new tables)
     console.log('Clearing existing data...');
     const tablesToClear = [
+      'asset_maintenance_requests',
       'asset_maintenance',
       'asset_transfers',
       'asset_assignments',
@@ -230,17 +412,20 @@ Deno.serve(async (req) => {
       'helpdesk_tickets',
       'attendance_regularization_requests',
       'profile_change_requests',
+      'shift_exchange_requests',
       'payslips',
       'salary_structures',
       'leave_requests',
       'leave_balances',
-      'shift_exchange_requests',
       'shift_assignments',
       'attendance_records',
       'generated_letters',
+      'letter_templates',
       'notifications',
       'targeted_notifications',
       'announcements',
+      'announcement_templates',
+      'announcement_banner_templates',
       'documents',
       'employee_transfers',
       'employee_store_assignments',
@@ -363,9 +548,13 @@ Deno.serve(async (req) => {
     console.log('Creating employees...');
     const createdEmployees: Array<{
       id: string;
+      name: string;
+      email: string;
       userId: string;
       departmentId: string;
       designationId: string;
+      designationName: string;
+      departmentName: string;
       designationLevel: number;
       joiningDate: string;
       role: string;
@@ -521,9 +710,13 @@ Deno.serve(async (req) => {
 
         createdEmployees.push({
           id: employee.id,
+          name: `${firstName} ${lastName}`,
+          email,
           userId: user.id,
           departmentId: deptId,
           designationId: designation?.id,
+          designationName: designation?.name || 'Employee',
+          departmentName: dept.department,
           designationLevel: designation?.level || 2,
           joiningDate,
           role,
@@ -771,7 +964,82 @@ Deno.serve(async (req) => {
     if (psError) console.log(`Payslips error: ${psError.message}`);
     console.log('Created payslips');
 
-    // Step 19: Create announcements (batch insert)
+    // Step 19: Create letter templates
+    console.log('Creating letter templates...');
+    const { data: createdLetterTemplates, error: ltplError } = await supabase
+      .from('letter_templates')
+      .insert(letterTemplates.map(t => ({
+        name: t.name,
+        type: t.type,
+        content: t.content,
+        placeholders: t.placeholders,
+        is_default: t.is_default,
+        is_active: true,
+        created_by: createdEmployees[0].userId
+      })))
+      .select();
+    if (ltplError) console.log(`Letter templates error: ${ltplError.message}`);
+    console.log(`Created ${createdLetterTemplates?.length || 0} letter templates`);
+
+    // Step 20: Create generated letters for employees
+    console.log('Creating generated letters...');
+    const generatedLettersToCreate = [];
+    const letterTypes = ['offer', 'experience', 'increment', 'relieving'];
+    
+    for (let i = 0; i < 30; i++) {
+      const emp = createdEmployees[i % createdEmployees.length];
+      const letterType = letterTypes[i % letterTypes.length];
+      const template = createdLetterTemplates?.find(t => t.type === letterType);
+      
+      let content = template?.content || '<p>Letter content</p>';
+      content = content.replace(/\{\{employee_name\}\}/g, emp.name);
+      content = content.replace(/\{\{designation\}\}/g, emp.designationName);
+      content = content.replace(/\{\{department\}\}/g, emp.departmentName);
+      content = content.replace(/\{\{company_name\}\}/g, 'TechCorp Solutions');
+      content = content.replace(/\{\{date\}\}/g, new Date().toLocaleDateString());
+      content = content.replace(/\{\{joining_date\}\}/g, emp.joiningDate);
+
+      generatedLettersToCreate.push({
+        employee_id: emp.id,
+        type: letterType,
+        template_id: template?.id,
+        content,
+        status: 'generated',
+        generated_by: createdEmployees[0].userId,
+        generated_at: getRandomDate(new Date('2024-01-01'), new Date())
+      });
+    }
+    const { error: glError } = await supabase.from('generated_letters').insert(generatedLettersToCreate);
+    if (glError) console.log(`Generated letters error: ${glError.message}`);
+    console.log(`Created ${generatedLettersToCreate.length} generated letters`);
+
+    // Step 21: Create announcement templates
+    console.log('Creating announcement templates...');
+    const { error: atError } = await supabase
+      .from('announcement_templates')
+      .insert(announcementTemplates.map(t => ({
+        ...t,
+        is_active: true,
+        is_default: t.name.includes('General'),
+        created_by: createdEmployees[0].userId
+      })));
+    if (atError) console.log(`Announcement templates error: ${atError.message}`);
+    console.log('Created announcement templates');
+
+    // Step 22: Create banner templates
+    console.log('Creating banner templates...');
+    const { error: btError } = await supabase
+      .from('announcement_banner_templates')
+      .insert(bannerTemplates.map(t => ({
+        ...t,
+        is_active: true,
+        is_default: t.priority_type === 'medium',
+        created_by: createdEmployees[0].userId
+      })));
+    if (btError) console.log(`Banner templates error: ${btError.message}`);
+    console.log('Created banner templates');
+
+    // Step 23: Create announcements (batch insert)
     console.log('Creating announcements...');
     const announcements = [
       { title: 'Office Closed for Diwali', content: 'The office will be closed from October 20-21 for Diwali celebrations. Wishing everyone a happy and prosperous Diwali!', type: 'holiday', priority: 'high' },
@@ -783,7 +1051,9 @@ Deno.serve(async (req) => {
       { title: 'IT Maintenance Window', content: 'Scheduled maintenance on December 30th from 11 PM to 5 AM. Some services may be unavailable.', type: 'urgent', priority: 'high' },
       { title: 'New Joinees Welcome', content: 'Please welcome our 5 new team members joining this month. Introduction session on Monday.', type: 'general', priority: 'low' },
       { title: 'Training Program Registration', content: 'Leadership training program registrations open. Limited seats available. Apply by January 10th.', type: 'event', priority: 'medium' },
-      { title: 'Year End Party', content: 'Annual year-end celebration on December 31st at Grand Ballroom. Dress code: Festive Formal.', type: 'event', priority: 'high' }
+      { title: 'Year End Party', content: 'Annual year-end celebration on December 31st at Grand Ballroom. Dress code: Festive Formal.', type: 'event', priority: 'high' },
+      { title: 'New Cafeteria Menu', content: 'Our cafeteria has introduced a new healthy menu starting next week. Check out the variety of options!', type: 'general', priority: 'low' },
+      { title: 'Security Awareness Training', content: 'Mandatory security awareness training for all employees. Please complete by January 31st.', type: 'policy', priority: 'high' }
     ].map(ann => ({
       ...ann,
       target_audience: 'all',
@@ -794,7 +1064,198 @@ Deno.serve(async (req) => {
     if (annError) console.log(`Announcements error: ${annError.message}`);
     console.log('Created announcements');
 
-    // Step 20: Create helpdesk tickets (batch insert)
+    // Step 24: Create employee documents
+    console.log('Creating employee documents...');
+    const documentsToCreate = [];
+    for (const emp of createdEmployees) {
+      // Add 2-4 documents per employee
+      const numDocs = Math.floor(Math.random() * 3) + 2;
+      const selectedDocs = [...documentTypes].sort(() => 0.5 - Math.random()).slice(0, numDocs);
+      
+      for (const doc of selectedDocs) {
+        documentsToCreate.push({
+          employee_id: emp.id,
+          name: `${doc.name} - ${emp.name}`,
+          type: doc.type,
+          document_category: doc.category,
+          folder_path: `employees/${emp.id}/${doc.category.toLowerCase().replace(' ', '-')}`,
+          file_url: `https://example.com/documents/${emp.id}/${doc.name.toLowerCase().replace(' ', '-')}.pdf`,
+          file_size: Math.floor(Math.random() * 500000) + 50000,
+          is_company_document: false,
+          uploaded_by: emp.userId
+        });
+      }
+    }
+    
+    // Add company-wide documents
+    const companyDocs = [
+      { name: 'Employee Handbook 2025', category: 'Policy' },
+      { name: 'Code of Conduct', category: 'Policy' },
+      { name: 'Leave Policy', category: 'Policy' },
+      { name: 'IT Security Guidelines', category: 'Policy' },
+      { name: 'Expense Reimbursement Policy', category: 'Policy' }
+    ];
+    
+    for (const doc of companyDocs) {
+      documentsToCreate.push({
+        employee_id: null,
+        name: doc.name,
+        type: 'pdf',
+        document_category: doc.category,
+        folder_path: `company/policies`,
+        file_url: `https://example.com/company/${doc.name.toLowerCase().replace(/ /g, '-')}.pdf`,
+        file_size: Math.floor(Math.random() * 1000000) + 100000,
+        is_company_document: true,
+        uploaded_by: createdEmployees[0].userId
+      });
+    }
+
+    // Insert in batches
+    for (let i = 0; i < documentsToCreate.length; i += 100) {
+      const batch = documentsToCreate.slice(i, i + 100);
+      const { error: docError } = await supabase.from('documents').insert(batch);
+      if (docError) console.log(`Documents batch error: ${docError.message}`);
+    }
+    console.log(`Created ${documentsToCreate.length} documents`);
+
+    // Step 25: Create attendance regularization requests
+    console.log('Creating attendance regularization requests...');
+    const regularizationRequestsToCreate = [];
+    for (let i = 0; i < 20; i++) {
+      const emp = getRandomElement(createdEmployees);
+      const statusRand = Math.random();
+      const status = statusRand < 0.3 ? 'pending' : (statusRand < 0.8 ? 'approved' : 'rejected');
+      const requestTypes = ['forgot_clock_in', 'forgot_clock_out', 'wrong_timing', 'system_error', 'biometric_issue'];
+      
+      const requestDate = getRandomDate(new Date('2024-11-01'), new Date());
+      const hrEmployee = createdEmployees.find(e => e.role === 'hr') || createdEmployees[0];
+      
+      regularizationRequestsToCreate.push({
+        employee_id: emp.id,
+        request_date: requestDate,
+        request_type: getRandomElement(requestTypes),
+        original_check_in: status !== 'pending' && Math.random() > 0.5 ? '09:30' : null,
+        original_check_out: status !== 'pending' && Math.random() > 0.5 ? '17:30' : null,
+        requested_check_in: '09:00',
+        requested_check_out: '18:00',
+        reason: getRandomElement([
+          'Forgot to clock in due to urgent meeting',
+          'System was not working properly',
+          'Biometric device error',
+          'Was working from client location',
+          'Had to attend to emergency, forgot to clock out'
+        ]),
+        status,
+        reviewed_by: status !== 'pending' ? hrEmployee.id : null,
+        reviewed_at: status !== 'pending' ? new Date().toISOString() : null,
+        review_comments: status === 'approved' ? 'Verified and approved' : (status === 'rejected' ? 'Unable to verify the claim' : null)
+      });
+    }
+    const { error: arrError } = await supabase.from('attendance_regularization_requests').insert(regularizationRequestsToCreate);
+    if (arrError) console.log(`Attendance regularization error: ${arrError.message}`);
+    console.log(`Created ${regularizationRequestsToCreate.length} attendance regularization requests`);
+
+    // Step 26: Create profile change requests
+    console.log('Creating profile change requests...');
+    const profileChangeRequestsToCreate = [];
+    const fieldNames = ['phone', 'address_street', 'address_city', 'emergency_contact_name', 'emergency_contact_phone', 'bank_account_number'];
+    
+    for (let i = 0; i < 20; i++) {
+      const emp = getRandomElement(createdEmployees);
+      const fieldName = getRandomElement(fieldNames);
+      const statusRand = Math.random();
+      const status = statusRand < 0.3 ? 'pending' : (statusRand < 0.85 ? 'approved' : 'rejected');
+      const hrEmployee = createdEmployees.find(e => e.role === 'hr') || createdEmployees[0];
+      
+      let currentValue = '', newValue = '';
+      switch(fieldName) {
+        case 'phone':
+          currentValue = `+91 98${Math.floor(Math.random() * 100000000)}`;
+          newValue = `+91 99${Math.floor(Math.random() * 100000000)}`;
+          break;
+        case 'address_street':
+          currentValue = `${Math.floor(Math.random() * 100)}, Old Street`;
+          newValue = `${Math.floor(Math.random() * 100)}, New Street`;
+          break;
+        case 'address_city':
+          currentValue = getRandomElement(cities);
+          newValue = getRandomElement(cities.filter(c => c !== currentValue));
+          break;
+        case 'emergency_contact_name':
+          currentValue = `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`;
+          newValue = `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`;
+          break;
+        case 'emergency_contact_phone':
+          currentValue = `+91 97${Math.floor(Math.random() * 100000000)}`;
+          newValue = `+91 98${Math.floor(Math.random() * 100000000)}`;
+          break;
+        case 'bank_account_number':
+          currentValue = `XXXX${Math.floor(Math.random() * 10000)}`;
+          newValue = `XXXX${Math.floor(Math.random() * 10000)}`;
+          break;
+      }
+      
+      profileChangeRequestsToCreate.push({
+        employee_id: emp.id,
+        field_name: fieldName,
+        current_value: currentValue,
+        new_value: newValue,
+        reason: getRandomElement([
+          'Updated contact number',
+          'Changed residence',
+          'Updated emergency contact details',
+          'Bank account change',
+          'Correction in records'
+        ]),
+        status,
+        reviewed_by: status !== 'pending' ? hrEmployee.id : null,
+        reviewed_at: status !== 'pending' ? new Date().toISOString() : null,
+        review_comments: status === 'approved' ? 'Verified and updated' : (status === 'rejected' ? 'Supporting documents required' : null)
+      });
+    }
+    const { error: pcrError } = await supabase.from('profile_change_requests').insert(profileChangeRequestsToCreate);
+    if (pcrError) console.log(`Profile change requests error: ${pcrError.message}`);
+    console.log(`Created ${profileChangeRequestsToCreate.length} profile change requests`);
+
+    // Step 27: Create shift exchange requests
+    console.log('Creating shift exchange requests...');
+    const shiftExchangeRequestsToCreate = [];
+    
+    for (let i = 0; i < 20; i++) {
+      const requesterIdx = Math.floor(Math.random() * createdEmployees.length);
+      let targetIdx = Math.floor(Math.random() * createdEmployees.length);
+      while (targetIdx === requesterIdx) {
+        targetIdx = Math.floor(Math.random() * createdEmployees.length);
+      }
+      
+      const requester = createdEmployees[requesterIdx];
+      const target = createdEmployees[targetIdx];
+      const statusRand = Math.random();
+      const status = statusRand < 0.25 ? 'pending' : (statusRand < 0.5 ? 'approved' : (statusRand < 0.75 ? 'rejected' : 'cancelled'));
+      
+      shiftExchangeRequestsToCreate.push({
+        requester_id: requester.id,
+        target_employee_id: target.id,
+        requester_shift_id: getRandomElement(createdShifts || []).id,
+        target_shift_id: getRandomElement(createdShifts || []).id,
+        request_date: getRandomDate(new Date('2025-01-01'), new Date('2025-03-31')),
+        reason: getRandomElement([
+          'Personal appointment on that day',
+          'Family function to attend',
+          'Medical appointment scheduled',
+          'Important personal work',
+          'Travel plans'
+        ]),
+        status,
+        responded_at: status !== 'pending' ? new Date().toISOString() : null,
+        response_note: status === 'approved' ? 'Happy to help!' : (status === 'rejected' ? 'Sorry, I have plans that day' : null)
+      });
+    }
+    const { error: serError } = await supabase.from('shift_exchange_requests').insert(shiftExchangeRequestsToCreate);
+    if (serError) console.log(`Shift exchange requests error: ${serError.message}`);
+    console.log(`Created ${shiftExchangeRequestsToCreate.length} shift exchange requests`);
+
+    // Step 28: Create helpdesk tickets (batch insert)
     console.log('Creating helpdesk tickets...');
     const ticketSubjects = [
       { subject: 'Cannot access email', category: 'it', priority: 'high' },
@@ -855,7 +1316,7 @@ Deno.serve(async (req) => {
     }
     console.log('Created helpdesk tickets');
 
-    // Step 21: Create notifications
+    // Step 29: Create notifications
     console.log('Creating notifications...');
     for (const emp of createdEmployees.slice(0, 20)) {
       const notifications = [
@@ -876,7 +1337,7 @@ Deno.serve(async (req) => {
     }
     console.log('Created notifications');
 
-    // Step 22: Update department employee counts
+    // Step 30: Update department employee counts
     console.log('Updating department employee counts...');
     for (const [deptName, deptId] of deptMap) {
       const count = createdEmployees.filter(e => e.departmentId === deptId).length;
@@ -884,7 +1345,7 @@ Deno.serve(async (req) => {
     }
     console.log('Updated department counts');
 
-    // Step 23: Create asset categories
+    // Step 31: Create asset categories
     console.log('Creating asset categories...');
     const assetCategories = [
       { name: 'Laptops', code: 'LAP', description: 'Laptop computers and notebooks', icon: 'Laptop' },
@@ -904,7 +1365,7 @@ Deno.serve(async (req) => {
 
     const categoryMap = new Map(createdCategories?.map(c => [c.code, c.id]) || []);
 
-    // Step 24: Create assets
+    // Step 32: Create assets
     console.log('Creating assets...');
     const assetTemplates = [
       // Laptops
@@ -975,7 +1436,7 @@ Deno.serve(async (req) => {
     if (assetError) throw new Error(`Failed to create assets: ${assetError.message}`);
     console.log(`Created ${createdAssets?.length} assets`);
 
-    // Step 25: Create asset assignments for assigned assets
+    // Step 33: Create asset assignments for assigned assets
     console.log('Creating asset assignments...');
     const assignedAssets = createdAssets?.filter(a => a.status === 'assigned') || [];
     const employeeIds = createdEmployees.map(e => e.id);
@@ -1013,7 +1474,7 @@ Deno.serve(async (req) => {
     if (assignError) console.log(`Note: Asset assignments error: ${assignError.message}`);
     console.log(`Created ${assignmentsToCreate.length} asset assignments`);
 
-    // Step 26: Create asset transfers
+    // Step 34: Create asset transfers
     console.log('Creating asset transfers...');
     const availableAssets = createdAssets?.filter(a => a.status === 'available') || [];
     const transfersToCreate = availableAssets.slice(0, 15).map((asset, index) => {
@@ -1040,7 +1501,7 @@ Deno.serve(async (req) => {
     if (transferError) console.log(`Note: Asset transfers error: ${transferError.message}`);
     console.log(`Created ${transfersToCreate.length} asset transfers`);
 
-    // Step 27: Create asset maintenance records
+    // Step 35: Create asset maintenance records
     console.log('Creating asset maintenance records...');
     const maintenanceAssets = createdAssets?.filter(a => a.status === 'maintenance') || [];
     const allAssets = createdAssets || [];
@@ -1076,12 +1537,55 @@ Deno.serve(async (req) => {
     if (maintError) console.log(`Note: Asset maintenance error: ${maintError.message}`);
     console.log(`Created ${maintenanceToCreate.length} maintenance records`);
 
+    // Step 36: Create asset maintenance requests (employee-initiated)
+    console.log('Creating asset maintenance requests...');
+    const assetMaintenanceRequestsToCreate = [];
+    const assignedAssetsList = createdAssets?.filter(a => a.status === 'assigned') || [];
+    
+    for (let i = 0; i < 20; i++) {
+      const asset = assignedAssetsList[i % assignedAssetsList.length];
+      const emp = createdEmployees[i % createdEmployees.length];
+      const statusRand = Math.random();
+      const status = statusRand < 0.25 ? 'pending' : (statusRand < 0.5 ? 'approved' : (statusRand < 0.75 ? 'in_progress' : 'completed'));
+      const hrEmployee = createdEmployees.find(e => e.role === 'hr') || createdEmployees[0];
+      
+      assetMaintenanceRequestsToCreate.push({
+        asset_id: asset.id,
+        employee_id: emp.id,
+        type: getRandomElement(['repair', 'service', 'replacement', 'upgrade']),
+        description: getRandomElement([
+          'Screen flickering issue',
+          'Battery not holding charge',
+          'Keyboard keys not working',
+          'Device running slow, needs service',
+          'Touchpad not responsive',
+          'USB ports not working',
+          'Software needs upgrade',
+          'Device making noise'
+        ]),
+        priority: getRandomElement(['low', 'medium', 'high', 'urgent']),
+        status,
+        estimated_cost: Math.floor(Math.random() * 10000) + 1000,
+        actual_cost: status === 'completed' ? Math.floor(Math.random() * 8000) + 1000 : null,
+        scheduled_date: status !== 'pending' ? getRandomDate(new Date('2024-11-01'), new Date('2025-02-01')) : null,
+        reviewed_by: status !== 'pending' ? hrEmployee.id : null,
+        reviewed_at: status !== 'pending' ? new Date().toISOString() : null,
+        review_comments: status === 'approved' ? 'Approved for maintenance' : (status === 'completed' ? 'Issue resolved' : null),
+        completed_at: status === 'completed' ? new Date().toISOString() : null,
+        resolution_notes: status === 'completed' ? 'Issue has been fixed. Device is working properly now.' : null
+      });
+    }
+    
+    const { error: amrError } = await supabase.from('asset_maintenance_requests').insert(assetMaintenanceRequestsToCreate);
+    if (amrError) console.log(`Asset maintenance requests error: ${amrError.message}`);
+    console.log(`Created ${assetMaintenanceRequestsToCreate.length} asset maintenance requests`);
+
     console.log('Database seeding completed successfully!');
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Database seeded successfully',
+        message: 'Database seeded successfully with comprehensive data',
         stats: {
           employees: createdEmployees.length,
           departments: createdDepts?.length || 0,
@@ -1091,12 +1595,26 @@ Deno.serve(async (req) => {
           leaveTypes: createdLeaveTypes?.length || 0,
           shifts: createdShifts?.length || 0,
           holidays: holidays2025.length,
-          transfers: 10,
+          employeeTransfers: 10,
+          letterTemplates: createdLetterTemplates?.length || 0,
+          generatedLetters: generatedLettersToCreate.length,
+          announcementTemplates: announcementTemplates.length,
+          bannerTemplates: bannerTemplates.length,
+          announcements: announcements.length,
+          documents: documentsToCreate.length,
+          attendanceRecords: attendanceRecordsToCreate.length,
+          leaveRequests: leaveRequestsToCreate.length,
+          payslips: payslipsToCreate.length,
+          regularizationRequests: regularizationRequestsToCreate.length,
+          profileChangeRequests: profileChangeRequestsToCreate.length,
+          shiftExchangeRequests: shiftExchangeRequestsToCreate.length,
+          helpdeskTickets: ticketsToCreate.length,
           assetCategories: createdCategories?.length || 0,
           assets: createdAssets?.length || 0,
           assetAssignments: assignmentsToCreate.length,
           assetTransfers: transfersToCreate.length,
-          assetMaintenance: maintenanceToCreate.length
+          assetMaintenance: maintenanceToCreate.length,
+          assetMaintenanceRequests: assetMaintenanceRequestsToCreate.length
         },
         testCredentials: {
           admin: 'admin@company.com / Test@123',
