@@ -261,14 +261,7 @@ export default function EmployeeAssets() {
 
   return (
     <PageContainer>
-      <PageHeader title="My Assets" description="View assets assigned to you">
-        <Button asChild>
-          <Link to="/employee/assets/maintenance">
-            <Wrench className="mr-2 h-4 w-4" />
-            Maintenance Requests
-          </Link>
-        </Button>
-      </PageHeader>
+      <PageHeader title="My Assets" description="View assets assigned to you" />
 
       {/* Stats Card */}
       <div className="grid gap-4 md:grid-cols-2 mb-6">
