@@ -45,6 +45,7 @@ export default function AdminProfilePage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [dobOpen, setDobOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -376,7 +377,7 @@ export default function AdminProfilePage() {
                   </div>
                   <div className="sm:col-span-2 space-y-2">
                     <Label>Date of Birth</Label>
-                    <Popover>
+                    <Popover open={dobOpen} onOpenChange={setDobOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -386,7 +387,7 @@ export default function AdminProfilePage() {
                           )}
                         >
                           {formData.date_of_birth 
-                            ? format(parse(formData.date_of_birth, "yyyy-MM-dd", new Date()), "dd MMM yyyy")
+                            ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()).toLocaleDateString()
                             : "Select date"
                           }
                           <ChevronDown className="h-4 w-4 opacity-50" />
@@ -396,13 +397,13 @@ export default function AdminProfilePage() {
                         <Calendar
                           mode="single"
                           selected={formData.date_of_birth ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()) : undefined}
-                          onSelect={(date) => setFormData({ ...formData, date_of_birth: date ? format(date, "yyyy-MM-dd") : "" })}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          onSelect={(date) => {
+                            setFormData({ ...formData, date_of_birth: date ? format(date, "yyyy-MM-dd") : "" })
+                            setDobOpen(false)
+                          }}
                           captionLayout="dropdown-buttons"
                           fromYear={1940}
                           toYear={new Date().getFullYear()}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
                         />
                       </PopoverContent>
                     </Popover>
