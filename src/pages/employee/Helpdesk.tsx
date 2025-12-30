@@ -285,10 +285,10 @@ export default function EmployeeHelpdesk() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="space-y-6">
         {/* Tickets Table */}
-        <div className="lg:col-span-2">
-          <Card>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
             <DataTableToolbar
               columns={columns}
               onToggleColumn={handleToggleColumn}
@@ -372,14 +372,28 @@ export default function EmployeeHelpdesk() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={paginatedData.length > 0 && paginatedData.every((t) => selectedRows.has(t.id))}
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
                   {visibleColumns.map((col) => (
-                    <TableHead key={col.id}>
+                    <TableHead 
+                      key={col.id}
+                      className={
+                        col.id === "employee" ? "min-w-[180px]" :
+                        col.id === "email" ? "min-w-[180px]" :
+                        col.id === "subject" ? "min-w-[200px]" :
+                        col.id === "department" ? "min-w-[120px]" :
+                        col.id === "store" ? "min-w-[120px]" :
+                        col.id === "category" ? "min-w-[100px]" :
+                        col.id === "priority" ? "min-w-[90px]" :
+                        col.id === "status" ? "min-w-[100px]" :
+                        col.id === "created_at" ? "min-w-[100px]" :
+                        ""
+                      }
+                    >
                       {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                         <Button
                           variant="ghost"
@@ -395,7 +409,7 @@ export default function EmployeeHelpdesk() {
                       )}
                     </TableHead>
                   ))}
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-16">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -466,19 +480,19 @@ export default function EmployeeHelpdesk() {
               onPageChange={setCurrentPage}
               onPageSizeChange={setPageSize}
             />
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         {/* Ticket Detail / Messages */}
-        <div>
-          {selectedTicket && (
+        {selectedTicket && (
+          <Card>
             <TicketMessaging
               ticket={selectedTicket}
               onClose={() => setSelectedTicket(null)}
               isAdmin={false}
             />
-          )}
-        </div>
+          </Card>
+        )}
       </div>
 
       {/* New Ticket Dialog */}
