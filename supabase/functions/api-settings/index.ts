@@ -52,6 +52,52 @@ serve(async (req) => {
 
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
+    // GET /user-permissions - Get current user's permissions from their role
+    if (method === 'GET' && path === '/user-permissions') {
+      console.log('[api-settings] Fetching user permissions for:', auth.userId);
+      
+      // Get user's role_id from user_roles
+      const { data: userRole, error: userRoleError } = await supabase
+        .from('user_roles')
+        .select('role_id')
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+      
+      if (userRoleError) {
+        console.error('[api-settings] Error fetching user role:', userRoleError);
+        throw userRoleError;
+      }
+
+      if (!userRole?.role_id) {
+        console.log('[api-settings] No role_id found for user, returning empty permissions');
+        return jsonResponse({
+          roleId: null,
+          roleName: null,
+          permissions: []
+        });
+      }
+
+      // Get role details
+      const { data: role, error: roleError } = await supabase
+        .from('roles')
+        .select('id, name, permissions')
+        .eq('id', userRole.role_id)
+        .single();
+      
+      if (roleError) {
+        console.error('[api-settings] Error fetching role:', roleError);
+        throw roleError;
+      }
+
+      console.log('[api-settings] Found role:', role?.name, 'with', (role?.permissions as any[])?.length || 0, 'permissions');
+      
+      return jsonResponse({
+        roleId: role?.id || null,
+        roleName: role?.name || null,
+        permissions: role?.permissions || []
+      });
+    }
+
     // GET / - Get all settings
     if (method === 'GET' && path === '') {
       const { data, error } = await supabase

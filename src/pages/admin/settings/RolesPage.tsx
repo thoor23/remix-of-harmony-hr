@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { modules } from "@/data/settingsData";
+import { modules, adminModules, employeeModules } from "@/data/settingsData";
 import { RolePermission } from "@/types/settings";
 import { PermissionMatrix } from "@/components/settings/PermissionMatrix";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
