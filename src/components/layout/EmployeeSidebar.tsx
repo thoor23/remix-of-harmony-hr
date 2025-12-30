@@ -102,7 +102,6 @@ const employeeNavItems: NavItem[] = [
     icon: Wallet,
     children: [
       { title: "Payslip Records", href: "/employee/payslips", icon: Receipt },
-      { title: "Salary Configuration", href: "/employee/payslips/details", icon: TrendingUp },
       { title: "My Report", href: "/employee/payroll/report", icon: BarChart3 },
     ],
   },
