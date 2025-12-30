@@ -22,6 +22,7 @@ import {
   Building2,
   LayoutDashboard,
   User,
+  Users,
   CalendarDays,
   CalendarCheck,
   Wallet,
@@ -81,7 +82,8 @@ const employeeNavItems: NavItem[] = [
     icon: Clock,
     children: [
       { title: "My Shift Schedule", href: "/employee/shifts", icon: Eye },
-      { title: "Shift Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
+      { title: "All Shifts", href: "/employee/all-shifts", icon: Users },
+      { title: "Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
       { title: "My Report", href: "/employee/shifts/report", icon: BarChart3 },
     ],
   },
