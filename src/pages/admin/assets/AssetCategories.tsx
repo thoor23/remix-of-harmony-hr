@@ -53,6 +53,7 @@ import {
   ArrowDown,
   FolderOpen,
 } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   useAssetCategories,
   useCreateAssetCategory,
@@ -254,8 +255,8 @@ export default function AssetCategories() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <Table>
+        <ScrollArea className="w-full whitespace-nowrap">
+          <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
@@ -313,7 +314,8 @@ export default function AssetCategories() {
               )}
             </TableBody>
           </Table>
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={sortedCategories.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </Card>
