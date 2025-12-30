@@ -368,11 +368,11 @@ export default function EmployeeHelpdesk() {
               </div>
             )}
 
-          <div className="w-full overflow-x-auto">
-            <Table className="w-max min-w-full">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10">
+                  <TableHead className="w-10 whitespace-nowrap">
                     <Checkbox
                       checked={paginatedData.length > 0 && paginatedData.every((t) => selectedRows.has(t.id))}
                       onCheckedChange={handleSelectAll}
@@ -381,7 +381,7 @@ export default function EmployeeHelpdesk() {
                   {visibleColumns.map((col) => (
                     <TableHead 
                       key={col.id}
-                      className={
+                      className={`whitespace-nowrap ${
                         col.id === "employee" ? "min-w-[180px]" :
                         col.id === "email" ? "min-w-[180px]" :
                         col.id === "subject" ? "min-w-[200px]" :
@@ -392,7 +392,7 @@ export default function EmployeeHelpdesk() {
                         col.id === "status" ? "min-w-[100px]" :
                         col.id === "created_at" ? "min-w-[100px]" :
                         ""
-                      }
+                      }`}
                     >
                       {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                         <Button
@@ -409,20 +409,20 @@ export default function EmployeeHelpdesk() {
                       )}
                     </TableHead>
                   ))}
-                  <TableHead className="w-16">Actions</TableHead>
+                  <TableHead className="w-16 whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedData.length > 0 ? paginatedData.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <Checkbox
                         checked={selectedRows.has(ticket.id)}
                         onCheckedChange={(checked) => handleSelectRow(ticket.id, checked as boolean)}
                       />
                     </TableCell>
                     {visibleColumns.map((col) => (
-                      <TableCell key={col.id}>
+                      <TableCell key={col.id} className="whitespace-nowrap">
                         {col.id === "employee" ? (
                           <EmployeeCell
                             avatarUrl={currentEmployee?.avatar_url}
@@ -453,7 +453,7 @@ export default function EmployeeHelpdesk() {
                         )}
                       </TableCell>
                     ))}
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <Button
                         variant="ghost"
                         size="icon"
