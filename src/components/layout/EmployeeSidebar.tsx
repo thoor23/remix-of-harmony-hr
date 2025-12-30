@@ -126,7 +126,6 @@ const employeeNavItems: NavItem[] = [
     title: "Helpdesk",
     icon: HelpCircle,
     children: [
-      { title: "New Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
       { title: "All Tickets", href: "/employee/helpdesk", icon: Ticket },
       { title: "My Report", href: "/employee/helpdesk/report", icon: BarChart3 },
     ],
