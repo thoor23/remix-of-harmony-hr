@@ -9,7 +9,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DateTimePickerProps {
   value?: string;
@@ -111,41 +110,41 @@ export function DateTimePicker({
               {/* Hours */}
               <div className="flex flex-col">
                 <span className="text-xs text-muted-foreground mb-1 text-center">Hour</span>
-                <ScrollArea className="h-40 w-12">
-                  <div className="flex flex-col gap-1">
+                <div className="h-40 w-14 overflow-y-auto border rounded-md">
+                  <div className="flex flex-col p-1">
                     {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                       <Button
                         key={h}
                         variant={hours === h ? "default" : "ghost"}
                         size="sm"
-                        className="w-full h-8"
+                        className="w-full h-8 shrink-0"
                         onClick={() => handleHourChange(h)}
                       >
                         {h.toString().padStart(2, "0")}
                       </Button>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
 
               {/* Minutes */}
               <div className="flex flex-col">
                 <span className="text-xs text-muted-foreground mb-1 text-center">Min</span>
-                <ScrollArea className="h-40 w-12">
-                  <div className="flex flex-col gap-1">
+                <div className="h-40 w-14 overflow-y-auto border rounded-md">
+                  <div className="flex flex-col p-1">
                     {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
                       <Button
                         key={m}
                         variant={minutes === m ? "default" : "ghost"}
                         size="sm"
-                        className="w-full h-8"
+                        className="w-full h-8 shrink-0"
                         onClick={() => handleMinuteChange(m)}
                       >
                         {m.toString().padStart(2, "0")}
                       </Button>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </div>
           </div>
