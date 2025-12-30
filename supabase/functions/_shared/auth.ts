@@ -218,3 +218,53 @@ export async function getUserInfo(userId: string) {
     employee,
   };
 }
+
+// Check if user has permission for a specific module and action
+export async function checkPermission(userId: string, module: string, action: 'create' | 'read' | 'update' | 'delete'): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  
+  // Get user's role_id from user_roles
+  const { data: userRole } = await supabase
+    .from('user_roles')
+    .select('role_id, role')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  // Admin always has full access
+  if (userRole?.role === 'admin') {
+    return true;
+  }
+  
+  if (!userRole?.role_id) {
+    return false;
+  }
+  
+  // Get role permissions
+  const { data: role } = await supabase
+    .from('roles')
+    .select('permissions')
+    .eq('id', userRole.role_id)
+    .single();
+  
+  if (!role?.permissions) {
+    return false;
+  }
+  
+  // Find module permission
+  const permissions = role.permissions as Array<{ module: string; create: boolean; read: boolean; update: boolean; delete: boolean }>;
+  const modulePerm = permissions.find(p => p.module === module);
+  
+  if (!modulePerm) {
+    return false;
+  }
+  
+  return modulePerm[action] === true;
+}
+
+// Require permission - throws error if not authorized
+export async function requirePermission(userId: string, module: string, action: 'create' | 'read' | 'update' | 'delete'): Promise<void> {
+  const hasPermission = await checkPermission(userId, module, action);
+  if (!hasPermission) {
+    throw new Error(`Permission denied: ${action} on ${module}`);
+  }
+}

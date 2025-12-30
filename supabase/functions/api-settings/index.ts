@@ -296,6 +296,98 @@ serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // ===== USER ROLE ASSIGNMENTS =====
+
+    // GET /user-role-assignments - Get all user role assignments
+    if (method === 'GET' && path === '/user-role-assignments') {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin access required', 403);
+      }
+
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          id,
+          user_id,
+          role,
+          role_id,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
+    // GET /user-role/:userId - Get specific user's role assignment
+    const userRoleMatch = path.match(/^\/user-role\/([a-f0-9-]+)$/);
+    if (method === 'GET' && userRoleMatch) {
+      const userId = userRoleMatch[1];
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return jsonResponse(data || { user_id: userId, role: 'employee', role_id: null });
+    }
+
+    // PUT /user-role/:userId - Update user's role assignment
+    if (method === 'PUT' && userRoleMatch) {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin access required', 403);
+      }
+
+      const userId = userRoleMatch[1];
+      const body = await req.json();
+      const { role_id } = body;
+
+      // Check if user role assignment exists
+      const { data: existing } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      let result;
+      if (existing) {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .update({ role_id })
+          .eq('user_id', userId)
+          .select()
+          .single();
+        if (error) throw error;
+        result = data;
+      } else {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'employee', role_id })
+          .select()
+          .single();
+        if (error) throw error;
+        result = data;
+      }
+
+      // Update role user_count
+      if (role_id) {
+        // Recalculate user count for the role
+        const { count } = await supabase
+          .from('user_roles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role_id', role_id);
+        
+        await supabase
+          .from('roles')
+          .update({ user_count: count || 0 })
+          .eq('id', role_id);
+      }
+
+      return jsonResponse(result);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-settings] Error:', error);
