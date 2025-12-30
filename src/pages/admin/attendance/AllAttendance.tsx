@@ -41,11 +41,12 @@ import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
   { id: "employee_name", header: "Employee", accessor: "employee_name", visible: true },
-  { id: "employee_id", header: "Employee ID", accessor: "employee_code", visible: true },
+  { id: "employee_id", header: "Employee ID", accessor: "employee_code", visible: false },
   { id: "department", header: "Department", accessor: "department", visible: true },
   { id: "store", header: "Location", accessor: "store_name", visible: true },
   { id: "date", header: "Date", accessor: "date", visible: true },
@@ -224,16 +225,12 @@ export default function AllAttendance() {
 
     if (column.id === 'employee_name') {
       return (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={record.avatar_url || ""} />
-            <AvatarFallback>
-              {record.first_name?.[0] || ""}
-              {record.last_name?.[0] || ""}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{value}</span>
-        </div>
+        <EmployeeCell
+          avatarUrl={record.avatar_url}
+          firstName={record.first_name}
+          lastName={record.last_name}
+          employeeId={record.employee_code}
+        />
       );
     }
 

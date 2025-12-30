@@ -75,10 +75,11 @@ import { usePagination } from "@/hooks/usePagination";
 import { format } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 // Define all ticket columns
 const getInitialColumns = (): ColumnDef[] => [
-  { id: "id", header: "Ticket ID", accessor: "id", visible: true },
+  { id: "id", header: "Ticket ID", accessor: "id", visible: false },
   { id: "employee_name", header: "Employee", accessor: (t: TicketWithEmployee) => 
     `${t.employee?.first_name || ''} ${t.employee?.last_name || ''}`.trim() || 'Unknown', visible: true },
   { id: "subject", header: "Subject", accessor: "subject", visible: true },
@@ -289,6 +290,17 @@ export default function HelpdeskManagement() {
 
   const renderCellValue = (ticket: TicketWithEmployee, column: ColumnDef) => {
     const value = getNestedValue(ticket, column.accessor);
+
+    // Employee cell with avatar
+    if (column.id === 'employee_name') {
+      return (
+        <EmployeeCell
+          firstName={ticket.employee?.first_name}
+          lastName={ticket.employee?.last_name}
+          employeeId={ticket.employee?.employee_id}
+        />
+      );
+    }
 
     // Ticket ID - truncated
     if (column.id === 'id') {

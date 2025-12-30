@@ -17,6 +17,7 @@ import {
 import { StatCard } from "@/components/shared/StatCard";
 import { Wallet, TrendingUp, Receipt, CreditCard } from "lucide-react";
 import { useAllLocations } from "@/hooks/useLocations";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const monthlyDisbursementData = [
   { name: "Jul", gross: 850000, net: 720000 },

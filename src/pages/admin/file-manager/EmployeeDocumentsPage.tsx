@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 type SortField = "name" | "documents" | "department";
 type SortDirection = "asc" | "desc";
@@ -285,7 +286,6 @@ export default function EmployeeDocumentsPage() {
                     {getSortIcon("name")}
                   </Button>
                 </TableHead>
-                <TableHead>Employee ID</TableHead>
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -324,15 +324,13 @@ export default function EmployeeDocumentsPage() {
                     onClick={() => navigate(`/admin/file-manager/${emp.id}`)}
                   >
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={emp.avatar_url || undefined} />
-                          <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{fullName}</span>
-                      </div>
+                      <EmployeeCell
+                        avatarUrl={emp.avatar_url}
+                        firstName={emp.first_name}
+                        lastName={emp.last_name}
+                        employeeId={emp.employee_id}
+                      />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{emp.employee_id}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {emp.department?.name || "—"}
                     </TableCell>

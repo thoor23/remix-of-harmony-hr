@@ -61,6 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 interface AssignmentFormData {
   employeeId: string;
@@ -77,7 +78,7 @@ const getInitialColumns = (): ColumnDef[] => [
     if (!profile) return row.employee?.employee_id || "Unknown";
     return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
   }, visible: true },
-  { id: "employee_id", header: "Emp ID", accessor: (row: any) => row.employee?.employee_id, visible: true },
+  { id: "employee_id", header: "Emp ID", accessor: (row: any) => row.employee?.employee_id, visible: false },
   { id: "department", header: "Department", accessor: (row: any) => row.employee?.department?.name || "—", visible: true },
   { id: "store", header: "Store", accessor: (row: any) => row.store?.name || "—", visible: true },
   { id: "shift_name", header: "Current Shift", accessor: (row: any) => row.shift?.name || "—", visible: true },
@@ -313,6 +314,18 @@ export default function ShiftAssignments() {
   const renderCellValue = (assignment: any, column: ColumnDef) => {
     const value = getColumnValue(assignment, column);
     const shift = shifts.find(s => s.id === assignment.shift_id);
+    const profile = assignment.employee?.profile;
+
+    if (column.id === 'employee_name') {
+      return (
+        <EmployeeCell
+          avatarUrl={profile?.avatar_url}
+          firstName={profile?.first_name}
+          lastName={profile?.last_name}
+          employeeId={assignment.employee?.employee_id}
+        />
+      );
+    }
 
     if (column.id === 'shift_name' && shift) {
       return (

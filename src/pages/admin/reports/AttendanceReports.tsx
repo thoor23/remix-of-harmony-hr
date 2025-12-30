@@ -17,6 +17,7 @@ import {
 import { StatCard } from "@/components/shared/StatCard";
 import { Users, Clock, AlertTriangle, TrendingUp } from "lucide-react";
 import { useAllLocations } from "@/hooks/useLocations";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const weeklyAttendanceData = [
   { name: "Mon", present: 115, late: 5, absent: 2 },

@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEmployeeReportData, processEmployeeData } from "@/hooks/useReportData";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useAllLocations } from "@/hooks/useLocations";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 export default function EmployeeReports() {
   const [filteredDepartment, setFilteredDepartment] = useState("all");
@@ -134,8 +135,7 @@ export default function EmployeeReports() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Store</TableHead>
                 <TableHead>Designation</TableHead>
@@ -146,9 +146,14 @@ export default function EmployeeReports() {
             <TableBody>
               {filteredEmployees.slice(0, 20).map((employee: any) => (
                 <TableRow key={employee.id}>
-                  <TableCell className="font-medium">{employee.employee_id}</TableCell>
                   <TableCell>
-                    {`${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "N/A"}
+                    <EmployeeCell
+                      avatarUrl={employee.avatar_url}
+                      firstName={employee.first_name}
+                      lastName={employee.last_name}
+                      employeeId={employee.employee_id}
+                      size="sm"
+                    />
                   </TableCell>
                   <TableCell>{employee.department?.name || "Unassigned"}</TableCell>
                   <TableCell>{getLocationName(employee.primary_store_id)}</TableCell>
@@ -165,7 +170,7 @@ export default function EmployeeReports() {
               ))}
               {filteredEmployees.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No employees found
                   </TableCell>
                 </TableRow>

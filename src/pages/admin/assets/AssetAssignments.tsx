@@ -35,6 +35,7 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "asset", header: "Asset", accessor: (row: any) => row.asset?.name || "-", visible: true },
@@ -100,6 +101,15 @@ export default function AssetAssignments() {
   const renderCellValue = (assignment: any, column: ColumnDef) => {
     const value = typeof column.accessor === "function" ? column.accessor(assignment) : assignment[column.accessor];
     switch (column.id) {
+      case "employee":
+        return (
+          <EmployeeCell
+            avatarUrl={assignment.employee?.avatar_url}
+            firstName={assignment.employee?.first_name}
+            lastName={assignment.employee?.last_name}
+            employeeId={assignment.employee?.employee_id}
+          />
+        );
       case "status": return <Badge variant={assignment.returned_date ? "secondary" : "default"}>{value}</Badge>;
       case "assigned_date": case "returned_date": return value ? format(new Date(value), "dd MMM yyyy") : "-";
       case "condition_on_assign": case "condition_on_return": return value ? <span className="capitalize">{value}</span> : "-";

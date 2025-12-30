@@ -58,6 +58,7 @@ import {
 } from '@/hooks/useAssets';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAllLocations } from '@/hooks/useLocations';
+import { EmployeeCell } from '@/components/shared/EmployeeCell';
 
 const statusColors: Record<string, string> = {
   available: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -363,7 +364,12 @@ export default function AssetDetails() {
                     assignments?.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell>
-                          {a.employee?.first_name} {a.employee?.last_name}
+                          <EmployeeCell
+                            firstName={a.employee?.first_name}
+                            lastName={a.employee?.last_name}
+                            employeeId={a.employee?.employee_id}
+                            size="sm"
+                          />
                         </TableCell>
                         <TableCell>{a.location?.name || '-'}</TableCell>
                         <TableCell>{format(new Date(a.assigned_date), 'dd MMM yyyy')}</TableCell>
