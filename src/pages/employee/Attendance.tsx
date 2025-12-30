@@ -52,7 +52,7 @@ export default function EmployeeAttendance() {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
   const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
-  const { data: myRecords = [], isLoading: recordsLoading, refetch } = useMyAttendance(employee?.id);
+  const { data: myRecords = [], isLoading: recordsLoading, refetch } = useMyAttendance();
   const { data: locations = [] } = useAllLocations();
 
   // Get store name from location id
