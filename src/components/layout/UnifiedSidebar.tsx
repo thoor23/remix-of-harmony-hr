@@ -431,35 +431,54 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
   const { data: branding } = useCompanyBranding();
   const { canRead, permissions, loading: permLoading, roleType } = usePermissions();
 
+  // Define which sections are for which role type
+  const adminOnlySections = ["Core Operations", "Financial", "Resources", "Documentation", "Communication", "Analytics & Settings"];
+  const employeeOnlySections = ["My Workspace"];
+
   // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
     if (permLoading || permissions.length === 0) {
       return unifiedNavSections;
     }
 
-    return unifiedNavSections.map(section => ({
-      ...section,
-      items: section.items.filter(item => {
-        const module = navItemToModule[item.title];
-        if (!module) return true;
-        return canRead(module);
-      }).map(item => {
-        // Set Dashboard href dynamically based on roleType
-        if (item.title === "Dashboard") {
-          return {
-            ...item,
-            href: roleType === "employee" ? "/app/my-dashboard" : "/app/dashboard",
-          };
+    return unifiedNavSections
+      // STEP 1: Filter sections by roleType
+      .filter(section => {
+        // Employee should NOT see admin-only sections
+        if (roleType === 'employee' && adminOnlySections.includes(section.label)) {
+          return false;
         }
-        if (item.children) {
-          return {
-            ...item,
-            children: item.children
-          };
+        // Admin should NOT see employee-only sections
+        if (roleType === 'admin' && employeeOnlySections.includes(section.label)) {
+          return false;
         }
-        return item;
-      }).filter(item => !item.children || item.children.length > 0)
-    })).filter(section => section.items.length > 0);
+        return true;
+      })
+      // STEP 2: Then filter items by permissions
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => {
+          const module = navItemToModule[item.title];
+          if (!module) return true;
+          return canRead(module);
+        }).map(item => {
+          // Set Dashboard href dynamically based on roleType
+          if (item.title === "Dashboard") {
+            return {
+              ...item,
+              href: roleType === "employee" ? "/app/my-dashboard" : "/app/dashboard",
+            };
+          }
+          if (item.children) {
+            return {
+              ...item,
+              children: item.children
+            };
+          }
+          return item;
+        }).filter(item => !item.children || item.children.length > 0)
+      }))
+      .filter(section => section.items.length > 0);
   }, [permissions, permLoading, canRead, roleType]);
 
   useEffect(() => {

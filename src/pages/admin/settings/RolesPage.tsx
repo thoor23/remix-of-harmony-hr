@@ -60,9 +60,8 @@ const getModulesForRoleType = (roleType: 'admin' | 'employee') => {
   if (roleType === 'admin') {
     return adminModules;
   }
-  // Employee role: show employee modules + admin modules (except Admin Dashboard)
-  const adminModulesExceptDashboard = adminModules.filter(m => m !== 'Admin Dashboard');
-  return [...employeeModules, ...adminModulesExceptDashboard];
+  // Employee role: ONLY employee modules (no admin modules)
+  return employeeModules;
 };
 
 const getInitialColumns = (): ColumnDef[] => [
@@ -158,6 +157,12 @@ export default function RolesPage() {
   );
 
   const openRoleDialog = (role?: Role) => {
+    // Prevent editing system roles
+    if (role?.is_system) {
+      toast.error("System roles cannot be edited");
+      return;
+    }
+    
     if (role) {
       setEditingRole(role);
       const roleType = role.role_type || 'admin';
@@ -423,8 +428,8 @@ export default function RolesPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {canUpdate && (
+                        <DropdownMenuContent align="end">
+                            {canUpdate && !role.is_system && (
                               <DropdownMenuItem onClick={() => openRoleDialog(role)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
@@ -438,6 +443,11 @@ export default function RolesPage() {
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
+                              </DropdownMenuItem>
+                            )}
+                            {role.is_system && (
+                              <DropdownMenuItem disabled className="text-muted-foreground">
+                                System Role (Protected)
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
