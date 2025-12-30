@@ -92,7 +92,6 @@ const employeeNavItems: NavItem[] = [
     title: "Leave Requests",
     icon: CalendarCheck,
     children: [
-      { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
       { title: "Leave Records", href: "/employee/leaves", icon: History },
       { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
       { title: "My Report", href: "/employee/leaves/report", icon: BarChart3 },
