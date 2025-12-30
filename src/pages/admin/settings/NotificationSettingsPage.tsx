@@ -36,7 +36,7 @@ export default function NotificationSettingsPage() {
     if (settingData?.value) {
       setNotificationSettings({
         ...defaultSettings,
-        ...(settingData.value as NotificationSettings),
+        ...(settingData.value as unknown as NotificationSettings),
       });
     }
   }, [settingData]);
@@ -44,7 +44,7 @@ export default function NotificationSettingsPage() {
   const saveNotificationSettings = async () => {
     await updateSetting.mutateAsync({
       key: "notification_settings",
-      value: notificationSettings,
+      value: notificationSettings as unknown as Record<string, unknown>,
     });
   };
 

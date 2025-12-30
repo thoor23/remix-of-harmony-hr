@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, FileText, Download, Upload, Eye } from "lucide-react";
-import { useDocuments } from "@/hooks/useDocuments";
+import { useCompanyDocuments } from "@/hooks/useDocuments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 
@@ -27,13 +26,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default function DocumentsManagement() {
-  const { data: documentsData, isLoading } = useDocuments();
-
-  // Filter for company/policy documents
-  const policyDocuments = useMemo(() => {
-    if (!documentsData) return [];
-    return documentsData.filter(doc => doc.is_company_document);
-  }, [documentsData]);
+  const { data: policyDocuments = [], isLoading } = useCompanyDocuments();
 
   const handleDownload = (fileUrl: string | null, name: string) => {
     if (!fileUrl) return;
