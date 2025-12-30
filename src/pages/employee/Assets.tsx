@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -22,28 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown, X, Wrench, AlertCircle } from "lucide-react";
+import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown, X, Wrench } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
-import { useMyMaintenanceRequests, useCreateMaintenanceRequest, useCancelMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { MaintenanceRequestPriority, MaintenanceRequestType, MaintenanceRequestStatus } from "@/types/asset";
 
 const categoryIcons: Record<string, React.ElementType> = {
   laptop: Laptop,
@@ -61,33 +50,12 @@ const conditionColors: Record<string, string> = {
   poor: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
-const requestStatusColors: Record<MaintenanceRequestStatus, string> = {
-  pending: "bg-warning/10 text-warning border-warning/20",
-  approved: "bg-success/10 text-success border-success/20",
-  rejected: "bg-destructive/10 text-destructive border-destructive/20",
-  scheduled: "bg-primary/10 text-primary border-primary/20",
-  in_progress: "bg-info/10 text-info border-info/20",
-  on_hold: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200",
-  completed: "bg-muted text-muted-foreground border-border",
-  cancelled: "bg-muted text-muted-foreground border-border",
-};
-
-const priorityColors: Record<MaintenanceRequestPriority, string> = {
-  low: "bg-muted text-muted-foreground border-border",
-  medium: "bg-info/10 text-info border-info/20",
-  high: "bg-warning/10 text-warning border-warning/20",
-  urgent: "bg-destructive/10 text-destructive border-destructive/20",
-};
-
 type SortField = "name" | "category" | "serial_number" | "assigned_date" | "condition";
 type SortDirection = "asc" | "desc";
 
 export default function EmployeeAssets() {
   const { data: assets = [], isLoading: assetsLoading, isFetching } = useMyAssets();
   const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
-  const { data: maintenanceRequests = [], isLoading: requestsLoading } = useMyMaintenanceRequests();
-  const createRequest = useCreateMaintenanceRequest();
-  const cancelRequest = useCancelMaintenanceRequest();
   const queryClient = useQueryClient();
 
   const isLoading = assetsLoading || employeeLoading;
@@ -99,15 +67,6 @@ export default function EmployeeAssets() {
   const [sortField, setSortField] = useState<SortField>("assigned_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(true);
-
-  // Maintenance request dialog
-  const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [requestForm, setRequestForm] = useState({
-    asset_id: "",
-    type: "repair" as MaintenanceRequestType,
-    priority: "medium" as MaintenanceRequestPriority,
-    description: "",
-  });
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
@@ -279,54 +238,14 @@ export default function EmployeeAssets() {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["my-assets"] });
-    queryClient.invalidateQueries({ queryKey: ["my-maintenance-requests"] });
-  };
-
-  const handleSubmitRequest = async () => {
-    if (!requestForm.asset_id || !requestForm.description) {
-      toast.error("Please select an asset and provide a description");
-      return;
-    }
-
-    await createRequest.mutateAsync({
-      asset_id: requestForm.asset_id,
-      type: requestForm.type,
-      priority: requestForm.priority,
-      description: requestForm.description,
-    });
-
-    setShowRequestDialog(false);
-    setRequestForm({
-      asset_id: "",
-      type: "repair",
-      priority: "medium",
-      description: "",
-    });
-  };
-
-  const handleCancelRequest = async (id: string) => {
-    await cancelRequest.mutateAsync(id);
-  };
-
-  const formatStatusLabel = (status: MaintenanceRequestStatus) => {
-    const labels: Record<MaintenanceRequestStatus, string> = {
-      pending: "Pending",
-      approved: "Approved",
-      rejected: "Rejected",
-      scheduled: "Scheduled",
-      in_progress: "In Progress",
-      on_hold: "On Hold",
-      completed: "Completed",
-      cancelled: "Cancelled",
-    };
-    return labels[status] || status;
   };
 
   if (isLoading) {
     return (
       <PageContainer>
         <PageHeader title="My Assets" description="View assets assigned to you" />
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 mb-6">
+          <Skeleton className="h-24" />
           <Skeleton className="h-24" />
         </div>
         <Card>
@@ -343,14 +262,16 @@ export default function EmployeeAssets() {
   return (
     <PageContainer>
       <PageHeader title="My Assets" description="View assets assigned to you">
-        <Button onClick={() => setShowRequestDialog(true)} disabled={assets.length === 0}>
-          <Wrench className="mr-2 h-4 w-4" />
-          Request Maintenance
+        <Button asChild>
+          <Link to="/employee/assets/maintenance">
+            <Wrench className="mr-2 h-4 w-4" />
+            Maintenance Requests
+          </Link>
         </Button>
       </PageHeader>
 
       {/* Stats Card */}
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -364,21 +285,21 @@ export default function EmployeeAssets() {
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-              <Wrench className="h-5 w-5 text-warning" />
+            <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+              <Wrench className="h-5 w-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">
-                {maintenanceRequests.filter(r => r.status === 'pending').length}
-              </p>
-              <p className="text-sm text-muted-foreground">Pending Requests</p>
+              <p className="text-sm text-muted-foreground">Need maintenance?</p>
+              <Link to="/employee/assets/maintenance" className="text-sm text-primary hover:underline">
+                Submit a request →
+              </Link>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Assets Table */}
-      <Card className="mb-6">
+      <Card>
         <DataTableToolbar
           columns={columns}
           onToggleColumn={handleToggleColumn}
@@ -589,189 +510,6 @@ export default function EmployeeAssets() {
           onPageSizeChange={setPageSize}
         />
       </Card>
-
-      {/* My Maintenance Requests Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
-            My Maintenance Requests
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {requestsLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : maintenanceRequests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <AlertCircle className="h-10 w-10 mb-2" />
-              <p>No maintenance requests yet</p>
-              <p className="text-sm">Submit a request when you need asset maintenance</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {maintenanceRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className="font-medium">
-                      {request.asset?.name || "-"}
-                      {request.asset?.asset_tag && (
-                        <span className="block text-xs text-muted-foreground font-mono">
-                          {request.asset.asset_tag}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {request.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={priorityColors[request.priority]}>
-                        {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {request.description}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={requestStatusColors[request.status]}>
-                        {formatStatusLabel(request.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(request.created_at), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      {request.status === 'pending' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCancelRequest(request.id)}
-                          disabled={cancelRequest.isPending}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          Cancel
-                        </Button>
-                      )}
-                      {request.review_comments && (
-                        <span className="text-xs text-muted-foreground">
-                          {request.review_comments}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Request Maintenance Dialog */}
-      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Request Maintenance</DialogTitle>
-            <DialogDescription>
-              Submit a maintenance request for one of your assigned assets.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Asset *</Label>
-              <Select
-                value={requestForm.asset_id}
-                onValueChange={(value) => setRequestForm({ ...requestForm, asset_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an asset" />
-                </SelectTrigger>
-                <SelectContent>
-                  {assets.map((asset) => (
-                    <SelectItem key={asset.id} value={asset.id}>
-                      {asset.name} ({asset.asset_tag})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Type *</Label>
-                <Select
-                  value={requestForm.type}
-                  onValueChange={(value) => setRequestForm({ ...requestForm, type: value as MaintenanceRequestType })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="repair">Repair</SelectItem>
-                    <SelectItem value="service">Service</SelectItem>
-                    <SelectItem value="upgrade">Upgrade</SelectItem>
-                    <SelectItem value="replacement">Replacement</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Priority *</Label>
-                <Select
-                  value={requestForm.priority}
-                  onValueChange={(value) => setRequestForm({ ...requestForm, priority: value as MaintenanceRequestPriority })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description *</Label>
-              <Textarea
-                placeholder="Describe the issue or maintenance needed (e.g., 'Windows not booting, showing blue screen error')"
-                value={requestForm.description}
-                onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRequestDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmitRequest}
-              disabled={!requestForm.asset_id || !requestForm.description || createRequest.isPending}
-            >
-              {createRequest.isPending ? "Submitting..." : "Submit Request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 }
