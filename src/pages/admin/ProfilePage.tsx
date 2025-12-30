@@ -397,6 +397,9 @@ export default function AdminProfilePage() {
                           selected={formData.date_of_birth ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()) : undefined}
                           onSelect={(date) => setFormData({ ...formData, date_of_birth: date ? format(date, "yyyy-MM-dd") : "" })}
                           disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          captionLayout="dropdown"
+                          fromYear={1940}
+                          toYear={new Date().getFullYear()}
                           initialFocus
                           className={cn("p-3 pointer-events-auto")}
                         />
