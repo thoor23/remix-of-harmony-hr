@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -493,7 +494,7 @@ export default function ShiftAssignments() {
           </div>
         )}
 
-        <div className="w-full overflow-x-auto">
+        <ScrollArea className="w-full whitespace-nowrap">
           <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>
@@ -584,7 +585,8 @@ export default function ShiftAssignments() {
               )}
             </TableBody>
           </Table>
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TablePagination
           currentPage={currentPage}

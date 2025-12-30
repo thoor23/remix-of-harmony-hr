@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
@@ -365,6 +366,7 @@ export default function EmployeeAssets() {
           </div>
         )}
 
+        <ScrollArea className="w-full whitespace-nowrap">
         <Table>
           <TableHeader>
             <TableRow>
@@ -501,6 +503,8 @@ export default function EmployeeAssets() {
             )}
           </TableBody>
         </Table>
+        <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TablePagination
           currentPage={currentPage}
