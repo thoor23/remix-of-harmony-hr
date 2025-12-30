@@ -24,10 +24,12 @@ import {
 } from "@/components/ui/dialog";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import { Download, FileText, File, FolderOpen, Upload, Loader2, X, Search, ArrowUpDown } from "lucide-react";
 import { useMyDocuments, useCompanyDocuments, useUploadFile, downloadDocument } from "@/hooks/useDocuments";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,6 +40,7 @@ type SortDirection = "asc" | "desc";
 export default function EmployeeDocuments() {
   const { data: myDocuments = [], isLoading: myDocsLoading, isFetching } = useMyDocuments();
   const { data: companyDocuments = [], isLoading: companyDocsLoading } = useCompanyDocuments();
+  const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
   const uploadFile = useUploadFile();
   const queryClient = useQueryClient();
 
@@ -54,6 +57,8 @@ export default function EmployeeDocuments() {
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
+    { id: "employee", header: "Employee", visible: true },
+    { id: "email", header: "Email", visible: true },
     { id: "name", header: "Name", visible: true },
     { id: "type", header: "Type", visible: true },
     { id: "file_size", header: "Size", visible: true },
@@ -255,7 +260,7 @@ export default function EmployeeDocuments() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const isLoading = myDocsLoading || companyDocsLoading;
+  const isLoading = myDocsLoading || companyDocsLoading || employeeLoading;
 
   if (isLoading) {
     return (
@@ -311,6 +316,12 @@ export default function EmployeeDocuments() {
                 onCheckedChange={(checked) => handleSelectAll(checked as boolean, pagination.paginatedData)}
               />
             </TableHead>
+            {columns.find((c) => c.id === "employee")?.visible && (
+              <TableHead>Employee</TableHead>
+            )}
+            {columns.find((c) => c.id === "email")?.visible && (
+              <TableHead>Email</TableHead>
+            )}
             {columns.find((c) => c.id === "name")?.visible && (
               <TableHead><SortableHeader field="name">Name</SortableHeader></TableHead>
             )}
@@ -335,6 +346,19 @@ export default function EmployeeDocuments() {
                   onCheckedChange={(checked) => handleSelectRow(doc.id, checked as boolean)}
                 />
               </TableCell>
+              {columns.find((c) => c.id === "employee")?.visible && (
+                <TableCell>
+                  <EmployeeCell
+                    avatarUrl={currentEmployee?.avatar_url}
+                    firstName={currentEmployee?.first_name}
+                    lastName={currentEmployee?.last_name}
+                    employeeId={currentEmployee?.employee_id}
+                  />
+                </TableCell>
+              )}
+              {columns.find((c) => c.id === "email")?.visible && (
+                <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
+              )}
               {columns.find((c) => c.id === "name")?.visible && (
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -363,7 +387,7 @@ export default function EmployeeDocuments() {
           ))}
           {pagination.paginatedData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                 No documents found
               </TableCell>
             </TableRow>

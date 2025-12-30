@@ -70,28 +70,28 @@ interface NavSection {
 
 const employeeNavSections: NavSection[] = [
   {
-    label: "My Dashboard",
+    label: "Core Operations",
     items: [
       { title: "Dashboard", href: "/employee", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Time & Attendance",
+    label: "Attendance Management",
     items: [
       {
-        title: "My Attendance",
+        title: "Attendance",
         icon: CalendarDays,
         children: [
-          { title: "Attendance Log", href: "/employee/attendance", icon: Clock },
-          { title: "Attendance Regularization", href: "/employee/attendance/regularization", icon: ClipboardEdit },
+          { title: "Attendance Records", href: "/employee/attendance", icon: Clock },
+          { title: "Regularization Requests", href: "/employee/attendance/regularization", icon: ClipboardEdit },
         ],
       },
       {
-        title: "My Shifts",
+        title: "Shift Management",
         icon: Clock,
         children: [
-          { title: "Current Shift", href: "/employee/shifts", icon: Eye },
-          { title: "Shift Exchange", href: "/employee/shift-exchange", icon: ArrowLeftRight },
+          { title: "My Shift Schedule", href: "/employee/shifts", icon: Eye },
+          { title: "Shift Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
         ],
       },
       { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
@@ -101,42 +101,42 @@ const employeeNavSections: NavSection[] = [
     label: "Leave Management",
     items: [
       {
-        title: "My Leaves",
+        title: "Leave Requests",
         icon: CalendarCheck,
         children: [
           { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
-          { title: "Leave History", href: "/employee/leaves", icon: History },
+          { title: "Leave Records", href: "/employee/leaves", icon: History },
           { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
         ],
       },
     ],
   },
   {
-    label: "Compensation",
+    label: "Financial",
     items: [
       {
-        title: "My Payslips",
+        title: "Payroll Management",
         icon: Wallet,
         children: [
-          { title: "View Payslips", href: "/employee/payslips", icon: Receipt },
-          { title: "Salary Details", href: "/employee/payslips/details", icon: TrendingUp },
+          { title: "Payslip Records", href: "/employee/payslips", icon: Receipt },
+          { title: "Salary Configuration", href: "/employee/payslips/details", icon: TrendingUp },
         ],
       },
     ],
   },
   {
-    label: "My Resources",
+    label: "Resources",
     items: [
       {
-        title: "My Documents",
+        title: "Document Management",
         icon: FileText,
         children: [
-          { title: "Personal Documents", href: "/employee/documents", icon: FolderOpen },
-          { title: "Company Policies", href: "/employee/documents/policies", icon: FileStack },
+          { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
+          { title: "Document Policies", href: "/employee/documents/policies", icon: FileStack },
         ],
       },
       {
-        title: "My Assets",
+        title: "Asset Management",
         icon: Package,
         children: [
           { title: "Assigned Assets", href: "/employee/assets", icon: Package },
@@ -145,22 +145,22 @@ const employeeNavSections: NavSection[] = [
     ],
   },
   {
-    label: "Support",
+    label: "Communication",
     items: [
       {
         title: "Helpdesk",
         icon: HelpCircle,
         children: [
-          { title: "Create Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
-          { title: "My Tickets", href: "/employee/helpdesk", icon: Ticket },
+          { title: "New Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
+          { title: "All Tickets", href: "/employee/helpdesk", icon: Ticket },
         ],
       },
     ],
   },
   {
-    label: "Account",
+    label: "Account Settings",
     items: [
-      { title: "My Profile", href: "/employee/profile", icon: UserCircle },
+      { title: "Profile", href: "/employee/profile", icon: UserCircle },
       { title: "Settings", href: "/employee/settings", icon: Settings },
     ],
   },

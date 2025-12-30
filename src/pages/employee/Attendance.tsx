@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -29,6 +30,8 @@ import { useMyAttendance } from "@/hooks/useAttendance";
 import { Button } from "@/components/ui/button";
 
 const defaultColumns: ColumnDef[] = [
+  { id: "employee", header: "Employee", accessor: "employee", visible: true },
+  { id: "email", header: "Email", accessor: "email", visible: true },
   { id: "date", header: "Date", accessor: "date", visible: true },
   { id: "check_in", header: "Check In", accessor: "check_in", visible: true },
   { id: "check_out", header: "Check Out", accessor: "check_out", visible: true },
@@ -254,15 +257,19 @@ export default function EmployeeAttendance() {
               </TableHead>
               {visibleColumns.map((col) => (
                 <TableHead key={col.id}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-3 h-8"
-                    onClick={() => handleSort(col.id)}
-                  >
-                    {col.header}
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                  {col.id !== "employee" && col.id !== "email" ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-3 h-8"
+                      onClick={() => handleSort(col.id)}
+                    >
+                      {col.header}
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    col.header
+                  )}
                 </TableHead>
               ))}
             </TableRow>
@@ -279,7 +286,16 @@ export default function EmployeeAttendance() {
                   </TableCell>
                   {visibleColumns.map((col) => (
                     <TableCell key={col.id}>
-                      {col.id === "status" ? (
+                      {col.id === "employee" ? (
+                        <EmployeeCell
+                          avatarUrl={employee?.avatar_url}
+                          firstName={employee?.first_name}
+                          lastName={employee?.last_name}
+                          employeeId={employee?.employee_id}
+                        />
+                      ) : col.id === "email" ? (
+                        <span className="text-muted-foreground">{employee?.email || "-"}</span>
+                      ) : col.id === "status" ? (
                         <StatusBadge status={record.status as any} />
                       ) : col.id === "work_hours" ? (
                         record.work_hours ? `${Number(record.work_hours).toFixed(1)}h` : "-"
