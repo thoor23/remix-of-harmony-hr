@@ -188,3 +188,55 @@ export interface AssetFilters {
   condition?: string;
   search?: string;
 }
+
+// Asset Maintenance Request Types
+export type MaintenanceRequestStatus = 'pending' | 'approved' | 'rejected' | 'scheduled' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+export type MaintenanceRequestPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type MaintenanceRequestType = 'repair' | 'service' | 'upgrade' | 'replacement';
+
+export interface AssetMaintenanceRequest {
+  id: string;
+  asset_id: string;
+  employee_id: string;
+  type: MaintenanceRequestType;
+  description: string;
+  priority: MaintenanceRequestPriority;
+  status: MaintenanceRequestStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_comments: string | null;
+  assigned_to: string | null;
+  scheduled_date: string | null;
+  estimated_cost: number | null;
+  actual_cost: number | null;
+  resolution_notes: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  asset?: {
+    id: string;
+    asset_tag: string;
+    name: string;
+    brand?: string;
+    model?: string;
+  };
+  employee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    employee_id: string;
+  };
+  reviewer?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+export interface CreateMaintenanceRequestInput {
+  asset_id: string;
+  type: MaintenanceRequestType;
+  description: string;
+  priority: MaintenanceRequestPriority;
+}

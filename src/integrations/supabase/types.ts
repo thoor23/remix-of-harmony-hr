@@ -318,6 +318,91 @@ export type Database = {
           },
         ]
       }
+      asset_maintenance_requests: {
+        Row: {
+          actual_cost: number | null
+          asset_id: string
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          description: string
+          employee_id: string
+          estimated_cost: number | null
+          id: string
+          priority: string
+          resolution_notes: string | null
+          review_comments: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_date: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          asset_id: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          employee_id: string
+          estimated_cost?: number | null
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          asset_id?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          employee_id?: string
+          estimated_cost?: number | null
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_maintenance_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_maintenance_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_transfers: {
         Row: {
           asset_id: string
