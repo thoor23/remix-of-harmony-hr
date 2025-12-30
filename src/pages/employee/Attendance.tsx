@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
@@ -405,6 +406,7 @@ export default function EmployeeAttendance() {
           </div>
         )}
 
+        <ScrollArea className="w-full whitespace-nowrap">
         <Table>
           <TableHeader>
             <TableRow>
@@ -478,6 +480,8 @@ export default function EmployeeAttendance() {
             )}
           </TableBody>
         </Table>
+        <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}

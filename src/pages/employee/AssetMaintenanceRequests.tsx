@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -357,6 +358,7 @@ export default function EmployeeAssetMaintenanceRequests() {
           </div>
         ) : (
           <>
+            <ScrollArea className="w-full whitespace-nowrap">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -437,6 +439,8 @@ export default function EmployeeAssetMaintenanceRequests() {
                 ))}
               </TableBody>
             </Table>
+            <ScrollBar orientation="horizontal" />
+            </ScrollArea>
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}

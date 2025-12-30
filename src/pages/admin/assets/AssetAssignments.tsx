@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,7 +141,7 @@ export default function AssetAssignments() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <ScrollArea className="w-full whitespace-nowrap">
           <Table>
             <TableHeader>
               <TableRow>
@@ -169,7 +170,8 @@ export default function AssetAssignments() {
               ))}
             </TableBody>
           </Table>
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={sortedAssignments.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </Card>
