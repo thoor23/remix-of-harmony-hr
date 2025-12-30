@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,12 +30,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Wrench, Search, AlertCircle, X, Clock, CheckCircle, XCircle, Package } from "lucide-react";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { Wrench, Search, AlertCircle, X, Clock, CheckCircle } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useMyMaintenanceRequests, useCreateMaintenanceRequest, useCancelMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { MaintenanceRequestPriority, MaintenanceRequestType, MaintenanceRequestStatus } from "@/types/asset";
+import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 
 const requestStatusColors: Record<MaintenanceRequestStatus, string> = {
   pending: "bg-warning/10 text-warning border-warning/20",
@@ -56,9 +57,19 @@ const priorityColors: Record<MaintenanceRequestPriority, string> = {
   urgent: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+const defaultColumns: ColumnDef[] = [
+  { id: "asset", header: "Asset", visible: true },
+  { id: "type", header: "Type", visible: true },
+  { id: "priority", header: "Priority", visible: true },
+  { id: "description", header: "Description", visible: true },
+  { id: "status", header: "Status", visible: true },
+  { id: "submitted", header: "Submitted", visible: true },
+  { id: "actions", header: "Actions", visible: true },
+];
+
 export default function EmployeeAssetMaintenanceRequests() {
   const { data: assets = [], isLoading: assetsLoading } = useMyAssets();
-  const { data: maintenanceRequests = [], isLoading: requestsLoading } = useMyMaintenanceRequests();
+  const { data: maintenanceRequests = [], isLoading: requestsLoading, refetch } = useMyMaintenanceRequests();
   const createRequest = useCreateMaintenanceRequest();
   const cancelRequest = useCancelMaintenanceRequest();
 
@@ -67,6 +78,8 @@ export default function EmployeeAssetMaintenanceRequests() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
 
   // Maintenance request dialog
   const [showRequestDialog, setShowRequestDialog] = useState(false);
@@ -83,6 +96,23 @@ export default function EmployeeAssetMaintenanceRequests() {
     setSearchQuery("");
     setStatusFilter("all");
     setPriorityFilter("all");
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(columns.map((col) => (col.id === columnId ? { ...col, visible } : col)));
+  };
+
+  const handleExport = () => {
+    const exportColumns: ColumnDef[] = [
+      { id: "asset", header: "Asset", accessor: (r: any) => r.asset?.name || "-" },
+      { id: "asset_tag", header: "Asset Tag", accessor: (r: any) => r.asset?.asset_tag || "-" },
+      { id: "type", header: "Type", accessor: "type" },
+      { id: "priority", header: "Priority", accessor: "priority" },
+      { id: "description", header: "Description", accessor: "description" },
+      { id: "status", header: "Status", accessor: "status" },
+      { id: "created_at", header: "Submitted", accessor: (r: any) => format(new Date(r.created_at), "yyyy-MM-dd") },
+    ];
+    exportToCSV(filteredRequests, exportColumns, "maintenance-requests");
   };
 
   // Filter requests
@@ -155,6 +185,8 @@ export default function EmployeeAssetMaintenanceRequests() {
   const activeRequests = maintenanceRequests.filter(r => ['approved', 'scheduled', 'in_progress'].includes(r.status)).length;
   const completedRequests = maintenanceRequests.filter(r => r.status === 'completed').length;
 
+  const visibleColumns = columns.filter((col) => col.visible);
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -177,20 +209,7 @@ export default function EmployeeAssetMaintenanceRequests() {
 
   return (
     <PageContainer>
-      <PageHeader title="Maintenance Requests" description="Submit and track maintenance requests for your assets">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/employee/assets">
-              <Package className="mr-2 h-4 w-4" />
-              My Assets
-            </Link>
-          </Button>
-          <Button onClick={() => setShowRequestDialog(true)} disabled={assets.length === 0}>
-            <Wrench className="mr-2 h-4 w-4" />
-            Request Maintenance
-          </Button>
-        </div>
-      </PageHeader>
+      <PageHeader title="Maintenance Requests" description="Submit and track maintenance requests for your assets" />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -240,69 +259,83 @@ export default function EmployeeAssetMaintenanceRequests() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <div className="p-4 border-b bg-muted/30">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by asset or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+      {/* Data Table */}
+      <Card>
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={() => refetch()}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
+          isRefreshing={requestsLoading}
+          onAddRow={assets.length > 0 ? () => setShowRequestDialog(true) : undefined}
+          addRowLabel="Request Maintenance"
+        />
+
+        {showFilters && (
+          <div className="p-4 border-b bg-muted/30">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by asset or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="on_hold">On Hold</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Priority Filter */}
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
-
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Priority Filter */}
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-9 gap-1.5">
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Requests Table */}
         {filteredRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <AlertCircle className="h-10 w-10 mb-2" />
             <p>{maintenanceRequests.length === 0 ? "No maintenance requests yet" : "No requests matching your filters"}</p>
-            {maintenanceRequests.length === 0 && (
+            {maintenanceRequests.length === 0 && assets.length > 0 && (
               <p className="text-sm">Submit a request when you need asset maintenance</p>
             )}
           </div>
@@ -310,65 +343,79 @@ export default function EmployeeAssetMaintenanceRequests() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Asset</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead className="w-28">Actions</TableHead>
+                {visibleColumns.find((c) => c.id === "asset") && <TableHead>Asset</TableHead>}
+                {visibleColumns.find((c) => c.id === "type") && <TableHead>Type</TableHead>}
+                {visibleColumns.find((c) => c.id === "priority") && <TableHead>Priority</TableHead>}
+                {visibleColumns.find((c) => c.id === "description") && <TableHead>Description</TableHead>}
+                {visibleColumns.find((c) => c.id === "status") && <TableHead>Status</TableHead>}
+                {visibleColumns.find((c) => c.id === "submitted") && <TableHead>Submitted</TableHead>}
+                {visibleColumns.find((c) => c.id === "actions") && <TableHead className="w-28">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRequests.map((request) => (
                 <TableRow key={request.id}>
-                  <TableCell className="font-medium">
-                    {request.asset?.name || "-"}
-                    {request.asset?.asset_tag && (
-                      <span className="block text-xs text-muted-foreground font-mono">
-                        {request.asset.asset_tag}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="capitalize">
-                      {request.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={priorityColors[request.priority]}>
-                      {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {request.description}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={requestStatusColors[request.status]}>
-                      {formatStatusLabel(request.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(request.created_at), "MMM dd, yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    {request.status === 'pending' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCancelRequest(request.id)}
-                        disabled={cancelRequest.isPending}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                    {request.review_comments && request.status !== 'pending' && (
-                      <span className="text-xs text-muted-foreground block max-w-[100px] truncate" title={request.review_comments}>
-                        {request.review_comments}
-                      </span>
-                    )}
-                  </TableCell>
+                  {visibleColumns.find((c) => c.id === "asset") && (
+                    <TableCell className="font-medium">
+                      {request.asset?.name || "-"}
+                      {request.asset?.asset_tag && (
+                        <span className="block text-xs text-muted-foreground font-mono">
+                          {request.asset.asset_tag}
+                        </span>
+                      )}
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "type") && (
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">
+                        {request.type}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "priority") && (
+                    <TableCell>
+                      <Badge variant="outline" className={priorityColors[request.priority]}>
+                        {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "description") && (
+                    <TableCell className="max-w-[200px] truncate">
+                      {request.description}
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "status") && (
+                    <TableCell>
+                      <Badge variant="outline" className={requestStatusColors[request.status]}>
+                        {formatStatusLabel(request.status)}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "submitted") && (
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(request.created_at), "MMM dd, yyyy")}
+                    </TableCell>
+                  )}
+                  {visibleColumns.find((c) => c.id === "actions") && (
+                    <TableCell>
+                      {request.status === 'pending' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCancelRequest(request.id)}
+                          disabled={cancelRequest.isPending}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      {request.review_comments && request.status !== 'pending' && (
+                        <span className="text-xs text-muted-foreground block max-w-[100px] truncate" title={request.review_comments}>
+                          {request.review_comments}
+                        </span>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
