@@ -21,7 +21,6 @@ import {
   Mail, 
   Phone, 
   MapPin, 
-  Building2, 
   Calendar,
   Shield,
   Camera,
@@ -166,17 +165,31 @@ export default function AdminProfilePage() {
     return (
       <PageContainer>
         <PageHeader title="My Profile" description="View and manage your profile information" />
-        <Card className="mb-6 shadow-md">
+        <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex gap-6">
               <Skeleton className="h-28 w-28 rounded-full" />
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-3">
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-64" />
               </div>
             </div>
           </CardContent>
         </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </PageContainer>
     );
   }
@@ -211,12 +224,6 @@ export default function AdminProfilePage() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="relative">
-              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
-                <AvatarImage src={profile?.avatar_url || employee?.avatar_url || ""} alt={fullName} />
-                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -224,6 +231,12 @@ export default function AdminProfilePage() {
                 accept="image/*"
                 className="hidden"
               />
+              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
+                <AvatarImage src={profile?.avatar_url || employee?.avatar_url || ""} alt={fullName} />
+                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               <Button 
                 size="icon" 
                 variant="secondary" 
@@ -239,13 +252,13 @@ export default function AdminProfilePage() {
               </Button>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-semibold mb-1">{fullName}</h2>
+              <h2 className="text-2xl font-bold mb-1">{fullName}</h2>
               <p className="text-muted-foreground mb-3">
-                {getDesignationName(employee?.designation_id)} • {getDepartmentName(employee?.department_id)}
+                {designation?.name || getDesignationName(employee?.designation_id)} • {department?.name || getDepartmentName(employee?.department_id)}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {employee?.employee_id && (
-                  <Badge variant="outline">{employee.employee_id}</Badge>
+                  <Badge variant="outline" className="font-mono">{employee.employee_id}</Badge>
                 )}
                 <Badge className="bg-primary/10 text-primary border-primary/20">
                   <Shield className="h-3 w-3 mr-1" />
@@ -258,282 +271,284 @@ export default function AdminProfilePage() {
                   <Badge variant="secondary" className="capitalize">{employee.employment_type}</Badge>
                 )}
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{user?.email || "N/A"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{employee?.phone || profile?.phone || "N/A"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {employee?.date_of_joining 
-                    ? `Joined ${format(new Date(employee.date_of_joining), "MMM yyyy")}`
-                    : "N/A"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {employee?.address_city && employee?.address_state 
-                    ? `${employee.address_city}, ${employee.address_state}`
-                    : "N/A"}
-                </span>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>{user?.email || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>{employee?.phone || profile?.phone || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {employee?.date_of_joining 
+                      ? `Joined ${format(new Date(employee.date_of_joining), "MMM yyyy")}`
+                      : "N/A"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>
+                    {employee?.address_city && employee?.address_state 
+                      ? `${employee.address_city}, ${employee.address_state}`
+                      : "N/A"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Profile Details Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Personal Information */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-primary">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
-              Personal Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label>First Name</Label>
-                  <Input 
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  />
+      {/* Information Grid */}
+      <div className="space-y-6">
+        {/* Personal & Work Info Row */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Personal Information */}
+          <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5 text-primary" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>First Name</Label>
+                    <Input 
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Last Name</Label>
+                    <Input 
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input value={user?.email || ""} disabled className="bg-muted" />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input 
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 space-y-2">
+                    <Label>Date of Birth</Label>
+                    <Input value={employee?.date_of_birth || ""} disabled className="bg-muted" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Last Name</Label>
-                  <Input 
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  />
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">First Name</p>
+                    <p className="font-medium">{employee?.first_name || profile?.first_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Last Name</p>
+                    <p className="font-medium">{employee?.last_name || profile?.last_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Email</p>
+                    <p className="font-medium">{user?.email || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                    <p className="font-medium">{employee?.phone || profile?.phone || "N/A"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
+                    <p className="font-medium">{employee?.date_of_birth || "N/A"}</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={user?.email || ""} disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Work Information */}
+          <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Briefcase className="h-5 w-5 text-blue-500" />
+                Work Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Employee ID</p>
+                  <p className="font-medium font-mono">{employee?.employee_id || "N/A"}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input 
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Department</p>
+                  <p className="font-medium">{department?.name || getDepartmentName(employee?.department_id)}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Date of Birth</Label>
-                  <Input value={employee?.date_of_birth || ""} disabled className="bg-muted" />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Designation</p>
+                  <p className="font-medium">{designation?.name || getDesignationName(employee?.designation_id)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Role</p>
+                  <p className="font-medium">{getRoleBadgeLabel()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Employment Type</p>
+                  <p className="font-medium capitalize">{employee?.employment_type || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Joining Date</p>
+                  <p className="font-medium">{employee?.date_of_joining || "N/A"}</p>
                 </div>
               </div>
-            ) : (
-              <div className="grid gap-4">
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Address & Emergency Contact Row */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Address */}
+          <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-green-500" />
+                Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Street Address</Label>
+                    <Textarea 
+                      value={formData.address_street}
+                      onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>City</Label>
+                      <Input 
+                        value={formData.address_city}
+                        onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>State</Label>
+                      <Input 
+                        value={formData.address_state}
+                        onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Zip Code</Label>
+                      <Input 
+                        value={formData.address_zip_code}
+                        onChange={(e) => setFormData({ ...formData, address_zip_code: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Country</Label>
+                      <Input value={employee?.address_country || "India"} disabled className="bg-muted" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Street</p>
+                    <p className="font-medium">{employee?.address_street || "N/A"}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">City</p>
+                      <p className="font-medium">{employee?.address_city || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">State</p>
+                      <p className="font-medium">{employee?.address_state || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
+                      <p className="font-medium">{employee?.address_zip_code || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Country</p>
+                      <p className="font-medium">{employee?.address_country || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Emergency Contact */}
+          <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                Emergency Contact
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">First Name</p>
-                  <p className="font-medium">{employee?.first_name || profile?.first_name || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Name</p>
+                  <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Last Name</p>
-                  <p className="font-medium">{employee?.last_name || profile?.last_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Email</p>
-                  <p className="font-medium">{user?.email || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Relationship</p>
+                  <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                  <p className="font-medium">{employee?.phone || profile?.phone || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
-                  <p className="font-medium">{employee?.date_of_birth || "N/A"}</p>
+                  <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Work Information */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
-          <CardHeader>
+        {/* Bank Details */}
+        <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="h-5 w-5 text-blue-500" />
-              Work Information
+              <CreditCard className="h-5 w-5 text-purple-500" />
+              Bank Details
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Employee ID</p>
-                <p className="font-medium font-mono">{employee?.employee_id || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Department</p>
-                <p className="font-medium">{department?.name || getDepartmentName(employee?.department_id)}</p>
+                <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
+                <p className="font-medium">{employee?.bank_name || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Designation</p>
-                <p className="font-medium">{designation?.name || getDesignationName(employee?.designation_id)}</p>
+                <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
+                <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Role</p>
-                <p className="font-medium">{getRoleBadgeLabel()}</p>
+                <p className="text-sm text-muted-foreground mb-1">Account Number</p>
+                <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Employment Type</p>
-                <p className="font-medium capitalize">{employee?.employment_type || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Joining Date</p>
-                <p className="font-medium">{employee?.date_of_joining || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <p className="font-medium capitalize">{employee?.status || "N/A"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Address */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-green-500">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MapPin className="h-5 w-5 text-green-500" />
-              Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Street Address</Label>
-                  <Textarea 
-                    value={formData.address_street}
-                    onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input 
-                      value={formData.address_city}
-                      onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>State</Label>
-                    <Input 
-                      value={formData.address_state}
-                      onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Zip Code</Label>
-                    <Input 
-                      value={formData.address_zip_code}
-                      onChange={(e) => setFormData({ ...formData, address_zip_code: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Country</Label>
-                    <Input value={employee?.address_country || "India"} disabled className="bg-muted" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Street</p>
-                  <p className="font-medium">{employee?.address_street || "N/A"}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">City</p>
-                    <p className="font-medium">{employee?.address_city || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">State</p>
-                    <p className="font-medium">{employee?.address_state || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
-                    <p className="font-medium">{employee?.address_zip_code || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Country</p>
-                    <p className="font-medium">{employee?.address_country || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Emergency Contact */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Emergency Contact
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Name</p>
-                <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Relationship</p>
-                <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
+                <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
+                <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Bank Details - Full Width */}
-      <Card className="mt-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-purple-500" />
-            Bank Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
-              <p className="font-medium">{employee?.bank_name || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
-              <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Account Number</p>
-              <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
-              <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </PageContainer>
   );
 }
