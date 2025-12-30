@@ -13,10 +13,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DatePicker } from "@/components/ui/date-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { Search, Edit, Trash2, Eye, FileText, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Edit, Trash2, Eye, FileText, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown, ChevronDownIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement, Announcement } from "@/hooks/useAnnouncements";
 import { useAnnouncementTemplates } from "@/hooks/useAnnouncementTemplates";
@@ -553,18 +555,35 @@ export default function AnnouncementsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Schedule Date (Optional)</Label>
-                <DatePicker
-                  value={formData.scheduled_date}
-                  onChange={(value) => setFormData({ ...formData, scheduled_date: value })}
-                  placeholder="Select date"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-between text-left font-normal",
+                        !formData.scheduled_date && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.scheduled_date 
+                        ? format(new Date(formData.scheduled_date), "PPP") 
+                        : "Select date"}
+                      <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.scheduled_date ? new Date(formData.scheduled_date) : undefined}
+                      onSelect={(date) => setFormData({ ...formData, scheduled_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Schedule Time (Optional)</Label>
                 <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="HH:MM"
+                  type="time"
                   value={formData.scheduled_time}
                   onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
                 />
@@ -574,18 +593,35 @@ export default function AnnouncementsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Expires Date (Optional)</Label>
-                <DatePicker
-                  value={formData.expires_date}
-                  onChange={(value) => setFormData({ ...formData, expires_date: value })}
-                  placeholder="Select date"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-between text-left font-normal",
+                        !formData.expires_date && "text-muted-foreground"
+                      )}
+                    >
+                      {formData.expires_date 
+                        ? format(new Date(formData.expires_date), "PPP") 
+                        : "Select date"}
+                      <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.expires_date ? new Date(formData.expires_date) : undefined}
+                      onSelect={(date) => setFormData({ ...formData, expires_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Expires Time (Optional)</Label>
                 <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="HH:MM"
+                  type="time"
                   value={formData.expires_time}
                   onChange={(e) => setFormData({ ...formData, expires_time: e.target.value })}
                 />
