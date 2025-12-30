@@ -21,13 +21,13 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
 import { AttendanceWidget } from "@/components/attendance/AttendanceWidget";
 
 interface TopBarProps {
-  isAdmin?: boolean;
   onMenuClick?: () => void;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
@@ -160,10 +160,14 @@ const getUUIDLabel = (parentSegments: string[]): string => {
   return "Details";
 };
 
-export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggleSidebar }: TopBarProps) {
+export function TopBar({ onMenuClick, sidebarCollapsed, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, profile, signOut } = useAuth();
+  const { roleType } = usePermissions();
+  
+  // Determine if user is admin based on roleType from permissions
+  const isAdmin = roleType === 'admin';
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update time every second
