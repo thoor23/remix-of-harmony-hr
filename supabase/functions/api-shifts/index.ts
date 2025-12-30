@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
-    // GET /shifts/exchange or /shifts/exchange-requests - List exchange requests
+    // GET /shifts/exchange or /shifts/exchange-requests - List exchange requests (admin)
     if (req.method === 'GET' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 1) {
       const { data, error } = await supabase
         .from('shift_exchange_requests')
@@ -181,6 +181,35 @@ Deno.serve(async (req) => {
       return jsonResponse(data || []);
     }
 
+    // GET /shifts/exchange-requests/my - Get current user's exchange requests
+    if (req.method === 'GET' && subPath[0] === 'exchange-requests' && subPath[1] === 'my') {
+      // Get employee ID for current user
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+
+      if (!employee) {
+        return jsonResponse([]);
+      }
+
+      const { data, error } = await supabase
+        .from('shift_exchange_requests')
+        .select(`
+          *,
+          requester:employees!shift_exchange_requests_requester_id_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url),
+          target:employees!shift_exchange_requests_target_employee_id_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url),
+          requester_shift:shifts!shift_exchange_requests_requester_shift_id_fkey(*),
+          target_shift:shifts!shift_exchange_requests_target_shift_id_fkey(*)
+        `)
+        .or(`requester_id.eq.${employee.id},target_employee_id.eq.${employee.id}`)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
     // POST /shifts/exchange or /shifts/exchange-requests - Create exchange request
     if (req.method === 'POST' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 1) {
       const body = await req.json();
@@ -194,8 +223,8 @@ Deno.serve(async (req) => {
       return jsonResponse(data, 201);
     }
 
-    // PATCH /shifts/exchange/:id or /shifts/exchange-requests/:id - Update exchange request status
-    if (req.method === 'PATCH' && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 2) {
+    // PUT or PATCH /shifts/exchange/:id or /shifts/exchange-requests/:id - Update exchange request status
+    if ((req.method === 'PUT' || req.method === 'PATCH') && (subPath[0] === 'exchange' || subPath[0] === 'exchange-requests') && subPath.length === 2) {
       const id = subPath[1];
       const body = await req.json();
       const { data, error } = await supabase
