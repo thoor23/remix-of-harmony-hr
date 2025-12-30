@@ -671,6 +671,11 @@ Deno.serve(async (req) => {
           primaryLocationId = getRandomElement(createdLocations).id;
         }
 
+        // Generate avatar URL using DiceBear API with unique seed
+        const avatarSeed = `${firstName}${lastName}${createdEmployees.length}`;
+        const avatarStyle = getRandomElement(['avataaars', 'lorelei', 'notionists', 'personas']);
+        const avatarUrl = `https://api.dicebear.com/7.x/${avatarStyle}/svg?seed=${encodeURIComponent(avatarSeed)}`;
+
         const { data: employee, error: empError } = await supabase
           .from('employees')
           .insert({
@@ -686,6 +691,7 @@ Deno.serve(async (req) => {
             last_name: lastName,
             email: email,
             phone: `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+            avatar_url: avatarUrl,
             address_street: `${Math.floor(Math.random() * 999) + 1}, ${getRandomElement(['MG Road', 'Park Street', 'Brigade Road', 'Anna Salai', 'FC Road'])}`,
             address_city: cities[cityIdx],
             address_state: states[cityIdx],
@@ -1255,33 +1261,66 @@ Deno.serve(async (req) => {
     if (serError) console.log(`Shift exchange requests error: ${serError.message}`);
     console.log(`Created ${shiftExchangeRequestsToCreate.length} shift exchange requests`);
 
-    // Step 28: Create helpdesk tickets (batch insert)
+    // Step 28: Create helpdesk tickets (batch insert) - One ticket per employee + additional random tickets
     console.log('Creating helpdesk tickets...');
     const ticketSubjects = [
-      { subject: 'Cannot access email', category: 'it', priority: 'high' },
-      { subject: 'Laptop not working', category: 'it', priority: 'urgent' },
-      { subject: 'Leave balance incorrect', category: 'hr', priority: 'medium' },
-      { subject: 'Payslip query', category: 'payroll', priority: 'medium' },
-      { subject: 'VPN connection issue', category: 'it', priority: 'high' },
-      { subject: 'Office chair replacement', category: 'admin', priority: 'low' },
-      { subject: 'ID card not working', category: 'admin', priority: 'medium' },
-      { subject: 'Tax declaration help', category: 'payroll', priority: 'medium' },
-      { subject: 'Request for standing desk', category: 'admin', priority: 'low' },
-      { subject: 'Software license request', category: 'it', priority: 'medium' }
+      { subject: 'Cannot access email', category: 'it', priority: 'high', description: 'Unable to login to my email account. Getting authentication error since morning.' },
+      { subject: 'Laptop not working', category: 'it', priority: 'urgent', description: 'My laptop is not turning on. I have an important presentation today.' },
+      { subject: 'Leave balance incorrect', category: 'hr', priority: 'medium', description: 'My casual leave balance shows 5 days but I should have 8 days remaining.' },
+      { subject: 'Payslip query', category: 'payroll', priority: 'medium', description: 'There seems to be a discrepancy in my HRA calculation for this month.' },
+      { subject: 'VPN connection issue', category: 'it', priority: 'high', description: 'Cannot connect to company VPN while working from home. Tried multiple times.' },
+      { subject: 'Office chair replacement', category: 'admin', priority: 'low', description: 'My office chair is broken. Need a replacement for ergonomic reasons.' },
+      { subject: 'ID card not working', category: 'admin', priority: 'medium', description: 'My ID card is not being recognized at the main entrance door.' },
+      { subject: 'Tax declaration help', category: 'payroll', priority: 'medium', description: 'Need assistance in submitting my tax declaration documents for FY 2024-25.' },
+      { subject: 'Request for standing desk', category: 'admin', priority: 'low', description: 'Would like to request a standing desk for better posture.' },
+      { subject: 'Software license request', category: 'it', priority: 'medium', description: 'Need a license for Adobe Creative Suite for my design work.' },
+      { subject: 'Mouse not working', category: 'it', priority: 'medium', description: 'My wireless mouse stopped working. Need a replacement.' },
+      { subject: 'Monitor flickering', category: 'it', priority: 'high', description: 'My monitor keeps flickering which is causing eye strain.' },
+      { subject: 'Salary credited late', category: 'payroll', priority: 'high', description: 'My salary for this month was credited 3 days late. Please check.' },
+      { subject: 'Need parking space', category: 'admin', priority: 'low', description: 'Requesting a dedicated parking space as I commute by car daily.' },
+      { subject: 'Attendance correction needed', category: 'hr', priority: 'medium', description: 'My attendance shows absent on 15th Dec but I was present in office.' },
+      { subject: 'Printer not printing', category: 'it', priority: 'low', description: 'The printer on floor 3 is not printing documents. Shows offline.' },
+      { subject: 'Expense reimbursement pending', category: 'payroll', priority: 'medium', description: 'My travel expense claim from last month is still pending.' },
+      { subject: 'AC not working', category: 'admin', priority: 'medium', description: 'The AC in our bay area is not cooling properly.' }
     ];
 
+    const hrEmployee = createdEmployees.find(e => e.role === 'hr') || createdEmployees[0];
     const ticketsToCreate = [];
-    for (let i = 0; i < 25; i++) {
-      const emp = getRandomElement(createdEmployees);
-      const ticket = getRandomElement(ticketSubjects);
-      const status = Math.random() < 0.6 ? 'open' : (Math.random() < 0.8 ? 'in-progress' : 'resolved');
+    
+    // Create at least one ticket per employee
+    for (let i = 0; i < createdEmployees.length; i++) {
+      const emp = createdEmployees[i];
+      const ticket = ticketSubjects[i % ticketSubjects.length];
+      const statusRand = Math.random();
+      const status = statusRand < 0.4 ? 'open' : (statusRand < 0.7 ? 'in-progress' : 'resolved');
+      
       ticketsToCreate.push({
         employee_id: emp.id,
         subject: ticket.subject,
-        description: `Detailed description for: ${ticket.subject}. Please help resolve this issue at the earliest.`,
+        description: ticket.description,
         category: ticket.category,
         priority: ticket.priority,
         status,
+        assigned_to: status !== 'open' ? hrEmployee.id : null,
+        resolved_at: status === 'resolved' ? new Date().toISOString() : null
+      });
+    }
+    
+    // Add additional random tickets for more activity
+    for (let i = 0; i < 30; i++) {
+      const emp = getRandomElement(createdEmployees);
+      const ticket = getRandomElement(ticketSubjects);
+      const statusRand = Math.random();
+      const status = statusRand < 0.3 ? 'open' : (statusRand < 0.6 ? 'in-progress' : 'resolved');
+      
+      ticketsToCreate.push({
+        employee_id: emp.id,
+        subject: ticket.subject,
+        description: ticket.description,
+        category: ticket.category,
+        priority: ticket.priority,
+        status,
+        assigned_to: status !== 'open' ? hrEmployee.id : null,
         resolved_at: status === 'resolved' ? new Date().toISOString() : null
       });
     }
