@@ -47,6 +47,8 @@ type Ticket = Tables<"helpdesk_tickets">;
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
   { id: "email", header: "Email", accessor: "email", visible: true },
+  { id: "department", header: "Department", accessor: "department", visible: true },
+  { id: "store", header: "Store/Location", accessor: "store", visible: true },
   { id: "subject", header: "Subject", accessor: "subject", visible: true },
   { id: "category", header: "Category", accessor: "category", visible: true },
   { id: "priority", header: "Priority", accessor: "priority", visible: true },
@@ -164,6 +166,8 @@ export default function EmployeeHelpdesk() {
     const exportData = dataToExport.map((t) => ({
       ...t,
       created_at: new Date(t.created_at).toLocaleDateString(),
+      department: currentEmployee?.department?.name || "-",
+      store: currentEmployee?.primary_store?.name || "-",
     }));
     exportToCSV(exportData, columns, "helpdesk-tickets");
   };
@@ -287,7 +291,7 @@ export default function EmployeeHelpdesk() {
                   </TableHead>
                   {visibleColumns.map((col) => (
                     <TableHead key={col.id}>
-                      {col.id !== "employee" && col.id !== "email" ? (
+                      {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -325,6 +329,10 @@ export default function EmployeeHelpdesk() {
                           />
                         ) : col.id === "email" ? (
                           <span className="text-muted-foreground">{currentEmployee?.email || "-"}</span>
+                        ) : col.id === "department" ? (
+                          <span>{currentEmployee?.department?.name || "-"}</span>
+                        ) : col.id === "store" ? (
+                          <span>{currentEmployee?.primary_store?.name || "-"}</span>
                         ) : col.id === "subject" ? (
                           <span className="font-medium">{ticket.subject}</span>
                         ) : col.id === "category" ? (
@@ -477,20 +485,20 @@ export default function EmployeeHelpdesk() {
 
             <div className="space-y-2">
               <Label>Subject *</Label>
-              <Input 
-                placeholder="Brief description of your issue"
+              <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
+                placeholder="Brief description of your issue"
               />
             </div>
 
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                placeholder="Please provide details about your issue..."
-                className="min-h-24"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                placeholder="Provide more details about your issue..."
+                rows={4}
               />
             </div>
           </div>
@@ -499,7 +507,7 @@ export default function EmployeeHelpdesk() {
             <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateTicket}
               disabled={!subject || !category || !priority || createTicket.isPending}
             >

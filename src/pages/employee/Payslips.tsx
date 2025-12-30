@@ -76,6 +76,8 @@ export default function EmployeePayslips() {
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "employee", header: "Employee", visible: true },
     { id: "email", header: "Email", visible: true },
+    { id: "department", header: "Department", visible: true },
+    { id: "store", header: "Store/Location", visible: true },
     { id: "pay_period", header: "Pay Period", visible: true },
     { id: "gross_earnings", header: "Gross Earnings", visible: true },
     { id: "total_deductions", header: "Deductions", visible: true },
@@ -192,9 +194,17 @@ export default function EmployeePayslips() {
       ? sortedPayslips.filter((p) => selectedRows.includes(p.id))
       : sortedPayslips;
 
+    const exportData = dataToExport.map((p) => ({
+      ...p,
+      department: currentEmployee?.department?.name || "-",
+      store: currentEmployee?.primary_store?.name || "-",
+    }));
+
     const exportColumns: ColumnDef[] = [
       { id: "pay_period", header: "Pay Period", visible: true },
       { id: "pay_date", header: "Pay Date", visible: true },
+      { id: "department", header: "Department", visible: true },
+      { id: "store", header: "Store/Location", visible: true },
       { id: "basic_salary", header: "Basic Salary", visible: true },
       { id: "gross_earnings", header: "Gross Earnings", visible: true },
       { id: "total_deductions", header: "Total Deductions", visible: true },
@@ -202,7 +212,7 @@ export default function EmployeePayslips() {
       { id: "status", header: "Status", visible: true },
     ];
 
-    exportToCSV(dataToExport, exportColumns, `my-payslips-${selectedYear}`);
+    exportToCSV(exportData, exportColumns, `my-payslips-${selectedYear}`);
     toast.success(`Exported ${dataToExport.length} payslips`);
   };
 
@@ -214,7 +224,7 @@ export default function EmployeePayslips() {
     setDownloading(payslip.id);
     
     try {
-      const employeeName = `${currentEmployee?.profile?.first_name || ""} ${currentEmployee?.profile?.last_name || ""}`.trim();
+      const employeeName = `${currentEmployee?.first_name || ""} ${currentEmployee?.last_name || ""}`.trim();
       
       generatePayslipPDF({
         employee_name: employeeName || "Employee",
@@ -356,6 +366,12 @@ export default function EmployeePayslips() {
               {columns.find((c) => c.id === "email")?.visible && (
                 <TableHead>Email</TableHead>
               )}
+              {columns.find((c) => c.id === "department")?.visible && (
+                <TableHead>Department</TableHead>
+              )}
+              {columns.find((c) => c.id === "store")?.visible && (
+                <TableHead>Store/Location</TableHead>
+              )}
               {columns.find((c) => c.id === "pay_period")?.visible && (
                 <TableHead><SortableHeader field="pay_period">Pay Period</SortableHeader></TableHead>
               )}
@@ -399,6 +415,12 @@ export default function EmployeePayslips() {
                 {columns.find((c) => c.id === "email")?.visible && (
                   <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
                 )}
+                {columns.find((c) => c.id === "department")?.visible && (
+                  <TableCell>{currentEmployee?.department?.name || "-"}</TableCell>
+                )}
+                {columns.find((c) => c.id === "store")?.visible && (
+                  <TableCell>{currentEmployee?.primary_store?.name || "-"}</TableCell>
+                )}
                 {columns.find((c) => c.id === "pay_period")?.visible && (
                   <TableCell className="font-medium">{formatPayPeriod(payslip.pay_period)}</TableCell>
                 )}
@@ -440,7 +462,7 @@ export default function EmployeePayslips() {
             ))}
             {paginatedData.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                   No payslips found for {selectedYear}
                 </TableCell>
               </TableRow>
@@ -451,100 +473,65 @@ export default function EmployeePayslips() {
         <TablePagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={sortedPayslips.length}
+          totalItems={filteredPayslips.length}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
           onPageSizeChange={setPageSize}
         />
       </Card>
 
-      {/* Payslip Preview Dialog */}
+      {/* Preview Dialog */}
       <Dialog open={!!previewPayslip} onOpenChange={() => setPreviewPayslip(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Payslip - {previewPayslip && formatPayPeriod(previewPayslip.pay_period)}</DialogTitle>
           </DialogHeader>
-
           {previewPayslip && (
-            <div className="space-y-6 py-4">
-              <div className="flex justify-between items-start border-b pb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{branding?.companyName || "Company Name Inc."}</h3>
-                  <p className="text-sm text-muted-foreground">123 Business Street, San Francisco, CA 94102</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">Payslip</p>
-                  <p className="text-sm text-muted-foreground">{formatPayPeriod(previewPayslip.pay_period)}</p>
-                </div>
-              </div>
-
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Employee Name</p>
-                  <p className="font-medium">
-                    {currentEmployee?.profile?.first_name} {currentEmployee?.profile?.last_name}
-                  </p>
+                  <p className="text-muted-foreground">Employee</p>
+                  <p className="font-medium">{currentEmployee?.first_name} {currentEmployee?.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Employee ID</p>
+                  <p className="font-medium">{currentEmployee?.employee_id}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Department</p>
+                  <p className="font-medium">{currentEmployee?.department?.name || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pay Date</p>
                   <p className="font-medium">{format(new Date(previewPayslip.pay_date), "MMM dd, yyyy")}</p>
                 </div>
               </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium mb-3 text-primary">Earnings</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Basic Salary</span>
-                      <span>${previewPayslip.basic_salary.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Allowances</span>
-                      <span>${(previewPayslip.gross_earnings - previewPayslip.basic_salary).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between font-medium pt-2 border-t">
-                      <span>Gross Earnings</span>
-                      <span>${previewPayslip.gross_earnings.toLocaleString()}</span>
-                    </div>
-                  </div>
+              <hr />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Basic Salary</span>
+                  <span>${previewPayslip.basic_salary.toLocaleString()}</span>
                 </div>
-
-                <div>
-                  <h4 className="font-medium mb-3 text-destructive">Deductions</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Total Deductions</span>
-                      <span>${previewPayslip.total_deductions.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between font-medium pt-2 border-t">
-                      <span>Total Deductions</span>
-                      <span>${previewPayslip.total_deductions.toLocaleString()}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-success">
+                  <span>Gross Earnings</span>
+                  <span>${previewPayslip.gross_earnings.toLocaleString()}</span>
                 </div>
-              </div>
-
-              <div className="p-4 bg-primary/5 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">Net Pay</span>
-                  <span className="text-2xl font-bold text-primary">${previewPayslip.net_pay.toLocaleString()}</span>
+                <div className="flex justify-between text-destructive">
+                  <span>Total Deductions</span>
+                  <span>-${previewPayslip.total_deductions.toLocaleString()}</span>
+                </div>
+                <hr />
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Net Pay</span>
+                  <span className="text-primary">${previewPayslip.net_pay.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewPayslip(null)}>Close</Button>
-            <Button
-              onClick={() => previewPayslip && handleDownload(previewPayslip)}
-              disabled={downloading === previewPayslip?.id}
-            >
-              {downloading === previewPayslip?.id ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
+            <Button onClick={() => previewPayslip && handleDownload(previewPayslip)}>
+              <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
           </DialogFooter>

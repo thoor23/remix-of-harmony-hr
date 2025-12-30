@@ -59,6 +59,8 @@ export default function EmployeeDocuments() {
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "employee", header: "Employee", visible: true },
     { id: "email", header: "Email", visible: true },
+    { id: "department", header: "Department", visible: true },
+    { id: "store", header: "Store/Location", visible: true },
     { id: "name", header: "Name", visible: true },
     { id: "type", header: "Type", visible: true },
     { id: "file_size", header: "Size", visible: true },
@@ -186,14 +188,22 @@ export default function EmployeeDocuments() {
       ? docs.filter((d) => selectedRows.includes(d.id))
       : docs;
 
+    const exportData = dataToExport.map((d) => ({
+      ...d,
+      department: currentEmployee?.department?.name || "-",
+      store: currentEmployee?.primary_store?.name || "-",
+    }));
+
     const exportColumns: ColumnDef[] = [
       { id: "name", header: "Name", visible: true },
       { id: "type", header: "Type", visible: true },
+      { id: "department", header: "Department", visible: true },
+      { id: "store", header: "Store/Location", visible: true },
       { id: "file_size", header: "Size (bytes)", visible: true },
       { id: "created_at", header: "Uploaded", visible: true },
     ];
 
-    exportToCSV(dataToExport, exportColumns, `my-documents-${format(new Date(), "yyyy-MM-dd")}`);
+    exportToCSV(exportData, exportColumns, `my-documents-${format(new Date(), "yyyy-MM-dd")}`);
     toast.success(`Exported ${dataToExport.length} documents`);
   };
 
@@ -322,6 +332,12 @@ export default function EmployeeDocuments() {
             {columns.find((c) => c.id === "email")?.visible && (
               <TableHead>Email</TableHead>
             )}
+            {columns.find((c) => c.id === "department")?.visible && (
+              <TableHead>Department</TableHead>
+            )}
+            {columns.find((c) => c.id === "store")?.visible && (
+              <TableHead>Store/Location</TableHead>
+            )}
             {columns.find((c) => c.id === "name")?.visible && (
               <TableHead><SortableHeader field="name">Name</SortableHeader></TableHead>
             )}
@@ -359,6 +375,12 @@ export default function EmployeeDocuments() {
               {columns.find((c) => c.id === "email")?.visible && (
                 <TableCell className="text-muted-foreground">{currentEmployee?.email || "-"}</TableCell>
               )}
+              {columns.find((c) => c.id === "department")?.visible && (
+                <TableCell>{currentEmployee?.department?.name || "-"}</TableCell>
+              )}
+              {columns.find((c) => c.id === "store")?.visible && (
+                <TableCell>{currentEmployee?.primary_store?.name || "-"}</TableCell>
+              )}
               {columns.find((c) => c.id === "name")?.visible && (
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -387,7 +409,7 @@ export default function EmployeeDocuments() {
           ))}
           {pagination.paginatedData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                 No documents found
               </TableCell>
             </TableRow>
@@ -477,34 +499,43 @@ export default function EmployeeDocuments() {
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
 
-          {!selectedFile ? (
-            <div
-              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">Drag & drop or click to upload</p>
-              <p className="text-xs text-muted-foreground">PDF, DOC, DOCX, JPG, PNG (max 10MB)</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <FileText className="h-8 w-8 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={cancelUpload} disabled={uploadFile.isPending}>
-                  <X className="h-4 w-4" />
-                </Button>
+          <div className="space-y-4 py-4">
+            {!selectedFile ? (
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Click to select a file</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX, JPG, PNG (max 10MB)</p>
               </div>
-
-              {uploadProgress > 0 && <Progress value={uploadProgress} className="h-2" />}
-            </div>
-          )}
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={cancelUpload}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {uploadProgress > 0 && (
+                  <Progress value={uploadProgress} className="h-2" />
+                )}
+              </div>
+            )}
+          </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleUpload} disabled={!selectedFile || uploadFile.isPending}>
               {uploadFile.isPending ? (
                 <>

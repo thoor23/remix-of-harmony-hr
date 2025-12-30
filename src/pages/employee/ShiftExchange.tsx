@@ -118,6 +118,8 @@ export default function EmployeeShiftExchange() {
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "employee", header: "Employee", visible: true },
     { id: "email", header: "Email", visible: true },
+    { id: "department", header: "Department", visible: true },
+    { id: "store", header: "Store/Location", visible: true },
     { id: "request_date", header: "Exchange Date", visible: true },
     { id: "target_employee", header: "With Employee", visible: true },
     { id: "shifts", header: "Shifts", visible: true },

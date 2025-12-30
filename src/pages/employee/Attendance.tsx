@@ -27,11 +27,14 @@ import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { Clock, CheckCircle, XCircle, AlertCircle, Timer, ArrowUpDown } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
+import { useAllLocations } from "@/hooks/useLocations";
 import { Button } from "@/components/ui/button";
 
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
   { id: "email", header: "Email", accessor: "email", visible: true },
+  { id: "department", header: "Department", accessor: "department", visible: true },
+  { id: "store", header: "Store/Location", accessor: "store", visible: true },
   { id: "date", header: "Date", accessor: "date", visible: true },
   { id: "check_in", header: "Check In", accessor: "check_in", visible: true },
   { id: "check_out", header: "Check Out", accessor: "check_out", visible: true },
@@ -50,6 +53,14 @@ export default function EmployeeAttendance() {
 
   const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: myRecords = [], isLoading: recordsLoading, refetch } = useMyAttendance(employee?.id);
+  const { data: locations = [] } = useAllLocations();
+
+  // Get store name from location id
+  const getStoreName = (storeId: string | null) => {
+    if (!storeId) return employee?.primary_store?.name || "-";
+    const location = locations.find((l) => l.id === storeId);
+    return location?.name || "-";
+  };
 
   // Filter records for selected month
   const filteredRecords = useMemo(() => {
@@ -118,7 +129,13 @@ export default function EmployeeAttendance() {
     const dataToExport = selectedRows.size > 0
       ? sortedRecords.filter((r) => selectedRows.has(r.id))
       : sortedRecords;
-    exportToCSV(dataToExport, columns, `attendance-${selectedMonth}`);
+    
+    const exportData = dataToExport.map((r) => ({
+      ...r,
+      department: employee?.department?.name || "-",
+      store: getStoreName(r.store_id),
+    }));
+    exportToCSV(exportData, columns, `attendance-${selectedMonth}`);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -257,7 +274,7 @@ export default function EmployeeAttendance() {
               </TableHead>
               {visibleColumns.map((col) => (
                 <TableHead key={col.id}>
-                  {col.id !== "employee" && col.id !== "email" ? (
+                  {col.id !== "employee" && col.id !== "email" && col.id !== "department" && col.id !== "store" ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -295,6 +312,10 @@ export default function EmployeeAttendance() {
                         />
                       ) : col.id === "email" ? (
                         <span className="text-muted-foreground">{employee?.email || "-"}</span>
+                      ) : col.id === "department" ? (
+                        <span>{employee?.department?.name || "-"}</span>
+                      ) : col.id === "store" ? (
+                        <span>{getStoreName(record.store_id)}</span>
                       ) : col.id === "status" ? (
                         <StatusBadge status={record.status as any} />
                       ) : col.id === "work_hours" ? (
