@@ -8,14 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useDesignationsData } from "@/hooks/useDesignations";
 import { useUpdateProfile } from "@/hooks/useProfileUpdate";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
@@ -24,6 +25,7 @@ import {
   Phone, 
   MapPin, 
   Calendar as CalendarIcon,
+  ChevronDown,
   Shield,
   Camera,
   Loader2,
@@ -43,6 +45,7 @@ export default function AdminProfilePage() {
   
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [dobOpen, setDobOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     first_name: "",
@@ -374,11 +377,36 @@ export default function AdminProfilePage() {
                   </div>
                   <div className="sm:col-span-2 space-y-2">
                     <Label>Date of Birth</Label>
-                    <DatePicker
-                      value={formData.date_of_birth}
-                      onChange={(value) => setFormData({ ...formData, date_of_birth: value })}
-                      placeholder="Select date"
-                    />
+                    <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-between text-left font-normal",
+                            !formData.date_of_birth && "text-muted-foreground"
+                          )}
+                        >
+                          {formData.date_of_birth 
+                            ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()).toLocaleDateString()
+                            : "Select date"
+                          }
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.date_of_birth ? parse(formData.date_of_birth, "yyyy-MM-dd", new Date()) : undefined}
+                          onSelect={(date) => {
+                            setFormData({ ...formData, date_of_birth: date ? format(date, "yyyy-MM-dd") : "" })
+                            setDobOpen(false)
+                          }}
+                          captionLayout="dropdown-buttons"
+                          fromYear={1940}
+                          toYear={new Date().getFullYear()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               ) : (
