@@ -350,19 +350,21 @@ export default function EmployeeAttendanceRegularization() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Requested Check-In</Label>
-                <TimePicker
+                <Label htmlFor="requested_check_in">Requested Check-In</Label>
+                <Input
+                  id="requested_check_in"
+                  type="time"
                   value={requestedCheckIn}
-                  onChange={setRequestedCheckIn}
-                  placeholder="Select time"
+                  onChange={(e) => setRequestedCheckIn(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Requested Check-Out</Label>
-                <TimePicker
+                <Label htmlFor="requested_check_out">Requested Check-Out</Label>
+                <Input
+                  id="requested_check_out"
+                  type="time"
                   value={requestedCheckOut}
-                  onChange={setRequestedCheckOut}
-                  placeholder="Select time"
+                  onChange={(e) => setRequestedCheckOut(e.target.value)}
                 />
               </div>
             </div>
