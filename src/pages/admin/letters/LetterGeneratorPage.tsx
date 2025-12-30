@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
   const { data: templates = [], isLoading: loadingTemplates } = useLetterTemplates(letterType);
   const { data: branding } = useCompanyBranding();
   const generateLetter = useGenerateLetter();
+  
+  const canCreate = useHasPermission("Letters", "create");
 
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
@@ -224,14 +227,16 @@ export default function LetterGeneratorPage({ letterType, title }: Props) {
                     <Printer className="mr-2 h-4 w-4" />
                     Print
                   </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleSaveToFolder}
-                    disabled={generateLetter.isPending}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Save to Employee Folder
-                  </Button>
+                  {canCreate && (
+                    <Button
+                      variant="secondary"
+                      onClick={handleSaveToFolder}
+                      disabled={generateLetter.isPending}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Save to Employee Folder
+                    </Button>
+                  )}
                 </div>
               </>
             )}

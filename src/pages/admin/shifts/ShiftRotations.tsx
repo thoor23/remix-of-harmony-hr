@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,10 @@ export default function ShiftRotations() {
     employeeIds: [],
     isActive: true,
   });
+
+  const canCreate = useHasPermission("Shifts", "create");
+  const canUpdate = useHasPermission("Shifts", "update");
+  const canDelete = useHasPermission("Shifts", "delete");
 
   // Transform rotations from API to local format
   const rotations = useMemo(() => {
@@ -304,10 +309,12 @@ export default function ShiftRotations() {
               <Button onClick={() => refetch()} variant="outline" size="icon">
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button onClick={() => handleOpenForm()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Rotation
-              </Button>
+              {canCreate && (
+                <Button onClick={() => handleOpenForm()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Rotation
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -379,20 +386,24 @@ export default function ShiftRotations() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleOpenForm(rotation)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setDeleteRotation(rotation as ShiftRotation)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canUpdate && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleOpenForm(rotation)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setDeleteRotation(rotation as ShiftRotation)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

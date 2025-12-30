@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,8 @@ export default function PayslipsList() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  
+  const canCreate = useHasPermission("Payroll", "create");
   
   // Table state
   const [sortColumn, setSortColumn] = useState<string>("employeeName");
@@ -257,11 +260,13 @@ export default function PayslipsList() {
             <Send className="mr-2 h-4 w-4" />
             Send All
           </Button>
-          <Button onClick={handleGenerateAll} disabled={isGenerating}>
-            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <FileText className="mr-2 h-4 w-4" />
-            Generate Payslips
-          </Button>
+          {canCreate && (
+            <Button onClick={handleGenerateAll} disabled={isGenerating}>
+              {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <FileText className="mr-2 h-4 w-4" />
+              Generate Payslips
+            </Button>
+          )}
         </div>
       </PageHeader>
 
