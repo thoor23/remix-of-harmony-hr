@@ -106,9 +106,9 @@ export default function EmployeeProfile() {
         .from('company-assets')
         .getPublicUrl(fileName);
 
-      // Update employee record using API
+      // Update employee record using API (use /current endpoint for employee self-update)
       const token = localStorage.getItem("access_token");
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-employees/${employee.id}`, {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-employees/current`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
