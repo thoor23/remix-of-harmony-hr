@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ArrowRightLeft, Search, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { useEmployeeTransfers, useCreateTransfer, useAllLocations, CreateTransferInput, EmployeeTransfer } from "@/hooks/useLocations";
@@ -94,7 +95,7 @@ export default function EmployeeTransfers() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2"><Label>Employee *</Label><Select value={formData.employee_id} onValueChange={(v) => setFormData({ ...formData, employee_id: v })}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{employees.filter((e: any) => e.status === "active").map((e: any) => <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>)}</SelectContent></Select>{formData.employee_id && <p className="text-xs text-muted-foreground">Current: {getEmployeeCurrentLocation(formData.employee_id)}</p>}</div>
             <div className="space-y-2"><Label>Transfer To *</Label><Select value={formData.to_store_id} onValueChange={(v) => setFormData({ ...formData, to_store_id: v })}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{locations.filter(l => l.is_active).map(l => <SelectItem key={l.id} value={l.id}>{l.name} ({l.type})</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Effective Date *</Label><Input type="date" value={formData.effective_date} onChange={(e) => setFormData({ ...formData, effective_date: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Effective Date *</Label><DatePicker value={formData.effective_date} onChange={(v) => setFormData({ ...formData, effective_date: v })} placeholder="Select date" /></div>
             <div className="space-y-2"><Label>Reason</Label><Textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} /></div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button><Button type="submit" disabled={createTransfer.isPending}>{createTransfer.isPending ? "Transferring..." : "Transfer"}</Button></DialogFooter>
           </form>
