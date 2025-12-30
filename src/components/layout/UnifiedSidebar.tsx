@@ -434,19 +434,28 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
 
   // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
+    console.log('[Sidebar] Filtering - permLoading:', permLoading, 'permissions.length:', permissions.length, 'roleType:', roleType);
+    
     if (permLoading || permissions.length === 0) {
       return unifiedNavSections;
     }
+
+    const canReadDashboard = canRead("Dashboard");
+    console.log('[Sidebar] Can read Dashboard:', canReadDashboard, 'roleType:', roleType);
 
     return unifiedNavSections.map(section => ({
       ...section,
       items: section.items.filter(item => {
         // Dashboard filtering based on roleType
         if (item.title === "Admin Dashboard") {
-          return roleType === "admin" && canRead("Dashboard");
+          const show = roleType === "admin" && canReadDashboard;
+          console.log('[Sidebar] Admin Dashboard - show:', show);
+          return show;
         }
         if (item.title === "Employee Dashboard") {
-          return roleType === "employee" && canRead("Dashboard");
+          const show = roleType === "employee" && canReadDashboard;
+          console.log('[Sidebar] Employee Dashboard - show:', show);
+          return show;
         }
         
         const module = navItemToModule[item.title];
