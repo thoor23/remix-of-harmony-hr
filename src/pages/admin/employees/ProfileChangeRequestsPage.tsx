@@ -25,6 +25,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Check, X, Eye, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useAllProfileChangeRequests, useReviewProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
 import { format } from "date-fns";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 export default function ProfileChangeRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
@@ -153,8 +154,14 @@ export default function ProfileChangeRequestsPage() {
                   <TableBody>
                     {pendingRequests.map((request: any) => (
                       <TableRow key={request.id}>
-                        <TableCell className="font-medium">
-                          {request.employee?.employee_id || "N/A"}
+                        <TableCell>
+                          <EmployeeCell
+                            avatarUrl={request.employee?.avatar_url}
+                            firstName={request.employee?.first_name}
+                            lastName={request.employee?.last_name}
+                            employeeId={request.employee?.employee_id}
+                            size="sm"
+                          />
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
@@ -235,8 +242,14 @@ export default function ProfileChangeRequestsPage() {
                   <TableBody>
                     {reviewedRequests.map((request: any) => (
                       <TableRow key={request.id}>
-                        <TableCell className="font-medium">
-                          {request.employee?.employee_id || "N/A"}
+                        <TableCell>
+                          <EmployeeCell
+                            avatarUrl={request.employee?.avatar_url}
+                            firstName={request.employee?.first_name}
+                            lastName={request.employee?.last_name}
+                            employeeId={request.employee?.employee_id}
+                            size="sm"
+                          />
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">

@@ -46,17 +46,19 @@ import { usePagination } from "@/hooks/usePagination";
 import { format } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 // Define all employee columns
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
   { id: "user_id", header: "User ID", accessor: "user_id", visible: false },
-  { id: "first_name", header: "First Name", accessor: "first_name", visible: true },
-  { id: "last_name", header: "Last Name", accessor: "last_name", visible: true },
+  { id: "employee", header: "Employee", accessor: (row: EmployeeWithDetails) => `${row.first_name || ""} ${row.last_name || ""}`.trim(), visible: true },
+  { id: "first_name", header: "First Name", accessor: "first_name", visible: false },
+  { id: "last_name", header: "Last Name", accessor: "last_name", visible: false },
   { id: "email", header: "Email", accessor: "email", visible: true },
   { id: "phone", header: "Phone", accessor: "phone", visible: false },
   { id: "avatar_url", header: "Avatar URL", accessor: "avatar_url", visible: false },
-  { id: "employee_id", header: "Employee ID", accessor: "employee_id", visible: true },
+  { id: "employee_id", header: "Employee ID", accessor: "employee_id", visible: false },
   { id: "department_id", header: "Department ID", accessor: "department_id", visible: false },
   { id: "department", header: "Department", accessor: "department.name", visible: true },
   { id: "designation_id", header: "Designation ID", accessor: "designation_id", visible: false },
@@ -241,6 +243,18 @@ export default function EmployeeList() {
     const value = typeof column.accessor === 'function' 
       ? column.accessor(employee)
       : getNestedValue(employee, column.accessor);
+
+    // Employee cell with avatar, name, and ID
+    if (column.id === 'employee') {
+      return (
+        <EmployeeCell
+          avatarUrl={employee.avatar_url}
+          firstName={employee.first_name}
+          lastName={employee.last_name}
+          employeeId={employee.employee_id}
+        />
+      );
+    }
 
     // Special rendering for status
     if (column.id === 'status') {

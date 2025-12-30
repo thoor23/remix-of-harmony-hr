@@ -43,6 +43,7 @@ import { format } from "date-fns";
 import { downloadPayslipPDF, downloadPayslipFromTemplate } from "@/lib/pdfGenerator";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 export default function PayslipsList() {
   const queryClient = useQueryClient();
@@ -382,21 +383,12 @@ export default function PayslipsList() {
                     </TableCell>
                     {columns.find(c => c.id === "employee")?.visible && (
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={emp?.avatar_url || ""} />
-                            <AvatarFallback>
-                              {emp?.first_name?.[0] || ""}
-                              {emp?.last_name?.[0] || ""}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{employeeName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {emp?.employee_id}
-                            </p>
-                          </div>
-                        </div>
+                        <EmployeeCell
+                          avatarUrl={emp?.avatar_url}
+                          firstName={emp?.first_name}
+                          lastName={emp?.last_name}
+                          employeeId={emp?.employee_id}
+                        />
                       </TableCell>
                     )}
                     {columns.find(c => c.id === "gross_earnings")?.visible && (

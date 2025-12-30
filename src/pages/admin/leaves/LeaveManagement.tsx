@@ -45,6 +45,7 @@ import { Check, X, CalendarCheck, Clock, CalendarX, Search, MoreHorizontal, Arro
 import { useLeaveRequests, useLeaveTypes, useUpdateLeaveRequest, LeaveRequestWithDetails } from "@/hooks/useLeaves";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
@@ -225,13 +226,12 @@ export default function LeaveManagement() {
 
     if (column.id === 'employee_name') {
       return (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={request.employee?.avatar_url || undefined} />
-            <AvatarFallback>{getEmployeeInitials(request)}</AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{value}</span>
-        </div>
+        <EmployeeCell
+          avatarUrl={request.employee?.avatar_url}
+          firstName={request.employee?.first_name}
+          lastName={request.employee?.last_name}
+          employeeId={request.employee?.employee_id}
+        />
       );
     }
 

@@ -18,6 +18,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Users, TrendingDown, Clock } from "lucide-react";
 import { useAllLocations } from "@/hooks/useLocations";
+import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
 const leaveByTypeData = [
   { name: "Casual Leave", value: 145 },
