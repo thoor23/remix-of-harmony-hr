@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useDepartmentsData } from "@/hooks/useDepartments";
@@ -372,10 +373,10 @@ export default function AdminProfilePage() {
                   </div>
                   <div className="sm:col-span-2 space-y-2">
                     <Label>Date of Birth</Label>
-                    <Input 
-                      type="date"
+                    <DatePicker 
                       value={formData.date_of_birth}
-                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                      onChange={(value) => setFormData({ ...formData, date_of_birth: value })}
+                      placeholder="Select date of birth"
                     />
                   </div>
                 </div>
