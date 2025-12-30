@@ -47,6 +47,7 @@ import { format } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
+import { PermissionGate, useHasPermission } from "@/components/auth/PermissionGate";
 
 // Define all employee columns
 const getInitialColumns = (): ColumnDef[] => [
@@ -100,6 +101,10 @@ export default function EmployeeList() {
   const { data: employees = [], isLoading: loadingEmployees, refetch, isFetching } = useEmployees();
   const { data: departments = [], isLoading: loadingDepartments } = useDepartments();
   const deleteEmployee = useDeleteEmployee();
+  
+  const canUpdate = useHasPermission("Employees", "update");
+  const canDelete = useHasPermission("Employees", "delete");
+  const canCreate = useHasPermission("Employees", "create");
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
@@ -317,7 +322,7 @@ export default function EmployeeList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => navigate('/admin/employees/new')}
+          onAddRow={canCreate ? () => navigate('/admin/employees/new') : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -428,19 +433,23 @@ export default function EmployeeList() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/admin/employees/${employee.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(employee)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canUpdate && (
+                          <DropdownMenuItem asChild>
+                            <Link to={`/admin/employees/${employee.id}/edit`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(employee)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

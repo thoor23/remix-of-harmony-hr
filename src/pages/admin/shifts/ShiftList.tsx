@@ -50,6 +50,7 @@ import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift, ShiftData, useShiftAssignments } from "@/hooks/useShifts";
 import { toast } from "sonner";
 import { TimePicker } from "@/components/ui/time-picker";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
@@ -88,6 +89,10 @@ export default function ShiftList() {
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
   const deleteShiftMutation = useDeleteShift();
+  
+  const canCreate = useHasPermission("Shifts", "create");
+  const canUpdate = useHasPermission("Shifts", "update");
+  const canDelete = useHasPermission("Shifts", "delete");
 
   const totalAssignedCount = shiftAssignments.filter(a => a.is_active).length;
 
@@ -390,7 +395,7 @@ export default function ShiftList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => handleOpenForm()}
+          onAddRow={canCreate ? () => handleOpenForm() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -483,17 +488,21 @@ export default function ShiftList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenForm(shift)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteShift(shift)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => handleOpenForm(shift)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteShift(shift)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

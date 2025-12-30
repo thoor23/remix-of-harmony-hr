@@ -52,6 +52,7 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { format } from "date-fns";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const statusColors: Record<string, string> = {
   available: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -104,6 +105,10 @@ export default function AssetList() {
   const { data: categories } = useAssetCategories();
   const { data: locations } = useAllLocations();
   const { data: stats } = useAssetStats();
+  
+  const canCreate = useHasPermission("Assets", "create");
+  const canUpdate = useHasPermission("Assets", "update");
+  const canDelete = useHasPermission("Assets", "delete");
 
   const filteredAssets = useMemo(() => {
     let filtered = assets;
@@ -289,7 +294,7 @@ export default function AssetList() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={() => refetch()}
-          onAddRow={() => navigate("/admin/assets/add")}
+          onAddRow={canCreate ? () => navigate("/admin/assets/add") : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           addRowLabel="Add Asset"
@@ -421,12 +426,16 @@ export default function AssetList() {
                           <DropdownMenuItem onClick={() => navigate(`/admin/assets/${asset.id}`)}>
                             <Eye className="h-4 w-4 mr-2" />View
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/admin/assets/${asset.id}/edit`)}>
-                            <Pencil className="h-4 w-4 mr-2" />Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="h-4 w-4 mr-2" />Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => navigate(`/admin/assets/${asset.id}/edit`)}>
+                              <Pencil className="h-4 w-4 mr-2" />Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

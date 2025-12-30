@@ -76,6 +76,7 @@ import { format } from "date-fns";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 // Define all ticket columns
 const getInitialColumns = (): ColumnDef[] => [
@@ -136,6 +137,9 @@ export default function HelpdeskManagement() {
   const updateStatus = useUpdateTicketStatus();
   const assignTicket = useAssignTicket();
   const deleteTicket = useDeleteTicket();
+  
+  const canUpdate = useHasPermission("Helpdesk", "update");
+  const canDelete = useHasPermission("Helpdesk", "delete");
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -524,27 +528,35 @@ export default function HelpdeskManagement() {
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'open')}>
-                          Set Open
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'in-progress')}>
-                          Set In Progress
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'resolved')}>
-                          Set Resolved
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'closed')}>
-                          Set Closed
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(ticket)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canUpdate && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'open')}>
+                              Set Open
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'in-progress')}>
+                              Set In Progress
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'resolved')}>
+                              Set Resolved
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(ticket.id, 'closed')}>
+                              Set Closed
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {canDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteClick(ticket)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

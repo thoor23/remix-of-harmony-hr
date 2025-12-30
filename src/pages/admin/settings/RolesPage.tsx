@@ -46,6 +46,7 @@ import {
   Role 
 } from "@/hooks/useRoles";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
@@ -60,6 +61,10 @@ export default function RolesPage() {
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRoleMutation = useDeleteRole();
+  
+  const canCreate = useHasPermission("Settings", "create");
+  const canUpdate = useHasPermission("Settings", "update");
+  const canDelete = useHasPermission("Settings", "delete");
 
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -295,7 +300,7 @@ export default function RolesPage() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => openRoleDialog()}
+          onAddRow={canCreate ? () => openRoleDialog() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isRefreshing}
@@ -385,11 +390,13 @@ export default function RolesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openRoleDialog(role)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            {!role.is_system && (
+                            {canUpdate && (
+                              <DropdownMenuItem onClick={() => openRoleDialog(role)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            {canDelete && !role.is_system && (
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => setDeleteRoleDialog(role)}
