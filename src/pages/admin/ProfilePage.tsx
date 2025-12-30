@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useDesignationsData } from "@/hooks/useDesignations";
-import { toast } from "sonner";
+import { useUpdateProfile } from "@/hooks/useProfileUpdate";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { 
@@ -32,16 +32,18 @@ export default function AdminProfilePage() {
   const { data: employeeData, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: departments } = useDepartmentsData();
   const { data: designations } = useDesignationsData();
+  const updateProfile = useUpdateProfile();
   
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
-    address: "",
-    bio: "",
+    address_street: "",
+    address_city: "",
+    address_state: "",
+    address_zip_code: "",
   });
-  const [isSaving, setIsSaving] = useState(false);
 
   // Populate form when data loads
   useEffect(() => {
@@ -51,26 +53,24 @@ export default function AdminProfilePage() {
         last_name: profile?.last_name || employeeData?.last_name || "",
         email: profile?.email || employeeData?.email || user?.email || "",
         phone: profile?.phone || employeeData?.phone || "",
-        address: employeeData 
-          ? [employeeData.address_street, employeeData.address_city, employeeData.address_state, employeeData.address_zip_code]
-              .filter(Boolean).join(", ")
-          : "",
-        bio: "",
+        address_street: employeeData?.address_street || "",
+        address_city: employeeData?.address_city || "",
+        address_state: employeeData?.address_state || "",
+        address_zip_code: employeeData?.address_zip_code || "",
       });
     }
   }, [profile, employeeData, user]);
 
   const handleSaveProfile = async () => {
-    setIsSaving(true);
-    try {
-      // TODO: Implement actual profile update API call when available
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulated delay
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      toast.error("Failed to update profile");
-    } finally {
-      setIsSaving(false);
-    }
+    await updateProfile.mutateAsync({
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      phone: formData.phone,
+      address_street: formData.address_street,
+      address_city: formData.address_city,
+      address_state: formData.address_state,
+      address_zip_code: formData.address_zip_code,
+    });
   };
 
   const getDepartmentName = (deptId: string | null) => {
@@ -245,8 +245,10 @@ export default function AdminProfilePage() {
                   <Input 
                     type="email" 
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled
+                    className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
@@ -264,40 +266,81 @@ export default function AdminProfilePage() {
                   <Input 
                     value={getDepartmentName(employeeData?.department_id)} 
                     disabled 
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label>Designation</Label>
                   <Input 
                     value={getDesignationName(employeeData?.designation_id)} 
                     disabled 
+                    className="bg-muted"
                   />
                 </div>
               </div>
 
+              <Separator />
+              
+              <h4 className="font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Address
+              </h4>
+              
               <div className="space-y-2">
-                <Label>Address</Label>
+                <Label>Street Address</Label>
                 <Textarea 
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.address_street}
+                  onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
                   rows={2}
+                  placeholder="Enter street address"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea 
-                  placeholder="Tell us about yourself..."
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  rows={3}
-                />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>City</Label>
+                  <Input 
+                    value={formData.address_city}
+                    onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
+                    placeholder="City"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>State</Label>
+                  <Input 
+                    value={formData.address_state}
+                    onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
+                    placeholder="State"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ZIP Code</Label>
+                  <Input 
+                    value={formData.address_zip_code}
+                    onChange={(e) => setFormData({ ...formData, address_zip_code: e.target.value })}
+                    placeholder="ZIP Code"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
-                <Button onClick={handleSaveProfile} disabled={isSaving}>
-                  {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Button variant="outline" onClick={() => {
+                  // Reset form
+                  if (profile || employeeData) {
+                    setFormData({
+                      first_name: profile?.first_name || employeeData?.first_name || "",
+                      last_name: profile?.last_name || employeeData?.last_name || "",
+                      email: profile?.email || employeeData?.email || user?.email || "",
+                      phone: profile?.phone || employeeData?.phone || "",
+                      address_street: employeeData?.address_street || "",
+                      address_city: employeeData?.address_city || "",
+                      address_state: employeeData?.address_state || "",
+                      address_zip_code: employeeData?.address_zip_code || "",
+                    });
+                  }
+                }}>Cancel</Button>
+                <Button onClick={handleSaveProfile} disabled={updateProfile.isPending}>
+                  {updateProfile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Save Changes
                 </Button>
               </div>

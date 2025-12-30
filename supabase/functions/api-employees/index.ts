@@ -260,6 +260,42 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // PUT /current - Update current user's employee profile
+    if (method === 'PUT' && path === '/current') {
+      const body = await req.json();
+      
+      // Get current employee
+      const { data: currentEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .single();
+
+      if (!currentEmployee) {
+        return errorResponse('Employee record not found', 404);
+      }
+
+      // Only allow updating specific fields for own profile
+      const allowedFields = ['first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_state', 'address_zip_code', 'avatar_url'];
+      const updateData: Record<string, unknown> = {};
+      
+      for (const field of allowedFields) {
+        if (body[field] !== undefined) {
+          updateData[field] = body[field];
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('employees')
+        .update(updateData)
+        .eq('id', currentEmployee.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-employees] Error:', error);

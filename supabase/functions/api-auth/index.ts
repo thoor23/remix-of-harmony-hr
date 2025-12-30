@@ -302,6 +302,57 @@ serve(async (req) => {
       return jsonResponse({ message: 'Password reset successful' });
     }
 
+    // POST /change-password - Change password for authenticated user
+    if (method === 'POST' && path === '/change-password') {
+      const auth = await authenticateRequest(req);
+      if (!auth) {
+        return errorResponse('Unauthorized', 401);
+      }
+
+      const { currentPassword, newPassword } = await req.json();
+
+      if (!currentPassword || !newPassword) {
+        return errorResponse('Current password and new password are required', 400);
+      }
+
+      if (newPassword.length < 8) {
+        return errorResponse('New password must be at least 8 characters', 400);
+      }
+
+      // Get user
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, password_hash')
+        .eq('id', auth.userId)
+        .single();
+
+      if (userError || !user) {
+        return errorResponse('User not found', 404);
+      }
+
+      // Verify current password
+      const isValid = await comparePassword(currentPassword, user.password_hash);
+      if (!isValid) {
+        return errorResponse('Current password is incorrect', 401);
+      }
+
+      // Hash new password
+      const newPasswordHash = await hashPassword(newPassword);
+
+      // Update password
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password_hash: newPasswordHash })
+        .eq('id', user.id);
+
+      if (updateError) {
+        return errorResponse('Failed to update password', 500);
+      }
+
+      console.log('[api-auth] Password changed for user:', auth.userId);
+      return jsonResponse({ message: 'Password changed successfully' });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-auth] Error:', error);
