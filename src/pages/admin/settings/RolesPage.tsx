@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Users, MoreHorizontal, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { modules } from "@/data/settingsData";
 import { RolePermission } from "@/types/settings";
 import { PermissionMatrix } from "@/components/settings/PermissionMatrix";
@@ -316,7 +317,7 @@ export default function RolesPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <ScrollArea className="w-full whitespace-nowrap">
           {isLoading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3, 4].map(i => (
@@ -324,7 +325,7 @@ export default function RolesPage() {
               ))}
             </div>
           ) : (
-            <Table>
+            <Table className="w-max min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -408,7 +409,8 @@ export default function RolesPage() {
               </TableBody>
             </Table>
           )}
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TablePagination
           currentPage={currentPage}
