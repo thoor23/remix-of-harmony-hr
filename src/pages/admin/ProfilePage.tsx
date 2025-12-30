@@ -46,10 +46,12 @@ export default function AdminProfilePage() {
     first_name: "",
     last_name: "",
     phone: "",
+    date_of_birth: "",
     address_street: "",
     address_city: "",
     address_state: "",
     address_zip_code: "",
+    address_country: "",
     emergency_contact_name: "",
     emergency_contact_phone: "",
     emergency_contact_relationship: "",
@@ -105,10 +107,12 @@ export default function AdminProfilePage() {
         first_name: profile?.first_name || employeeData?.first_name || "",
         last_name: profile?.last_name || employeeData?.last_name || "",
         phone: profile?.phone || employeeData?.phone || "",
+        date_of_birth: employeeData?.date_of_birth || "",
         address_street: employeeData?.address_street || "",
         address_city: employeeData?.address_city || "",
         address_state: employeeData?.address_state || "",
         address_zip_code: employeeData?.address_zip_code || "",
+        address_country: employeeData?.address_country || "",
         emergency_contact_name: employeeData?.emergency_contact_name || "",
         emergency_contact_phone: employeeData?.emergency_contact_phone || "",
         emergency_contact_relationship: employeeData?.emergency_contact_relationship || "",
@@ -126,10 +130,12 @@ export default function AdminProfilePage() {
       first_name: formData.first_name,
       last_name: formData.last_name,
       phone: formData.phone,
+      date_of_birth: formData.date_of_birth,
       address_street: formData.address_street,
       address_city: formData.address_city,
       address_state: formData.address_state,
       address_zip_code: formData.address_zip_code,
+      address_country: formData.address_country,
       emergency_contact_name: formData.emergency_contact_name,
       emergency_contact_phone: formData.emergency_contact_phone,
       emergency_contact_relationship: formData.emergency_contact_relationship,
@@ -366,7 +372,11 @@ export default function AdminProfilePage() {
                   </div>
                   <div className="sm:col-span-2 space-y-2">
                     <Label>Date of Birth</Label>
-                    <Input value={employee?.date_of_birth || ""} disabled className="bg-muted" />
+                    <Input 
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                    />
                   </div>
                 </div>
               ) : (
@@ -480,7 +490,10 @@ export default function AdminProfilePage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Country</Label>
-                      <Input value={employee?.address_country || "India"} disabled className="bg-muted" />
+                      <Input 
+                        value={formData.address_country}
+                        onChange={(e) => setFormData({ ...formData, address_country: e.target.value })}
+                      />
                     </div>
                   </div>
                 </div>
