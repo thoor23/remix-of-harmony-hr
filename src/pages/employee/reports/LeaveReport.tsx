@@ -20,8 +20,8 @@ import { useMemo } from "react";
 
 export default function EmployeeLeaveReport() {
   const { data: currentEmployee } = useCurrentEmployee();
-  const { data: leaveRequests = [] } = useMyLeaveRequests(currentEmployee?.id);
-  const { data: leaveBalances = [] } = useLeaveBalances(currentEmployee?.id || "");
+  const { data: leaveRequests = [] } = useMyLeaveRequests();
+  const { data: leaveBalances = [] } = useLeaveBalances(currentEmployee?.id);
   const { data: leaveTypes = [] } = useLeaveTypes();
 
   // Calculate statistics

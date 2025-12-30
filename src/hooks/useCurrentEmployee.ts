@@ -15,11 +15,10 @@ export function useCurrentEmployee() {
   });
 }
 
-export function useLeaveBalances(employeeId: string) {
+export function useLeaveBalances(employeeId?: string) {
   return useQuery({
     queryKey: ["leave-balances", employeeId],
-    queryFn: () => api.get<any[]>(`/leaves/balances/${employeeId}`),
-    enabled: !!employeeId,
+    queryFn: () => api.get<any[]>(`/leaves/balances`),
   });
 }
 

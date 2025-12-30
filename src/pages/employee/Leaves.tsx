@@ -88,7 +88,7 @@ export default function EmployeeLeaves() {
   const { data: employee, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: leaveTypes = [], isLoading: typesLoading } = useLeaveTypes();
   const { data: leaveBalances = [], isLoading: balancesLoading } = useLeaveBalances(employee?.id);
-  const { data: myLeaves = [], isLoading: leavesLoading, refetch } = useMyLeaveRequests(employee?.id);
+  const { data: myLeaves = [], isLoading: leavesLoading, refetch } = useMyLeaveRequests();
   
   const createLeave = useCreateLeaveRequest();
   const cancelLeave = useCancelLeaveRequest();
