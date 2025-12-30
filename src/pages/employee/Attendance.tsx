@@ -2,13 +2,6 @@ import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -22,6 +15,7 @@ import { EmployeeCell } from "@/components/shared/EmployeeCell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
+import { ReportFilters } from "@/components/reports/ReportFilters";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { Clock, CheckCircle, XCircle, AlertCircle, Timer, ArrowUpDown } from "lucide-react";
@@ -29,6 +23,8 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyAttendance } from "@/hooks/useAttendance";
 import { useAllLocations } from "@/hooks/useLocations";
 import { Button } from "@/components/ui/button";
+import { DateRange } from "react-day-picker";
+import { subDays } from "date-fns";
 
 const defaultColumns: ColumnDef[] = [
   { id: "employee", header: "Employee", accessor: "employee", visible: true },
@@ -43,10 +39,10 @@ const defaultColumns: ColumnDef[] = [
 ];
 
 export default function EmployeeAttendance() {
-  const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
   const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -62,10 +58,15 @@ export default function EmployeeAttendance() {
     return location?.name || "-";
   };
 
-  // Filter records for selected month
+  // Filter records by date range
   const filteredRecords = useMemo(() => {
-    return myRecords.filter((r) => r.date.startsWith(selectedMonth));
-  }, [myRecords, selectedMonth]);
+    return myRecords.filter((r) => {
+      const recordDate = new Date(r.date);
+      if (dateRange?.from && recordDate < dateRange.from) return false;
+      if (dateRange?.to && recordDate > dateRange.to) return false;
+      return true;
+    });
+  }, [myRecords, dateRange]);
 
   // Sort records
   const sortedRecords = useMemo(() => {
@@ -98,18 +99,6 @@ export default function EmployeeAttendance() {
   const leaves = filteredRecords.filter((r) => r.status === "on-leave").length;
   const totalHours = filteredRecords.reduce((sum, r) => sum + Number(r.work_hours || 0), 0);
 
-  // Generate month options
-  const getMonthOptions = () => {
-    const options = [];
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-      options.push({ value, label });
-    }
-    return options;
-  };
-
   const handleSort = (key: string) => {
     setSortConfig((prev) => {
       if (prev?.key === key) {
@@ -135,7 +124,7 @@ export default function EmployeeAttendance() {
       department: employee?.department?.name || "-",
       store: getStoreName(r.store_id),
     }));
-    exportToCSV(exportData, columns, `attendance-${selectedMonth}`);
+    exportToCSV(exportData, columns, "attendance-records");
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -238,21 +227,13 @@ export default function EmployeeAttendance() {
         </Card>
       </div>
 
-      {/* Month Selector */}
-      <div className="flex items-center gap-4 mb-4">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {getMonthOptions().map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Date Range Filter */}
+      <ReportFilters
+        onDateRangeChange={setDateRange}
+        showDepartmentFilter={false}
+        showStoreFilter={false}
+        className="mb-4"
+      />
 
       {/* Attendance Table */}
       <Card>
@@ -330,7 +311,7 @@ export default function EmployeeAttendance() {
             ) : (
               <TableRow>
                 <TableCell colSpan={visibleColumns.length + 1} className="text-center text-muted-foreground py-8">
-                  No attendance records for this month
+                  No attendance records found for the selected date range
                 </TableCell>
               </TableRow>
             )}

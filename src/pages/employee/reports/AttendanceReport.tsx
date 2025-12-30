@@ -1,9 +1,9 @@
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { ReportExport } from "@/components/reports/ReportExport";
-import { LineChartCard } from "@/components/reports/charts/LineChartCard";
+import { ReportFilters } from "@/components/reports/ReportFilters";
 import { PieChartCard } from "@/components/reports/charts/PieChartCard";
-import { BarChartCard } from "@/components/reports/charts/BarChartCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,11 +12,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/shared/StatCard";
-import { CalendarDays, Clock, CheckCircle, TrendingUp } from "lucide-react";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
+import { CalendarDays, Clock, CheckCircle, TrendingUp, ArrowUpDown } from "lucide-react";
 import { useMyAttendance } from "@/hooks/useAttendance";
-import { format } from "date-fns";
-import { useMemo } from "react";
+import { format, subDays } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 // Helper to safely format date
 const safeFormatDate = (dateStr: string | null | undefined, formatStr: string): string => {
@@ -33,38 +40,76 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string): 
 // Helper to format time string (HH:mm:ss)
 const formatTime = (timeStr: string | null | undefined): string => {
   if (!timeStr) return "-";
-  return timeStr.slice(0, 5); // Take HH:mm from HH:mm:ss
+  return timeStr.slice(0, 5);
 };
 
+const defaultColumns: ColumnDef[] = [
+  { id: "date", header: "Date", accessor: "date", visible: true },
+  { id: "check_in", header: "Check In", accessor: "check_in", visible: true },
+  { id: "check_out", header: "Check Out", accessor: "check_out", visible: true },
+  { id: "work_hours", header: "Work Hours", accessor: "work_hours", visible: true },
+  { id: "status", header: "Status", accessor: "status", visible: true },
+];
+
 export default function EmployeeAttendanceReport() {
-  const { data: attendanceRecords = [] } = useMyAttendance();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+  const [columns, setColumns] = useState<ColumnDef[]>(defaultColumns);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+
+  const { data: attendanceRecords = [], isLoading, refetch } = useMyAttendance();
+
+  // Filter records by date range
+  const filteredRecords = useMemo(() => {
+    return attendanceRecords.filter((r) => {
+      const recordDate = new Date(r.date);
+      if (dateRange?.from && recordDate < dateRange.from) return false;
+      if (dateRange?.to && recordDate > dateRange.to) return false;
+      return true;
+    });
+  }, [attendanceRecords, dateRange]);
+
+  // Sort records
+  const sortedRecords = useMemo(() => {
+    if (!sortConfig) return filteredRecords;
+    return [...filteredRecords].sort((a, b) => {
+      const aValue = a[sortConfig.key as keyof typeof a];
+      const bValue = b[sortConfig.key as keyof typeof b];
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredRecords, sortConfig]);
+
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: sortedRecords, defaultPageSize: 10 });
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const total = attendanceRecords.length;
-    const present = attendanceRecords.filter(r => r.status === "present").length;
-    const late = attendanceRecords.filter(r => r.status === "late").length;
-    const absent = attendanceRecords.filter(r => r.status === "absent").length;
-    const onLeave = attendanceRecords.filter(r => r.status === "on_leave").length;
+    const total = filteredRecords.length;
+    const present = filteredRecords.filter(r => r.status === "present").length;
+    const late = filteredRecords.filter(r => r.status === "late").length;
+    const absent = filteredRecords.filter(r => r.status === "absent").length;
+    const onLeave = filteredRecords.filter(r => r.status === "on_leave" || r.status === "on-leave").length;
     const avgHours = total > 0 
-      ? (attendanceRecords.reduce((sum, r) => sum + (r.work_hours || 0), 0) / total).toFixed(1)
+      ? (filteredRecords.reduce((sum, r) => sum + (r.work_hours || 0), 0) / total).toFixed(1)
       : "0";
     const onTimeRate = total > 0 ? Math.round(((present) / total) * 100) : 0;
 
     return { total, present, late, absent, onLeave, avgHours, onTimeRate };
-  }, [attendanceRecords]);
-
-  // Monthly attendance trend
-  const monthlyTrendData = useMemo(() => {
-    const monthMap = new Map<string, number>();
-    attendanceRecords.forEach(record => {
-      const dateStr = safeFormatDate(record.date, "MMM");
-      if (dateStr !== "-") {
-        monthMap.set(dateStr, (monthMap.get(dateStr) || 0) + 1);
-      }
-    });
-    return Array.from(monthMap.entries()).slice(-6).map(([name, value]) => ({ name, value }));
-  }, [attendanceRecords]);
+  }, [filteredRecords]);
 
   // Status distribution for pie chart
   const statusDistribution = useMemo(() => [
@@ -74,33 +119,59 @@ export default function EmployeeAttendanceReport() {
     { name: "On Leave", value: stats.onLeave, fill: "hsl(var(--chart-4))" },
   ].filter(item => item.value > 0), [stats]);
 
-  // Work hours by day of week
-  const workHoursByDay = useMemo(() => {
-    const dayMap = new Map<string, { hours: number; count: number }>();
-    attendanceRecords.forEach(record => {
-      const day = safeFormatDate(record.date, "EEE");
-      if (day !== "-") {
-        const current = dayMap.get(day) || { hours: 0, count: 0 };
-        dayMap.set(day, { 
-          hours: current.hours + (record.work_hours || 0), 
-          count: current.count + 1 
-        });
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
       }
+      return { key, direction: "asc" };
     });
-    return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-      .map(day => {
-        const data = dayMap.get(day);
-        return { name: day, value: data ? Math.round(data.hours / data.count * 10) / 10 : 0 };
-      })
-      .filter(d => d.value > 0);
-  }, [attendanceRecords]);
+  };
 
-  // Recent records for table
-  const recentRecords = attendanceRecords.slice(0, 10);
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns((prev) =>
+      prev.map((col) => (col.id === columnId ? { ...col, visible } : col))
+    );
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.size > 0
+      ? sortedRecords.filter((r) => selectedRows.has(r.id))
+      : sortedRecords;
+    
+    const exportData = dataToExport.map((r) => ({
+      date: safeFormatDate(r.date, "dd MMM yyyy"),
+      check_in: formatTime(r.check_in),
+      check_out: formatTime(r.check_out),
+      work_hours: r.work_hours?.toFixed(1) || "-",
+      status: r.status,
+    }));
+    exportToCSV(exportData, columns, "my-attendance-report");
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(paginatedData.map((r) => r.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string, checked: boolean) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
 
   const exportData = {
     headers: ["Date", "Check In", "Check Out", "Hours", "Status"],
-    rows: attendanceRecords.map(r => [
+    rows: sortedRecords.map(r => [
       safeFormatDate(r.date, "dd MMM yyyy"),
       formatTime(r.check_in),
       formatTime(r.check_out),
@@ -110,12 +181,15 @@ export default function EmployeeAttendanceReport() {
     filename: "my-attendance-report",
   };
 
+  const visibleColumns = columns.filter((col) => col.visible);
+
   return (
     <PageContainer>
       <PageHeader
         title="My Attendance Report"
         description="Track your attendance patterns and work hours"
       />
+      
       <div className="flex justify-end mb-6">
         <ReportExport data={exportData} title="My Attendance Report" />
       </div>
@@ -144,61 +218,102 @@ export default function EmployeeAttendanceReport() {
         />
       </div>
 
-      {/* Charts Grid */}
+      {/* Pie Chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <LineChartCard
-          title="Monthly Attendance Trend"
-          data={monthlyTrendData}
-          lines={[{ dataKey: "value", name: "Days Present" }]}
-        />
         <PieChartCard
           title="Status Distribution"
           data={statusDistribution}
           showLegend
         />
-        <BarChartCard
-          title="Average Work Hours by Day"
-          data={workHoursByDay}
-        />
       </div>
 
-      {/* Recent Records Table */}
+      {/* Date Range Filter */}
+      <ReportFilters
+        onDateRangeChange={setDateRange}
+        showDepartmentFilter={false}
+        showStoreFilter={false}
+        className="mb-4"
+      />
+
+      {/* Attendance Records Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent Attendance Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Check In</TableHead>
-                <TableHead>Check Out</TableHead>
-                <TableHead className="text-center">Work Hours</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentRecords.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No attendance records found
+        <DataTableToolbar
+          columns={columns}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExport}
+          onRefresh={() => refetch()}
+          isRefreshing={isLoading}
+        />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={paginatedData.length > 0 && paginatedData.every((r) => selectedRows.has(r.id))}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+              {visibleColumns.map((col) => (
+                <TableHead key={col.id}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-3 h-8"
+                    onClick={() => handleSort(col.id)}
+                  >
+                    {col.header}
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length > 0 ? (
+              paginatedData.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedRows.has(record.id)}
+                      onCheckedChange={(checked) => handleSelectRow(record.id, checked as boolean)}
+                    />
                   </TableCell>
+                  {visibleColumns.map((col) => (
+                    <TableCell key={col.id}>
+                      {col.id === "date" ? (
+                        safeFormatDate(record.date, "dd MMM yyyy")
+                      ) : col.id === "check_in" ? (
+                        formatTime(record.check_in)
+                      ) : col.id === "check_out" ? (
+                        formatTime(record.check_out)
+                      ) : col.id === "work_hours" ? (
+                        record.work_hours ? `${record.work_hours.toFixed(1)}h` : "-"
+                      ) : col.id === "status" ? (
+                        <StatusBadge status={record.status as any} />
+                      ) : (
+                        record[col.id as keyof typeof record] || "-"
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              ) : (
-                recentRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{safeFormatDate(record.date, "dd MMM yyyy")}</TableCell>
-                    <TableCell>{formatTime(record.check_in)}</TableCell>
-                    <TableCell>{formatTime(record.check_out)}</TableCell>
-                    <TableCell className="text-center">{record.work_hours?.toFixed(1) || "-"}</TableCell>
-                    <TableCell className="capitalize">{record.status?.replace("_", " ") || "-"}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={visibleColumns.length + 1} className="text-center text-muted-foreground py-8">
+                  No attendance records found for the selected date range
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
     </PageContainer>
   );
