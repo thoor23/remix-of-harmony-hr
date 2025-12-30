@@ -157,12 +157,12 @@ export default function EditEmployee() {
     }
   }, [employee]);
 
-  // Load role when available
+  // Load role when available - now uses role_id
   useEffect(() => {
-    if (employeeRole) {
+    if (employeeRole?.role_id) {
       setFormData((prev) => ({
         ...prev,
-        role: employeeRole,
+        role: employeeRole.role_id, // Store role UUID
       }));
     }
   }, [employeeRole]);
@@ -223,6 +223,10 @@ export default function EditEmployee() {
         onSuccess: () => {
           // If employee has a user account, update account-related data
           if (employee.user_id) {
+            // Find the selected role to get its role_type
+            const selectedRole = roles.find(r => r.id === formData.role);
+            const roleType = selectedRole?.role_type || 'employee';
+            
             updateEmployeeAccount.mutate({
               employee_id: id,
               user_id: employee.user_id,
@@ -230,7 +234,8 @@ export default function EditEmployee() {
               last_name: formData.lastName,
               email: formData.email,
               phone: formData.phone,
-              role: formData.role as "admin" | "hr" | "manager" | "employee",
+              role: roleType, // role_type (admin/employee)
+              role_id: formData.role, // UUID of the role
               status: formData.status as "active" | "inactive",
               password: formData.newPassword || undefined,
             }, {

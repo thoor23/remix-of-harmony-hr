@@ -165,7 +165,8 @@ export interface UpdateEmployeeAccountData {
   last_name: string;
   email: string;
   phone: string;
-  role?: "admin" | "hr" | "manager" | "employee";
+  role?: string; // role_type from roles table (admin/employee)
+  role_id?: string; // UUID of the role from roles table
   status?: "active" | "inactive";
   password?: string;
 }
@@ -182,7 +183,11 @@ export function useUpdateEmployeeAccount() {
 export function useEmployeeRole(userId: string | null) {
   return useQuery({
     queryKey: ["employee-role", userId],
-    queryFn: async () => { if (!userId) return null; const data = await api.get<{ role: string }>(`/employees/role/${userId}`); return data?.role || null; },
+    queryFn: async () => { 
+      if (!userId) return null; 
+      const data = await api.get<{ role: string; role_id: string | null }>(`/employees/role/${userId}`); 
+      return data || null; 
+    },
     enabled: !!userId,
   });
 }
