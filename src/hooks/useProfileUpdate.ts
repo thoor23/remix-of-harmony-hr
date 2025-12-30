@@ -11,6 +11,9 @@ export interface ProfileUpdateData {
   address_state?: string;
   address_zip_code?: string;
   avatar_url?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
 }
 
 export function useUpdateProfile() {

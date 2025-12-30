@@ -50,6 +50,9 @@ export default function AdminProfilePage() {
     address_city: "",
     address_state: "",
     address_zip_code: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    emergency_contact_relationship: "",
   });
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,6 +105,9 @@ export default function AdminProfilePage() {
         address_city: employeeData?.address_city || "",
         address_state: employeeData?.address_state || "",
         address_zip_code: employeeData?.address_zip_code || "",
+        emergency_contact_name: employeeData?.emergency_contact_name || "",
+        emergency_contact_phone: employeeData?.emergency_contact_phone || "",
+        emergency_contact_relationship: employeeData?.emergency_contact_relationship || "",
       });
     }
     setIsEditing(true);
@@ -116,6 +122,9 @@ export default function AdminProfilePage() {
       address_city: formData.address_city,
       address_state: formData.address_state,
       address_zip_code: formData.address_zip_code,
+      emergency_contact_name: formData.emergency_contact_name,
+      emergency_contact_phone: formData.emergency_contact_phone,
+      emergency_contact_relationship: formData.emergency_contact_relationship,
     });
     setIsEditing(false);
   };
@@ -501,20 +510,46 @@ export default function AdminProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Name</p>
-                  <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input 
+                      value={formData.emergency_contact_name}
+                      onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Relationship</Label>
+                    <Input 
+                      value={formData.emergency_contact_relationship}
+                      onChange={(e) => setFormData({ ...formData, emergency_contact_relationship: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input 
+                      value={formData.emergency_contact_phone}
+                      onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Relationship</p>
-                  <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Name</p>
+                    <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Relationship</p>
+                    <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                    <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                  <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
