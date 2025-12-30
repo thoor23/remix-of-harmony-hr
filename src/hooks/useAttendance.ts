@@ -42,14 +42,13 @@ export function useTodayAttendanceStats() {
   });
 }
 
-export function useMyAttendance(employeeId: string, month?: string) {
+export function useMyAttendance(month?: string) {
   return useQuery({
-    queryKey: ["my-attendance", employeeId, month],
+    queryKey: ["my-attendance", month],
     queryFn: async () => {
       const params = month ? `?month=${month}` : '';
-      return api.get<any[]>(`/attendance/employee/${employeeId}${params}`);
+      return api.get<any[]>(`/attendance/my${params}`);
     },
-    enabled: !!employeeId,
   });
 }
 
