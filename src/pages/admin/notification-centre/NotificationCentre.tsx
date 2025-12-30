@@ -49,7 +49,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { TimePicker } from "@/components/ui/time-picker";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -778,19 +778,29 @@ export default function NotificationCentre() {
                       className="p-3 pointer-events-auto"
                     />
                     <div className="p-3 border-t">
-                      <TimePicker
-                        value={announcementForm.scheduled_at ? format(announcementForm.scheduled_at, "HH:mm") : ""}
-                        onChange={(time) => {
-                          if (time) {
-                            const [hours, minutes] = time.split(":");
-                            const newDate = announcementForm.scheduled_at 
-                              ? new Date(announcementForm.scheduled_at) 
-                              : new Date();
-                            newDate.setHours(parseInt(hours), parseInt(minutes));
-                            setAnnouncementForm({ ...announcementForm, scheduled_at: newDate });
+                      <Label className="text-xs text-muted-foreground mb-2 block">Time</Label>
+                      <Input
+                        type="text"
+                        placeholder="10:30 AM"
+                        value={announcementForm.scheduled_at ? format(announcementForm.scheduled_at, "hh:mm a") : ""}
+                        onChange={(e) => {
+                          const timeValue = e.target.value;
+                          if (timeValue) {
+                            const match = timeValue.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                            if (match) {
+                              let hours = parseInt(match[1]);
+                              const minutes = parseInt(match[2]);
+                              const period = match[3]?.toUpperCase();
+                              if (period === 'PM' && hours !== 12) hours += 12;
+                              if (period === 'AM' && hours === 12) hours = 0;
+                              const newDate = announcementForm.scheduled_at 
+                                ? new Date(announcementForm.scheduled_at) 
+                                : new Date();
+                              newDate.setHours(hours, minutes);
+                              setAnnouncementForm({ ...announcementForm, scheduled_at: newDate });
+                            }
                           }
                         }}
-                        placeholder="Select time"
                       />
                       {announcementForm.scheduled_at && (
                         <Button 
@@ -833,19 +843,29 @@ export default function NotificationCentre() {
                       className="p-3 pointer-events-auto"
                     />
                     <div className="p-3 border-t">
-                      <TimePicker
-                        value={announcementForm.expires_at ? format(announcementForm.expires_at, "HH:mm") : ""}
-                        onChange={(time) => {
-                          if (time) {
-                            const [hours, minutes] = time.split(":");
-                            const newDate = announcementForm.expires_at 
-                              ? new Date(announcementForm.expires_at) 
-                              : new Date();
-                            newDate.setHours(parseInt(hours), parseInt(minutes));
-                            setAnnouncementForm({ ...announcementForm, expires_at: newDate });
+                      <Label className="text-xs text-muted-foreground mb-2 block">Time</Label>
+                      <Input
+                        type="text"
+                        placeholder="10:30 AM"
+                        value={announcementForm.expires_at ? format(announcementForm.expires_at, "hh:mm a") : ""}
+                        onChange={(e) => {
+                          const timeValue = e.target.value;
+                          if (timeValue) {
+                            const match = timeValue.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                            if (match) {
+                              let hours = parseInt(match[1]);
+                              const minutes = parseInt(match[2]);
+                              const period = match[3]?.toUpperCase();
+                              if (period === 'PM' && hours !== 12) hours += 12;
+                              if (period === 'AM' && hours === 12) hours = 0;
+                              const newDate = announcementForm.expires_at 
+                                ? new Date(announcementForm.expires_at) 
+                                : new Date();
+                              newDate.setHours(hours, minutes);
+                              setAnnouncementForm({ ...announcementForm, expires_at: newDate });
+                            }
                           }
                         }}
-                        placeholder="Select time"
                       />
                       {announcementForm.expires_at && (
                         <Button 

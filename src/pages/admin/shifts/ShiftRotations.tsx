@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,16 @@ import {
   Edit,
   Trash2,
   Users,
-  Calendar,
   Play,
   Pause
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ShiftRotation, Shift } from "@/types/settings";
-import { defaultShiftRotations, defaultShifts } from "@/data/settingsData";
+import { ShiftRotation } from "@/types/settings";
+import { defaultShiftRotations } from "@/data/settingsData";
 import { ShiftBadge } from "@/components/shifts/ShiftBadge";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
+import { useShifts, ShiftData } from "@/hooks/useShifts";
+import { useEmployees } from "@/hooks/useEmployees";
 import {
   Table,
   TableBody,
@@ -47,16 +48,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// Mock employees
-const mockEmployees = [
-  { id: "emp-1", name: "John Doe" },
-  { id: "emp-2", name: "Jane Smith" },
-  { id: "emp-3", name: "Mike Johnson" },
-  { id: "emp-4", name: "Sarah Wilson" },
-  { id: "emp-5", name: "David Brown" },
-  { id: "emp-6", name: "Emily Davis" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RotationFormData {
   name: string;
@@ -76,8 +68,10 @@ const frequencyLabels: Record<string, string> = {
 
 export default function ShiftRotations() {
   const { toast } = useToast();
+  const { data: shiftsData, isLoading: shiftsLoading } = useShifts();
+  const { data: employeesData, isLoading: employeesLoading } = useEmployees();
+  
   const [rotations, setRotations] = useState<ShiftRotation[]>(defaultShiftRotations);
-  const [shifts] = useState<Shift[]>(defaultShifts);
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingRotation, setEditingRotation] = useState<ShiftRotation | null>(null);
@@ -90,6 +84,29 @@ export default function ShiftRotations() {
     employeeIds: [],
     isActive: true,
   });
+
+  // Transform shifts from API to match local format
+  const shifts = useMemo(() => {
+    if (!shiftsData) return [];
+    return shiftsData.map(s => ({
+      id: s.id,
+      name: s.name,
+      code: s.code,
+      startTime: s.start_time,
+      endTime: s.end_time,
+      color: s.color || 'hsl(221, 83%, 53%)',
+      isActive: s.is_active ?? true,
+    }));
+  }, [shiftsData]);
+
+  // Get employees list
+  const employees = useMemo(() => {
+    if (!employeesData) return [];
+    return employeesData.map(emp => ({
+      id: emp.id,
+      name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.employee_id,
+    }));
+  }, [employeesData]);
 
   const filteredRotations = rotations.filter((r) =>
     r.name.toLowerCase().includes(search.toLowerCase())
@@ -195,6 +212,8 @@ export default function ShiftRotations() {
 
   const getShiftById = (id: string) => shifts.find(s => s.id === id);
 
+  const isLoading = shiftsLoading || employeesLoading;
+
   return (
     <PageContainer>
       <PageHeader 
@@ -270,88 +289,96 @@ export default function ShiftRotations() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rotation Name</TableHead>
-                <TableHead>Pattern</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Employees</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRotations.map((rotation) => (
-                <TableRow key={rotation.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{rotation.name}</p>
-                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                        {rotation.description}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {rotation.rotationPattern.map((shiftId, idx) => {
-                        const shift = getShiftById(shiftId);
-                        return shift ? (
-                          <div key={idx} className="flex items-center gap-1">
-                            <ShiftBadge 
-                              name={shift.name} 
-                              color={shift.color}
-                              size="sm"
-                            />
-                            {idx < rotation.rotationPattern.length - 1 && (
-                              <span className="text-muted-foreground">→</span>
-                            )}
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {frequencyLabels[rotation.rotationFrequency]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      {rotation.employeeCount}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Switch 
-                      checked={rotation.isActive} 
-                      onCheckedChange={() => handleToggleActive(rotation)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleOpenForm(rotation)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setDeleteRotation(rotation)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-16 w-full" />
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rotation Name</TableHead>
+                  <TableHead>Pattern</TableHead>
+                  <TableHead>Frequency</TableHead>
+                  <TableHead>Employees</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRotations.map((rotation) => (
+                  <TableRow key={rotation.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{rotation.name}</p>
+                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          {rotation.description}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {rotation.rotationPattern.map((shiftId, idx) => {
+                          const shift = getShiftById(shiftId);
+                          return shift ? (
+                            <div key={idx} className="flex items-center gap-1">
+                              <ShiftBadge 
+                                name={shift.name} 
+                                color={shift.color}
+                                size="sm"
+                              />
+                              {idx < rotation.rotationPattern.length - 1 && (
+                                <span className="text-muted-foreground">→</span>
+                              )}
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {frequencyLabels[rotation.rotationFrequency]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        {rotation.employeeCount}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Switch 
+                        checked={rotation.isActive} 
+                        onCheckedChange={() => handleToggleActive(rotation)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleOpenForm(rotation)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setDeleteRotation(rotation)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
 
-          {filteredRotations.length === 0 && (
+          {!isLoading && filteredRotations.length === 0 && (
             <div className="py-12 px-4 text-center">
               <div className="flex flex-col items-center justify-center gap-3">
                 <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
@@ -426,34 +453,40 @@ export default function ShiftRotations() {
               <p className="text-xs text-muted-foreground">
                 Select at least 2 shifts. They will rotate in the order selected.
               </p>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {shifts.filter(s => s.isActive).map((shift) => (
-                  <div
-                    key={shift.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      form.rotationPattern.includes(shift.id)
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => toggleShiftInPattern(shift.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={form.rotationPattern.includes(shift.id)}
-                        onCheckedChange={() => toggleShiftInPattern(shift.id)}
-                      />
-                      <ShiftBadge 
-                        name={shift.name} 
-                        color={shift.color}
-                        size="sm"
-                      />
+              {shifts.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
+                  No shifts available. Create shifts first.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {shifts.filter(s => s.isActive).map((shift) => (
+                    <div
+                      key={shift.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        form.rotationPattern.includes(shift.id)
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-muted"
+                      }`}
+                      onClick={() => toggleShiftInPattern(shift.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Checkbox 
+                          checked={form.rotationPattern.includes(shift.id)}
+                          onCheckedChange={() => toggleShiftInPattern(shift.id)}
+                        />
+                        <ShiftBadge 
+                          name={shift.name} 
+                          color={shift.color}
+                          size="sm"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 ml-6">
+                        {shift.startTime} - {shift.endTime}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 ml-6">
-                      {shift.startTime} - {shift.endTime}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               {form.rotationPattern.length > 0 && (
                 <div className="flex items-center gap-1 mt-2 text-sm">
                   <span className="text-muted-foreground">Pattern:</span>
@@ -474,32 +507,46 @@ export default function ShiftRotations() {
 
             <div className="space-y-2">
               <Label>Assign Employees</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2 max-h-[120px] overflow-y-auto border rounded-lg p-2">
-                {mockEmployees.map((emp) => (
-                  <div
-                    key={emp.id}
-                    className="flex items-center gap-2"
-                  >
-                    <Checkbox 
-                      id={emp.id}
-                      checked={form.employeeIds.includes(emp.id)}
-                      onCheckedChange={() => toggleEmployee(emp.id)}
-                    />
-                    <label htmlFor={emp.id} className="text-sm cursor-pointer">
-                      {emp.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
+              {employees.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
+                  No employees available.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-[120px] overflow-y-auto border rounded-lg p-2">
+                  {employees.map((emp) => (
+                    <div
+                      key={emp.id}
+                      className="flex items-center gap-2"
+                    >
+                      <Checkbox 
+                        id={emp.id}
+                        checked={form.employeeIds.includes(emp.id)}
+                        onCheckedChange={() => toggleEmployee(emp.id)}
+                      />
+                      <label
+                        htmlFor={emp.id}
+                        className="text-sm cursor-pointer truncate"
+                      >
+                        {emp.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {form.employeeIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {form.employeeIds.length} employee(s) selected
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="active">Active</Label>
+            <div className="flex items-center gap-2">
               <Switch
-                id="active"
+                id="isActive"
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
               />
+              <Label htmlFor="isActive">Active</Label>
             </div>
           </div>
 
@@ -508,7 +555,7 @@ export default function ShiftRotations() {
               Cancel
             </Button>
             <Button onClick={handleSave}>
-              {editingRotation ? "Update" : "Create"} Rotation
+              {editingRotation ? "Save Changes" : "Create Rotation"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -520,7 +567,7 @@ export default function ShiftRotations() {
         onOpenChange={(open) => !open && setDeleteRotation(null)}
         onConfirm={confirmDelete}
         title="Delete Rotation"
-        description={`Are you sure you want to delete "${deleteRotation?.name}"? This will stop all automatic shift rotations for assigned employees.`}
+        description={`Are you sure you want to delete "${deleteRotation?.name}"? This action cannot be undone.`}
       />
     </PageContainer>
   );
