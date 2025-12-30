@@ -22,7 +22,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Laptop, Monitor, Smartphone, Printer, HardDrive, Search, ArrowUpDown } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
-import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,7 +48,6 @@ type SortDirection = "asc" | "desc";
 export default function EmployeeAssets() {
   const { data: assets = [], isLoading: assetsLoading, isFetching } = useMyAssets();
   const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
-  const { data: locations = [] } = useAllLocations();
   const queryClient = useQueryClient();
 
   const isLoading = assetsLoading || employeeLoading;
@@ -59,13 +57,6 @@ export default function EmployeeAssets() {
   const [sortField, setSortField] = useState<SortField>("assigned_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
-
-  // Get location name
-  const getLocationName = (locationId: string | null) => {
-    if (!locationId) return currentEmployee?.primary_store?.name || "-";
-    const location = locations.find((l) => l.id === locationId);
-    return location?.name || "-";
-  };
 
   // Column definitions
   const [columns, setColumns] = useState<ColumnDef[]>([
@@ -188,7 +179,7 @@ export default function EmployeeAssets() {
       condition: a.condition || "",
       assigned_date: a.assigned_date || "",
       department: currentEmployee?.department?.name || "-",
-      store: getLocationName(a.location_id),
+      store: currentEmployee?.primary_store?.name || "-",
     }));
 
     const exportColumns: ColumnDef[] = [
@@ -347,7 +338,7 @@ export default function EmployeeAssets() {
                     <TableCell>{currentEmployee?.department?.name || "-"}</TableCell>
                   )}
                   {columns.find((c) => c.id === "store")?.visible && (
-                    <TableCell>{getLocationName(asset.location_id)}</TableCell>
+                    <TableCell>{currentEmployee?.primary_store?.name || "-"}</TableCell>
                   )}
                   {columns.find((c) => c.id === "name")?.visible && (
                     <TableCell>
