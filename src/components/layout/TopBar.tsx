@@ -5,11 +5,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Menu,
   Settings,
@@ -19,7 +18,6 @@ import {
   ChevronRight,
   PanelLeft,
   PanelLeftClose,
-  Palette,
   Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,9 +35,32 @@ interface TopBarProps {
 
 // Route label mappings
 const routeLabels: Record<string, string> = {
-  // Main sections
-  admin: "Dashboard",
-  employee: "Dashboard",
+  // App base
+  app: "Home",
+  dashboard: "Dashboard",
+  
+  // Employee self-service routes (my-*)
+  "my-dashboard": "Dashboard",
+  "my-profile": "My Profile",
+  "my-attendance": "My Attendance",
+  "my-leaves": "My Leaves",
+  "my-shifts": "My Shifts",
+  "my-shift": "My Shift",
+  "my-all-shifts": "All Shifts",
+  "my-shift-exchange": "Shift Exchange",
+  "my-payslips": "My Payslips",
+  "my-documents": "My Documents",
+  "my-assets": "My Assets",
+  "my-asset-maintenance": "Asset Maintenance",
+  "my-helpdesk": "Helpdesk",
+  "my-holidays": "Holidays",
+  "my-leave-balance": "Leave Balance",
+  "my-regularization": "Attendance Regularization",
+  "my-profile-requests": "Profile Requests",
+  "my-reports": "Reports",
+  "my-settings": "Settings",
+  
+  // Admin routes
   employees: "Employees",
   shifts: "Shifts",
   leaves: "Leaves",
@@ -62,6 +83,7 @@ const routeLabels: Record<string, string> = {
   experience: "Experience Letter",
   relieving: "Relieving Letter",
   increment: "Increment Letter",
+  generator: "Letter Generator",
   
   // Shifts
   exchange: "Exchange Requests",
@@ -77,11 +99,15 @@ const routeLabels: Record<string, string> = {
   
   // Leaves
   policy: "Leave Policy",
+  overview: "Overview",
+  all: "All Records",
+  management: "Management",
   
   // Employees
   add: "Add Employee",
   new: "Add New",
   edit: "Edit",
+  "profile-requests": "Profile Requests",
   
   // Settings
   departments: "Departments",
@@ -91,6 +117,20 @@ const routeLabels: Record<string, string> = {
   notifications: "Notifications",
   system: "System",
   appearance: "Appearance",
+  "personal-settings": "Personal Settings",
+  email: "Email Settings",
+  "data-seeder": "Data Seeder",
+  
+  // Locations
+  locations: "Locations",
+  stores: "Stores",
+  offices: "Offices",
+  transfers: "Transfers",
+  
+  // Assets
+  assets: "Assets",
+  categories: "Categories",
+  maintenance: "Maintenance",
   
   // Other
   profile: "Profile",
@@ -98,9 +138,11 @@ const routeLabels: Record<string, string> = {
   holidays: "Holidays",
   "audit-logs": "Audit Logs",
   audit: "Audit",
+  regularization: "Regularization",
   
-  // Reports
-  overview: "Overview",
+  // Notification Centre
+  "notification-centre": "Notification Centre",
+  send: "Send Notifications",
 };
 
 // UUID regex pattern
@@ -112,6 +154,9 @@ const getUUIDLabel = (parentSegments: string[]): string => {
   if (parentPath.includes("file-manager")) return "Employee Documents";
   if (parentPath.includes("employees") && parentPath.includes("edit")) return "Edit Employee";
   if (parentPath.includes("employees")) return "Employee Details";
+  if (parentPath.includes("assets")) return "Asset Details";
+  if (parentPath.includes("stores")) return "Store Details";
+  if (parentPath.includes("offices")) return "Office Details";
   return "Details";
 };
 
@@ -150,6 +195,9 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
       
+      // Skip "app" segment as it's represented by home icon
+      if (segment === "app") return;
+      
       let label: string;
       
       // Check if segment is a UUID
@@ -171,7 +219,7 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
   };
 
   const breadcrumbs = generateBreadcrumbs();
-  const basePath = isAdmin ? "/admin" : "/employee";
+  const homePath = isAdmin ? "/app/dashboard" : "/app/my-dashboard";
 
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 gap-4">
@@ -205,7 +253,7 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
         
         <nav className="flex items-center text-sm text-muted-foreground overflow-hidden">
           <Link
-            to={basePath}
+            to={homePath}
             className="flex items-center hover:text-foreground transition-colors flex-shrink-0"
           >
             <Home className="h-4 w-4" />
@@ -280,7 +328,7 @@ export function TopBar({ isAdmin = false, onMenuClick, sidebarCollapsed, onToggl
             
             <DropdownMenuSeparator className="my-2" />
             
-          <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md">
+            <DropdownMenuItem asChild className="cursor-pointer py-2.5 px-3 rounded-md">
               <Link to={isAdmin ? "/app/profile" : "/app/my-profile"} className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span>My Profile</span>
