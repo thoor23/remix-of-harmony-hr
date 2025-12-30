@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest, checkPermission } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, checkPermission, hashPassword } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -209,10 +209,14 @@ serve(async (req) => {
 
       const id = idMatch[1];
       const body = await req.json();
-      
-      // Remove fields that don't belong to employees table
-      const { role, ...employeeData } = body;
 
+      // Account/role fields (NOT columns on employees)
+      const { role, role_id, password, user_id, ...rest } = body;
+
+      // Remove fields that don't belong to employees table
+      const employeeData = rest;
+
+      // 1) Update employee table
       const { data, error } = await supabase
         .from('employees')
         .update(employeeData)
@@ -221,6 +225,77 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+
+      // 2) If this request is also updating account settings, update related tables
+      if (user_id) {
+        // Update profile fields if present in payload
+        const profileUpdate: Record<string, unknown> = {};
+        if (typeof body.first_name === 'string') profileUpdate.first_name = body.first_name;
+        if (typeof body.last_name === 'string') profileUpdate.last_name = body.last_name;
+        if (typeof body.email === 'string') profileUpdate.email = body.email;
+        if (typeof body.phone === 'string') profileUpdate.phone = body.phone;
+
+        if (Object.keys(profileUpdate).length > 0) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('user_id', user_id);
+          if (profileError) throw profileError;
+        }
+
+        // Update users email/is_active/password_hash if needed
+        if (typeof body.email === 'string') {
+          await supabase
+            .from('users')
+            .update({ email: body.email.toLowerCase() })
+            .eq('id', user_id);
+        }
+
+        if (typeof body.status === 'string') {
+          const isActive = body.status === 'active';
+          await supabase
+            .from('users')
+            .update({ is_active: isActive })
+            .eq('id', user_id);
+        }
+
+        if (typeof password === 'string' && password.length >= 6) {
+          const passwordHash = await hashPassword(password);
+          const { error: pwError } = await supabase
+            .from('users')
+            .update({ password_hash: passwordHash })
+            .eq('id', user_id);
+          if (pwError) throw pwError;
+        }
+
+        // Update user_roles with role_type + role_id (UUID)
+        if (role || role_id) {
+          const updateObj: Record<string, unknown> = {};
+          if (role) updateObj.role = role;
+          if (role_id) updateObj.role_id = role_id;
+
+          // Ensure row exists, then update
+          const { data: existing } = await supabase
+            .from('user_roles')
+            .select('id')
+            .eq('user_id', user_id)
+            .maybeSingle();
+
+          if (existing) {
+            const { error: rErr } = await supabase
+              .from('user_roles')
+              .update(updateObj)
+              .eq('user_id', user_id);
+            if (rErr) throw rErr;
+          } else {
+            const { error: rErr } = await supabase
+              .from('user_roles')
+              .insert({ user_id, ...updateObj });
+            if (rErr) throw rErr;
+          }
+        }
+      }
+
       return jsonResponse(data);
     }
 
