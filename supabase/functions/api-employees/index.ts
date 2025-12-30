@@ -91,13 +91,16 @@ serve(async (req) => {
       
       const { data: userRole, error } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, role_id')
         .eq('user_id', userId)
         .maybeSingle();
 
       if (error) throw error;
       
-      return jsonResponse({ role: userRole?.role || 'employee' });
+      return jsonResponse({ 
+        role: userRole?.role || 'employee',
+        role_id: userRole?.role_id || null
+      });
     }
 
     // GET /:id - Get specific employee

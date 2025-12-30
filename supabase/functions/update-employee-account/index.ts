@@ -9,7 +9,8 @@ interface UpdateEmployeeRequest {
     email: string;
     phone: string;
   };
-  role?: "admin" | "hr" | "manager" | "employee";
+  role?: string; // role_type from roles table (admin/employee)
+  role_id?: string; // UUID of the role from roles table
   status?: "active" | "inactive";
   password?: string; // Optional - only update if provided
 }
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
     const body: UpdateEmployeeRequest = await req.json();
     console.log("Request body:", { ...body, password: body.password ? "[REDACTED]" : undefined });
 
-    const { employee_id, user_id, profile, role, status, password } = body;
+    const { employee_id, user_id, profile, role, role_id, status, password } = body;
 
     if (!employee_id || !user_id) {
       return new Response(
@@ -164,9 +165,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update role if provided
-    if (role) {
-      console.log("Updating role for user:", user_id, "to:", role);
+    // Update role if role or role_id is provided
+    if (role || role_id) {
+      console.log("Updating role for user:", user_id, "role_type:", role, "role_id:", role_id);
       
       // Check if user already has a role
       const { data: existingRole, error: checkError } = await supabase
@@ -183,11 +184,16 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Build update object with both role (enum) and role_id (UUID)
+      const roleUpdate: { role?: string; role_id?: string } = {};
+      if (role) roleUpdate.role = role;
+      if (role_id) roleUpdate.role_id = role_id;
+
       if (existingRole) {
         // Update existing role
         const { error: roleError } = await supabase
           .from("user_roles")
-          .update({ role })
+          .update(roleUpdate)
           .eq("user_id", user_id);
 
         if (roleError) {
@@ -201,7 +207,7 @@ Deno.serve(async (req) => {
         // Insert new role
         const { error: roleError } = await supabase
           .from("user_roles")
-          .insert({ user_id, role });
+          .insert({ user_id, ...roleUpdate });
 
         if (roleError) {
           console.error("Role insert error:", roleError);
@@ -211,7 +217,7 @@ Deno.serve(async (req) => {
           );
         }
       }
-      console.log("Role updated successfully");
+      console.log("Role updated successfully with role_type:", role, "role_id:", role_id);
     }
 
     return new Response(
