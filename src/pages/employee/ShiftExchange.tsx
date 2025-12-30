@@ -40,7 +40,6 @@ import { usePagination } from "@/hooks/usePagination";
 import { ColumnDef, exportToCSV } from "@/lib/csvExport";
 import {
   ArrowLeftRight,
-  Plus,
   Clock,
   CheckCircle2,
   XCircle,
@@ -55,6 +54,7 @@ import {
   X,
   ArrowUpDown,
   Search,
+  Users,
 } from "lucide-react";
 import {
   useMyShiftExchangeRequests,
@@ -65,7 +65,7 @@ import {
 } from "@/hooks/useShiftExchange";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyShiftAssignment, useShiftAssignments, useShifts } from "@/hooks/useShifts";
-import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployees, useDepartments } from "@/hooks/useEmployees";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -86,6 +86,7 @@ export default function EmployeeShiftExchange() {
   const { data: shiftAssignments = [] } = useShiftAssignments();
   const { data: shifts = [] } = useShifts();
   const { data: employees = [] } = useEmployees();
+  const { data: departments = [] } = useDepartments();
   const queryClient = useQueryClient();
 
   const myShiftAssignment = Array.isArray(myShiftAssignments) ? myShiftAssignments[0] : myShiftAssignments;
@@ -105,15 +106,29 @@ export default function EmployeeShiftExchange() {
   const [selectedExchange, setSelectedExchange] = useState<ShiftExchangeRequest | null>(null);
   const [responseAction, setResponseAction] = useState<"accept" | "decline">("accept");
   const [responseNote, setResponseNote] = useState("");
-  const [activeTab, setActiveTab] = useState(incomingRequests.length > 0 ? "incoming" : "sent");
+  const [activeTab, setActiveTab] = useState("all-shifts");
 
-  // Table state
+  // Pre-selected target for exchange request from All Shifts tab
+  const [preSelectedTarget, setPreSelectedTarget] = useState<{
+    employeeId: string;
+    employeeName: string;
+    shiftId: string;
+    shiftName: string;
+  } | null>(null);
+
+  // Table state for requests
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
+
+  // All Shifts tab filters
+  const [allShiftsSearch, setAllShiftsSearch] = useState("");
+  const [allShiftsShiftFilter, setAllShiftsShiftFilter] = useState<string>("all");
+  const [allShiftsDeptFilter, setAllShiftsDeptFilter] = useState<string>("all");
+  const [showAllShiftsFilters, setShowAllShiftsFilters] = useState(false);
 
   const [columns, setColumns] = useState<ColumnDef[]>([
     { id: "employee", header: "Employee", visible: true },
@@ -125,6 +140,14 @@ export default function EmployeeShiftExchange() {
     { id: "shifts", header: "Shifts", visible: true },
     { id: "status", header: "Status", visible: true },
     { id: "created_at", header: "Created", visible: true },
+  ]);
+
+  const [allShiftsColumns, setAllShiftsColumns] = useState<ColumnDef[]>([
+    { id: "employee", header: "Employee", visible: true },
+    { id: "employee_id", header: "Employee ID", visible: true },
+    { id: "department", header: "Department", visible: true },
+    { id: "shift", header: "Shift", visible: true },
+    { id: "timing", header: "Timing", visible: true },
   ]);
 
   const [formData, setFormData] = useState({
@@ -150,12 +173,73 @@ export default function EmployeeShiftExchange() {
   };
 
   const getEmployeeAssignment = (employeeId: string) => {
-    return shiftAssignments.find((a) => a.employee_id === employeeId && a.is_active);
+    return shiftAssignments.find((a: any) => a.employee_id === employeeId && a.is_active);
   };
 
   const getShift = (shiftId: string) => {
     return shifts.find((s) => s.id === shiftId);
   };
+
+  const getDepartmentName = (deptId: string | null) => {
+    if (!deptId) return "-";
+    const dept = departments.find((d) => d.id === deptId);
+    return dept?.name || "-";
+  };
+
+  // All employees with their shift assignments (excluding current user)
+  const allEmployeesWithShifts = useMemo(() => {
+    return employees
+      .filter((emp) => emp.id !== currentEmployee?.id && emp.status === "active")
+      .map((emp) => {
+        const assignment = getEmployeeAssignment(emp.id);
+        const shift = assignment ? getShift(assignment.shift_id) : null;
+        const name = emp.first_name || emp.last_name
+          ? `${emp.first_name || ""} ${emp.last_name || ""}`.trim()
+          : emp.employee_id;
+        return {
+          id: emp.id,
+          name,
+          employeeCode: emp.employee_id,
+          departmentId: emp.department?.id || null,
+          departmentName: emp.department?.name || "-",
+          avatarUrl: emp.avatar_url,
+          firstName: emp.first_name,
+          lastName: emp.last_name,
+          shiftId: shift?.id || null,
+          shiftName: shift?.name || null,
+          shiftColor: shift?.color || "#3B82F6",
+          startTime: shift?.start_time || null,
+          endTime: shift?.end_time || null,
+        };
+      })
+      .filter((e) => e.shiftId); // Only show employees with assigned shifts
+  }, [employees, currentEmployee, shiftAssignments, shifts]);
+
+  // Filter All Shifts tab
+  const filteredAllShifts = useMemo(() => {
+    let data = [...allEmployeesWithShifts];
+
+    if (allShiftsSearch) {
+      const searchLower = allShiftsSearch.toLowerCase();
+      data = data.filter(
+        (e) =>
+          e.name.toLowerCase().includes(searchLower) ||
+          e.employeeCode.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (allShiftsShiftFilter !== "all") {
+      data = data.filter((e) => e.shiftId === allShiftsShiftFilter);
+    }
+
+    if (allShiftsDeptFilter !== "all") {
+      data = data.filter((e) => e.departmentId === allShiftsDeptFilter);
+    }
+
+    return data;
+  }, [allEmployeesWithShifts, allShiftsSearch, allShiftsShiftFilter, allShiftsDeptFilter]);
+
+  const allShiftsPagination = usePagination({ data: filteredAllShifts, defaultPageSize: 10 });
 
   const employeesWithShifts = employees
     .filter((emp) => emp.id !== currentEmployee?.id)
@@ -169,7 +253,7 @@ export default function EmployeeShiftExchange() {
     })
     .filter((e) => e.shiftId);
 
-  // Filter and sort
+  // Filter and sort requests
   const filteredMyRequests = useMemo(() => {
     let data = [...myRequests];
     if (searchQuery) {
@@ -252,6 +336,10 @@ export default function EmployeeShiftExchange() {
     setColumns(columns.map((col) => (col.id === columnId ? { ...col, visible } : col)));
   };
 
+  const handleToggleAllShiftsColumn = (columnId: string, visible: boolean) => {
+    setAllShiftsColumns(allShiftsColumns.map((col) => (col.id === columnId ? { ...col, visible } : col)));
+  };
+
   const handleExport = () => {
     const data = activeTab === "sent" ? filteredMyRequests : filteredIncoming;
     const dataToExport = selectedRows.length > 0 ? data.filter((r) => selectedRows.includes(r.id)) : data;
@@ -282,8 +370,45 @@ export default function EmployeeShiftExchange() {
     toast.success(`Exported ${dataToExport.length} requests`);
   };
 
+  const handleExportAllShifts = () => {
+    const exportData = filteredAllShifts.map((e) => ({
+      employee: e.name,
+      employee_id: e.employeeCode,
+      department: e.departmentName,
+      shift: e.shiftName,
+      timing: `${e.startTime || ""} - ${e.endTime || ""}`,
+    }));
+
+    exportToCSV(exportData, allShiftsColumns, `all-shifts-${format(new Date(), "yyyy-MM-dd")}`);
+    toast.success(`Exported ${exportData.length} shift assignments`);
+  };
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["my-shift-exchange-requests"] });
+    queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+  };
+
+  // Open exchange request dialog with pre-selected target
+  const handleExchangeRequest = (target: {
+    id: string;
+    name: string;
+    shiftId: string | null;
+    shiftName: string | null;
+  }) => {
+    if (!target.shiftId || !target.shiftName) return;
+    
+    setPreSelectedTarget({
+      employeeId: target.id,
+      employeeName: target.name,
+      shiftId: target.shiftId,
+      shiftName: target.shiftName,
+    });
+    setFormData({
+      targetEmployeeId: target.id,
+      requestDate: "",
+      reason: "",
+    });
+    setIsCreateOpen(true);
   };
 
   const handleCreateRequest = () => {
@@ -304,6 +429,8 @@ export default function EmployeeShiftExchange() {
         onSuccess: () => {
           setIsCreateOpen(false);
           setFormData({ targetEmployeeId: "", requestDate: "", reason: "" });
+          setPreSelectedTarget(null);
+          setActiveTab("my-requests");
         },
       }
     );
@@ -345,7 +472,7 @@ export default function EmployeeShiftExchange() {
   if (isLoadingEmployee || isLoadingExchanges) {
     return (
       <PageContainer>
-        <PageHeader title="Shift Exchange" description="Request to swap shifts with colleagues" />
+        <PageHeader title="Shift Exchange Requests" description="Request to swap shifts with colleagues" />
         <div className="space-y-4">
           <Skeleton className="h-24" />
           <Skeleton className="h-96" />
@@ -354,7 +481,7 @@ export default function EmployeeShiftExchange() {
     );
   }
 
-  const renderTable = (
+  const renderRequestsTable = (
     data: ShiftExchangeRequest[],
     pagination: typeof myPagination,
     isIncoming: boolean
@@ -368,8 +495,6 @@ export default function EmployeeShiftExchange() {
         onToggleFilter={() => setShowFilters(!showFilters)}
         showFilter={showFilters}
         isRefreshing={isFetching}
-        onAddRow={!isIncoming ? () => setIsCreateOpen(true) : undefined}
-        addRowLabel="New Request"
       />
 
       {showFilters && (
@@ -409,12 +534,6 @@ export default function EmployeeShiftExchange() {
                 onCheckedChange={(checked) => handleSelectAll(checked as boolean, pagination.paginatedData)}
               />
             </TableHead>
-            {columns.find((c) => c.id === "employee")?.visible && (
-              <TableHead>Employee</TableHead>
-            )}
-            {columns.find((c) => c.id === "email")?.visible && (
-              <TableHead>Email</TableHead>
-            )}
             {columns.find((c) => c.id === "request_date")?.visible && (
               <TableHead><SortableHeader field="request_date">Exchange Date</SortableHeader></TableHead>
             )}
@@ -444,21 +563,6 @@ export default function EmployeeShiftExchange() {
                     onCheckedChange={(checked) => handleSelectRow(exchange.id, checked as boolean)}
                   />
                 </TableCell>
-                {columns.find((c) => c.id === "employee")?.visible && (
-                  <TableCell>
-                    <EmployeeCell
-                      avatarUrl={currentEmployee?.avatar_url}
-                      firstName={currentEmployee?.first_name}
-                      lastName={currentEmployee?.last_name}
-                      employeeId={currentEmployee?.employee_id}
-                    />
-                  </TableCell>
-                )}
-                {columns.find((c) => c.id === "email")?.visible && (
-                  <TableCell className="text-muted-foreground">
-                    {currentEmployee?.email || "-"}
-                  </TableCell>
-                )}
                 {columns.find((c) => c.id === "request_date")?.visible && (
                   <TableCell className="font-medium">
                     {format(new Date(exchange.request_date), "MMM dd, yyyy")}
@@ -526,7 +630,7 @@ export default function EmployeeShiftExchange() {
           })}
           {pagination.paginatedData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                 {isIncoming ? "No incoming requests" : "No exchange requests"}
               </TableCell>
             </TableRow>
@@ -547,18 +651,18 @@ export default function EmployeeShiftExchange() {
 
   return (
     <PageContainer>
-      <PageHeader title="Shift Exchange" description="Request to swap shifts with colleagues" />
+      <PageHeader title="Shift Exchange Requests" description="Request to swap shifts with colleagues" />
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
+              <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{currentShift?.name || "None"}</p>
-              <p className="text-sm text-muted-foreground">Current Shift</p>
+              <p className="text-2xl font-semibold">{allEmployeesWithShifts.length}</p>
+              <p className="text-sm text-muted-foreground">Employees with Shifts</p>
             </div>
           </CardContent>
         </Card>
@@ -599,6 +703,19 @@ export default function EmployeeShiftExchange() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
+          <TabsTrigger value="all-shifts" className="gap-2">
+            <Users className="h-4 w-4" />
+            All Shifts
+          </TabsTrigger>
+          <TabsTrigger value="my-requests" className="gap-2">
+            <Send className="h-4 w-4" />
+            My Requests
+            {myRequests.length > 0 && (
+              <span className="ml-1 bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
+                {myRequests.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="incoming" className="gap-2">
             <Inbox className="h-4 w-4" />
             Incoming
@@ -608,23 +725,176 @@ export default function EmployeeShiftExchange() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="sent" className="gap-2">
-            <Send className="h-4 w-4" />
-            My Requests
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="incoming">
-          {renderTable(filteredIncoming, incomingPagination, true)}
+        {/* All Shifts Tab */}
+        <TabsContent value="all-shifts">
+          <Card>
+            <DataTableToolbar
+              columns={allShiftsColumns}
+              onToggleColumn={handleToggleAllShiftsColumn}
+              onExport={handleExportAllShifts}
+              onRefresh={handleRefresh}
+              onToggleFilter={() => setShowAllShiftsFilters(!showAllShiftsFilters)}
+              showFilter={showAllShiftsFilters}
+              isRefreshing={isFetching}
+            />
+
+            {showAllShiftsFilters && (
+              <div className="px-4 py-3 border-b flex items-center gap-4 flex-wrap">
+                <div className="relative max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search employee..."
+                    value={allShiftsSearch}
+                    onChange={(e) => setAllShiftsSearch(e.target.value)}
+                    className="pl-9 w-48"
+                  />
+                </div>
+                <Select value={allShiftsShiftFilter} onValueChange={setAllShiftsShiftFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="All Shifts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Shifts</SelectItem>
+                    {shifts.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={allShiftsDeptFilter} onValueChange={setAllShiftsDeptFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(allShiftsSearch || allShiftsShiftFilter !== "all" || allShiftsDeptFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setAllShiftsSearch("");
+                      setAllShiftsShiftFilter("all");
+                      setAllShiftsDeptFilter("all");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {allShiftsColumns.find((c) => c.id === "employee")?.visible && (
+                    <TableHead>Employee</TableHead>
+                  )}
+                  {allShiftsColumns.find((c) => c.id === "employee_id")?.visible && (
+                    <TableHead>Employee ID</TableHead>
+                  )}
+                  {allShiftsColumns.find((c) => c.id === "department")?.visible && (
+                    <TableHead>Department</TableHead>
+                  )}
+                  {allShiftsColumns.find((c) => c.id === "shift")?.visible && (
+                    <TableHead>Shift</TableHead>
+                  )}
+                  {allShiftsColumns.find((c) => c.id === "timing")?.visible && (
+                    <TableHead>Timing</TableHead>
+                  )}
+                  <TableHead className="w-32">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allShiftsPagination.paginatedData.map((emp) => (
+                  <TableRow key={emp.id}>
+                    {allShiftsColumns.find((c) => c.id === "employee")?.visible && (
+                      <TableCell>
+                        <EmployeeCell
+                          avatarUrl={emp.avatarUrl}
+                          firstName={emp.firstName}
+                          lastName={emp.lastName}
+                          employeeId={emp.employeeCode}
+                        />
+                      </TableCell>
+                    )}
+                    {allShiftsColumns.find((c) => c.id === "employee_id")?.visible && (
+                      <TableCell className="font-mono text-muted-foreground">
+                        {emp.employeeCode}
+                      </TableCell>
+                    )}
+                    {allShiftsColumns.find((c) => c.id === "department")?.visible && (
+                      <TableCell>{emp.departmentName}</TableCell>
+                    )}
+                    {allShiftsColumns.find((c) => c.id === "shift")?.visible && (
+                      <TableCell>
+                        {emp.shiftName && (
+                          <ShiftBadge name={emp.shiftName} color={emp.shiftColor} />
+                        )}
+                      </TableCell>
+                    )}
+                    {allShiftsColumns.find((c) => c.id === "timing")?.visible && (
+                      <TableCell className="text-muted-foreground">
+                        {emp.startTime && emp.endTime ? `${emp.startTime} - ${emp.endTime}` : "-"}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => handleExchangeRequest(emp)}
+                        disabled={!currentShift}
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5" />
+                        Exchange
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {allShiftsPagination.paginatedData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No employees with shift assignments found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+
+            <TablePagination
+              currentPage={allShiftsPagination.currentPage}
+              totalPages={allShiftsPagination.totalPages}
+              totalItems={filteredAllShifts.length}
+              pageSize={allShiftsPagination.pageSize}
+              onPageChange={allShiftsPagination.setCurrentPage}
+              onPageSizeChange={allShiftsPagination.setPageSize}
+            />
+          </Card>
         </TabsContent>
 
-        <TabsContent value="sent">
-          {renderTable(filteredMyRequests, myPagination, false)}
+        <TabsContent value="my-requests">
+          {renderRequestsTable(filteredMyRequests, myPagination, false)}
+        </TabsContent>
+
+        <TabsContent value="incoming">
+          {renderRequestsTable(filteredIncoming, incomingPagination, true)}
         </TabsContent>
       </Tabs>
 
       {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) {
+          setPreSelectedTarget(null);
+          setFormData({ targetEmployeeId: "", requestDate: "", reason: "" });
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Request Shift Exchange</DialogTitle>
@@ -648,19 +918,43 @@ export default function EmployeeShiftExchange() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Swap With</label>
-              <Select value={formData.targetEmployeeId} onValueChange={(value) => setFormData({ ...formData, targetEmployeeId: value })}>
-                <SelectTrigger><SelectValue placeholder="Select colleague" /></SelectTrigger>
-                <SelectContent>
-                  {employeesWithShifts.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{e.name}</span>
-                        <span className="text-muted-foreground">({e.shiftName})</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {preSelectedTarget ? (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{preSelectedTarget.employeeName}</p>
+                      <p className="text-xs text-muted-foreground">{preSelectedTarget.shiftName}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPreSelectedTarget(null);
+                      setFormData({ ...formData, targetEmployeeId: "" });
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <Select value={formData.targetEmployeeId} onValueChange={(value) => setFormData({ ...formData, targetEmployeeId: value })}>
+                  <SelectTrigger><SelectValue placeholder="Select colleague" /></SelectTrigger>
+                  <SelectContent>
+                    {employeesWithShifts.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{e.name}</span>
+                          <span className="text-muted-foreground">({e.shiftName})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
