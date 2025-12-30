@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,8 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployee } from "@/hooks/useEmployees";
 import { useCreateProfileChangeRequest, useMyProfileChangeRequests } from "@/hooks/useProfileChangeRequests";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const fieldOptions = [
   { value: "phone", label: "Phone Number" },
@@ -63,11 +65,71 @@ export default function EmployeeProfile() {
   const [currentValue, setCurrentValue] = useState("");
   const [newValue, setNewValue] = useState("");
   const [reason, setReason] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
-  const { data: currentEmployee, isLoading: currentLoading } = useCurrentEmployee();
-  const { data: employee, isLoading: employeeLoading } = useEmployee(currentEmployee?.id || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { data: currentEmployee, isLoading: currentLoading, refetch: refetchCurrentEmployee } = useCurrentEmployee();
+  const { data: employee, isLoading: employeeLoading, refetch: refetchEmployee } = useEmployee(currentEmployee?.id || "");
   const { data: changeRequests = [] } = useMyProfileChangeRequests();
   const createRequest = useCreateProfileChangeRequest();
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employee) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      // Upload to company-assets bucket
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatars/${employee.id}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(fileName);
+
+      // Update employee record using API
+      const token = localStorage.getItem("access_token");
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-employees/${employee.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatar_url: publicUrl }),
+      });
+
+      // Refetch employee data
+      refetchEmployee();
+      refetchCurrentEmployee();
+      
+      toast.success("Profile photo updated successfully");
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      toast.error("Failed to upload profile photo");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleRequestChange = () => {
     if (!selectedField || !newValue) return;
@@ -171,14 +233,31 @@ export default function EmployeeProfile() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="relative">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+              />
               <Avatar className="h-24 w-24">
                 <AvatarImage src={employee.avatar_url || undefined} />
                 <AvatarFallback className="text-2xl">
                   {employee.first_name?.[0] || ""}{employee.last_name?.[0] || ""}
                 </AvatarFallback>
               </Avatar>
-              <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-8 w-8 rounded-full">
-                <Camera className="h-4 w-4" />
+              <Button 
+                size="icon" 
+                variant="secondary" 
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <div className="flex-1">

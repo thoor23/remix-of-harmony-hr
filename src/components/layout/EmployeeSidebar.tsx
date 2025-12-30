@@ -13,6 +13,7 @@ import {
   HelpCircle,
   ArrowLeftRight,
   Settings,
+  Package,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +39,7 @@ const employeeNavItems: NavItem[] = [
   { title: "Shift Exchange", href: "/employee/shift-exchange", icon: ArrowLeftRight },
   { title: "My Payslips", href: "/employee/payslips", icon: Wallet },
   { title: "My Documents", href: "/employee/documents", icon: FileText },
+  { title: "My Assets", href: "/employee/assets", icon: Package },
   { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
   { title: "Helpdesk", href: "/employee/helpdesk", icon: HelpCircle },
   { title: "Settings", href: "/employee/settings", icon: Settings },

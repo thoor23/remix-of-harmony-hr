@@ -122,6 +122,7 @@ import EmployeeAttendance from "./pages/employee/Attendance";
 import EmployeeLeaves from "./pages/employee/Leaves";
 import EmployeePayslips from "./pages/employee/Payslips";
 import EmployeeDocuments from "./pages/employee/Documents";
+import EmployeeAssets from "./pages/employee/Assets";
 import HolidayCalendar from "./pages/employee/Holidays";
 import EmployeeHelpdesk from "./pages/employee/Helpdesk";
 import EmployeeShiftExchange from "./pages/employee/ShiftExchange";
@@ -274,6 +275,7 @@ const App = () => (
                 <Route path="shift-exchange" element={<EmployeeShiftExchange />} />
                 <Route path="payslips" element={<EmployeePayslips />} />
                 <Route path="documents" element={<EmployeeDocuments />} />
+                <Route path="assets" element={<EmployeeAssets />} />
                 <Route path="holidays" element={<HolidayCalendar />} />
                 <Route path="helpdesk" element={<EmployeeHelpdesk />} />
                 <Route path="settings" element={<EmployeeSettings />} />

@@ -26,11 +26,13 @@ import {
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Eye, FileText, Wallet, TrendingUp } from "lucide-react";
+import { Download, Eye, FileText, Wallet, TrendingUp, Loader2 } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useMyPayslips } from "@/hooks/usePayroll";
+import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { generatePayslipPDF } from "@/lib/payslipPdfGenerator";
 
 interface PayslipDetail {
   id: string;
@@ -47,9 +49,11 @@ interface PayslipDetail {
 export default function EmployeePayslips() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [previewPayslip, setPreviewPayslip] = useState<PayslipDetail | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const { data: currentEmployee, isLoading: employeeLoading } = useCurrentEmployee();
   const { data: payslips = [], isLoading: payslipsLoading } = useMyPayslips(currentEmployee?.id || "");
+  const { data: branding } = useCompanyBranding();
 
   const isLoading = employeeLoading || payslipsLoading;
 
@@ -62,8 +66,34 @@ export default function EmployeePayslips() {
   const totalEarnings = filteredPayslips.reduce((sum, p) => sum + p.net_pay, 0);
   const avgSalary = filteredPayslips.length > 0 ? totalEarnings / filteredPayslips.length : 0;
 
-  const handleDownload = (payslip: PayslipDetail) => {
-    toast.success(`Downloading payslip for ${payslip.pay_period}`);
+  const handleDownload = async (payslip: PayslipDetail) => {
+    setDownloading(payslip.id);
+    
+    try {
+      const employeeName = `${currentEmployee?.profile?.first_name || ""} ${currentEmployee?.profile?.last_name || ""}`.trim();
+      
+      generatePayslipPDF({
+        employee_name: employeeName || "Employee",
+        employee_id: currentEmployee?.employee_id || "N/A",
+        department: currentEmployee?.department?.name || "N/A",
+        designation: currentEmployee?.designation?.name || "N/A",
+        pay_period: payslip.pay_period,
+        pay_date: payslip.pay_date,
+        basic_salary: payslip.basic_salary,
+        gross_earnings: payslip.gross_earnings,
+        total_deductions: payslip.total_deductions,
+        net_pay: payslip.net_pay,
+      }, {
+        name: branding?.companyName || "Company Name",
+        address: "123 Business Street, San Francisco, CA 94102",
+      });
+      
+      toast.success("Payslip downloaded successfully");
+    } catch {
+      toast.error("Failed to generate payslip");
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const formatPayPeriod = (period: string) => {
@@ -204,8 +234,13 @@ export default function EmployeePayslips() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDownload(payslip)}
+                        disabled={downloading === payslip.id}
                       >
-                        <Download className="h-4 w-4" />
+                        {downloading === payslip.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
@@ -307,8 +342,15 @@ export default function EmployeePayslips() {
             <Button variant="outline" onClick={() => setPreviewPayslip(null)}>
               Close
             </Button>
-            <Button onClick={() => previewPayslip && handleDownload(previewPayslip)}>
-              <Download className="mr-2 h-4 w-4" />
+            <Button 
+              onClick={() => previewPayslip && handleDownload(previewPayslip)}
+              disabled={downloading === previewPayslip?.id}
+            >
+              {downloading === previewPayslip?.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
               Download PDF
             </Button>
           </DialogFooter>
