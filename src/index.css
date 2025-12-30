@@ -499,3 +499,35 @@
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
+
+/* Fix native time/date picker dropdown styling */
+input[type="time"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit {
+  background: transparent;
+}
+
+/* Style the native time picker popup in Chrome/Edge */
+::-webkit-datetime-edit-fields-wrapper {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+::-webkit-datetime-edit-text,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-ampm-field {
+  color: hsl(var(--foreground));
+}
+
+/* Override browser default picker panel */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
