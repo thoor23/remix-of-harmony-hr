@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { DataTableColumnToggle } from "./DataTableColumnToggle";
 import { Filter, Plus, Download, RefreshCw } from "lucide-react";
 import { ColumnDef } from "@/lib/csvExport";
+import { ReactNode } from "react";
 
 interface DataTableToolbarProps {
   columns: ColumnDef[];
@@ -13,6 +14,7 @@ interface DataTableToolbarProps {
   showFilter?: boolean;
   isRefreshing?: boolean;
   addRowLabel?: string;
+  extraActions?: ReactNode;
 }
 
 export function DataTableToolbar({
@@ -25,6 +27,7 @@ export function DataTableToolbar({
   showFilter = false,
   isRefreshing = false,
   addRowLabel = "Add Row",
+  extraActions,
 }: DataTableToolbarProps) {
   return (
     <div className="flex items-center justify-between gap-2 py-3 px-4 border-b">
@@ -51,6 +54,7 @@ export function DataTableToolbar({
             {addRowLabel}
           </Button>
         )}
+        {extraActions}
       </div>
 
       <div className="flex items-center gap-2">
