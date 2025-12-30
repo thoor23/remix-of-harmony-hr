@@ -311,6 +311,7 @@ const App = () => (
                 {/* My Assets */}
                 <Route path="my-assets" element={<EmployeeAssets />} />
                 <Route path="my-assets/maintenance" element={<EmployeeAssetMaintenanceRequests />} />
+                <Route path="my-asset-maintenance" element={<EmployeeAssetMaintenanceRequests />} />
                 <Route path="my-assets/report" element={<EmployeeAssetsReport />} />
                 
                 {/* Helpdesk */}
