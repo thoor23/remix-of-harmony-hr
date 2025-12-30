@@ -228,20 +228,9 @@ serve(async (req) => {
 
       // 2) If this request is also updating account settings, update related tables
       if (user_id) {
-        // Update profile fields if present in payload
-        const profileUpdate: Record<string, unknown> = {};
-        if (typeof body.first_name === 'string') profileUpdate.first_name = body.first_name;
-        if (typeof body.last_name === 'string') profileUpdate.last_name = body.last_name;
-        if (typeof body.email === 'string') profileUpdate.email = body.email;
-        if (typeof body.phone === 'string') profileUpdate.phone = body.phone;
-
-        if (Object.keys(profileUpdate).length > 0) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update(profileUpdate)
-            .eq('user_id', user_id);
-          if (profileError) throw profileError;
-        }
+        // NOTE: This project does not use a separate public.profiles table.
+        // Employee name/email/phone are stored directly on the employees table,
+        // so there is nothing to update here besides users/user_roles below.
 
         // Update users email/is_active/password_hash if needed
         if (typeof body.email === 'string') {
