@@ -31,9 +31,11 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { Wrench, Search, AlertCircle, X, Clock, CheckCircle } from "lucide-react";
 import { useMyAssets } from "@/hooks/useMyAssets";
 import { useMyMaintenanceRequests, useCreateMaintenanceRequest, useCancelMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
+import { usePagination } from "@/hooks/usePagination";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { MaintenanceRequestPriority, MaintenanceRequestType, MaintenanceRequestStatus } from "@/types/asset";
@@ -138,6 +140,20 @@ export default function EmployeeAssetMaintenanceRequests() {
 
     return data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [maintenanceRequests, searchQuery, statusFilter, priorityFilter]);
+
+  // Pagination
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedRequests,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({
+    data: filteredRequests,
+    defaultPageSize: 10,
+  });
 
   const handleSubmitRequest = async () => {
     if (!requestForm.asset_id || !requestForm.description) {
@@ -340,86 +356,96 @@ export default function EmployeeAssetMaintenanceRequests() {
             )}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {visibleColumns.find((c) => c.id === "asset") && <TableHead>Asset</TableHead>}
-                {visibleColumns.find((c) => c.id === "type") && <TableHead>Type</TableHead>}
-                {visibleColumns.find((c) => c.id === "priority") && <TableHead>Priority</TableHead>}
-                {visibleColumns.find((c) => c.id === "description") && <TableHead>Description</TableHead>}
-                {visibleColumns.find((c) => c.id === "status") && <TableHead>Status</TableHead>}
-                {visibleColumns.find((c) => c.id === "submitted") && <TableHead>Submitted</TableHead>}
-                {visibleColumns.find((c) => c.id === "actions") && <TableHead className="w-28">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.map((request) => (
-                <TableRow key={request.id}>
-                  {visibleColumns.find((c) => c.id === "asset") && (
-                    <TableCell className="font-medium">
-                      {request.asset?.name || "-"}
-                      {request.asset?.asset_tag && (
-                        <span className="block text-xs text-muted-foreground font-mono">
-                          {request.asset.asset_tag}
-                        </span>
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "type") && (
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {request.type}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "priority") && (
-                    <TableCell>
-                      <Badge variant="outline" className={priorityColors[request.priority]}>
-                        {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "description") && (
-                    <TableCell className="max-w-[200px] truncate">
-                      {request.description}
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "status") && (
-                    <TableCell>
-                      <Badge variant="outline" className={requestStatusColors[request.status]}>
-                        {formatStatusLabel(request.status)}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "submitted") && (
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(request.created_at), "MMM dd, yyyy")}
-                    </TableCell>
-                  )}
-                  {visibleColumns.find((c) => c.id === "actions") && (
-                    <TableCell>
-                      {request.status === 'pending' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCancelRequest(request.id)}
-                          disabled={cancelRequest.isPending}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          Cancel
-                        </Button>
-                      )}
-                      {request.review_comments && request.status !== 'pending' && (
-                        <span className="text-xs text-muted-foreground block max-w-[100px] truncate" title={request.review_comments}>
-                          {request.review_comments}
-                        </span>
-                      )}
-                    </TableCell>
-                  )}
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {visibleColumns.find((c) => c.id === "asset") && <TableHead>Asset</TableHead>}
+                  {visibleColumns.find((c) => c.id === "type") && <TableHead>Type</TableHead>}
+                  {visibleColumns.find((c) => c.id === "priority") && <TableHead>Priority</TableHead>}
+                  {visibleColumns.find((c) => c.id === "description") && <TableHead>Description</TableHead>}
+                  {visibleColumns.find((c) => c.id === "status") && <TableHead>Status</TableHead>}
+                  {visibleColumns.find((c) => c.id === "submitted") && <TableHead>Submitted</TableHead>}
+                  {visibleColumns.find((c) => c.id === "actions") && <TableHead className="w-28">Actions</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    {visibleColumns.find((c) => c.id === "asset") && (
+                      <TableCell className="font-medium">
+                        {request.asset?.name || "-"}
+                        {request.asset?.asset_tag && (
+                          <span className="block text-xs text-muted-foreground font-mono">
+                            {request.asset.asset_tag}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "type") && (
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {request.type}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "priority") && (
+                      <TableCell>
+                        <Badge variant="outline" className={priorityColors[request.priority]}>
+                          {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "description") && (
+                      <TableCell className="max-w-[200px] truncate">
+                        {request.description}
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "status") && (
+                      <TableCell>
+                        <Badge variant="outline" className={requestStatusColors[request.status]}>
+                          {formatStatusLabel(request.status)}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "submitted") && (
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(request.created_at), "MMM dd, yyyy")}
+                      </TableCell>
+                    )}
+                    {visibleColumns.find((c) => c.id === "actions") && (
+                      <TableCell>
+                        {request.status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCancelRequest(request.id)}
+                            disabled={cancelRequest.isPending}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        {request.review_comments && request.status !== 'pending' && (
+                          <span className="text-xs text-muted-foreground block max-w-[100px] truncate" title={request.review_comments}>
+                            {request.review_comments}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </Card>
 
