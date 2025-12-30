@@ -326,8 +326,8 @@ export default function PayslipsList() {
           </div>
         )}
 
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 w-full overflow-x-auto">
+          <Table className="w-max min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">
