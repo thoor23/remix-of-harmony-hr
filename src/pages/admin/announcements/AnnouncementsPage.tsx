@@ -490,7 +490,7 @@ export default function AnnouncementsPage() {
               </div>
             )}
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
@@ -500,7 +500,7 @@ export default function AnnouncementsPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
               <Textarea
                 id="content"
@@ -512,7 +512,7 @@ export default function AnnouncementsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Type</Label>
                 <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -525,7 +525,7 @@ export default function AnnouncementsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Priority</Label>
                 <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -539,7 +539,7 @@ export default function AnnouncementsPage() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label>Target Audience</Label>
               <Select value={formData.target_audience} onValueChange={(value) => setFormData({ ...formData, target_audience: value })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -553,14 +553,14 @@ export default function AnnouncementsPage() {
             </div>
 
             <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Schedule Date</Label>
+              <div className="space-y-2">
+                <Label>Schedule Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-between text-left font-normal",
+                        "w-full justify-between text-left font-normal h-10",
                         !formData.scheduled_date && "text-muted-foreground"
                       )}
                     >
@@ -580,8 +580,8 @@ export default function AnnouncementsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Schedule Time</Label>
+              <div className="space-y-2">
+                <Label>Schedule Time</Label>
                 <Input
                   type="text"
                   placeholder="10:30:00 AM"
@@ -589,14 +589,14 @@ export default function AnnouncementsPage() {
                   onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Expires Date</Label>
+              <div className="space-y-2">
+                <Label>Expires Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-between text-left font-normal",
+                        "w-full justify-between text-left font-normal h-10",
                         !formData.expires_date && "text-muted-foreground"
                       )}
                     >
@@ -616,8 +616,8 @@ export default function AnnouncementsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Expires Time</Label>
+              <div className="space-y-2">
+                <Label>Expires Time</Label>
                 <Input
                   type="text"
                   placeholder="10:30:00 AM"
