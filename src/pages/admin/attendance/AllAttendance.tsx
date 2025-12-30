@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

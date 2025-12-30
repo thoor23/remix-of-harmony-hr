@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +119,10 @@ export default function ShiftAssignments() {
   const createAssignment = useCreateShiftAssignment();
   const updateAssignment = useUpdateShiftAssignment();
   const deleteAssignment = useDeleteShiftAssignment();
+
+  const canCreate = useHasPermission("Shifts", "create");
+  const canUpdate = useHasPermission("Shifts", "update");
+  const canDelete = useHasPermission("Shifts", "delete");
 
   const isLoading = shiftsLoading || assignmentsLoading || employeesLoading;
 
@@ -437,7 +442,7 @@ export default function ShiftAssignments() {
           onToggleColumn={handleToggleColumn}
           onExport={handleExport}
           onRefresh={handleRefresh}
-          onAddRow={() => handleOpenForm()}
+          onAddRow={canCreate ? () => handleOpenForm() : undefined}
           onToggleFilter={() => setShowFilter(!showFilter)}
           showFilter={showFilter}
           isRefreshing={isFetching}
@@ -565,17 +570,21 @@ export default function ShiftAssignments() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenForm(assignment.id)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeleteAssignmentId(assignment.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <DropdownMenuItem onClick={() => handleOpenForm(assignment.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteAssignmentId(assignment.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

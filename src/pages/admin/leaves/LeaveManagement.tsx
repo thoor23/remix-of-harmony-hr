@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,8 @@ export default function LeaveManagement() {
   const { data: leaveRequests = [], isLoading, refetch, isFetching } = useLeaveRequests();
   const { data: leaveTypes = [] } = useLeaveTypes();
   const updateLeaveRequest = useUpdateLeaveRequest();
+
+  const canUpdate = useHasPermission("Leaves", "update");
 
   const pendingRequests = leaveRequests.filter((r) => r.status === "pending");
   const approvedRequests = leaveRequests.filter((r) => r.status === "approved");
@@ -442,7 +445,7 @@ export default function LeaveManagement() {
                       </TableCell>
                     ))}
                     <TableCell>
-                      {request.status === "pending" ? (
+                      {request.status === "pending" && canUpdate ? (
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"

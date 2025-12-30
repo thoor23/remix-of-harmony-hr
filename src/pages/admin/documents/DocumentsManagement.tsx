@@ -1,6 +1,7 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ const categoryLabels: Record<string, string> = {
 
 export default function DocumentsManagement() {
   const { data: policyDocuments = [], isLoading } = useCompanyDocuments();
+  const canCreate = useHasPermission("Documents", "create");
 
   const handleDownload = (fileUrl: string | null, name: string) => {
     if (!fileUrl) return;
@@ -45,12 +47,14 @@ export default function DocumentsManagement() {
         title="Documents & Policies"
         description="Manage company policies and document templates"
       >
-        <Link to="/admin/file-manager/policies">
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Manage Documents
-          </Button>
-        </Link>
+        {canCreate && (
+          <Link to="/admin/file-manager/policies">
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Manage Documents
+            </Button>
+          </Link>
+        )}
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -58,12 +62,14 @@ export default function DocumentsManagement() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Policy Documents</CardTitle>
-            <Link to="/admin/file-manager/policies">
-              <Button variant="outline" size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Policy
-              </Button>
-            </Link>
+            {canCreate && (
+              <Link to="/admin/file-manager/policies">
+                <Button variant="outline" size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Policy
+                </Button>
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -166,12 +172,14 @@ export default function DocumentsManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Letter Templates</CardTitle>
-            <Link to="/admin/letters/templates">
-              <Button variant="outline" size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Template
-              </Button>
-            </Link>
+            {canCreate && (
+              <Link to="/admin/letters/templates">
+                <Button variant="outline" size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Template
+                </Button>
+              </Link>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

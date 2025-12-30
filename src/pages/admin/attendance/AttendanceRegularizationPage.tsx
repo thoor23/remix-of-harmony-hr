@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
+import { useHasPermission } from "@/components/auth/PermissionGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,8 @@ export default function AttendanceRegularizationPage() {
 
   const { data: requests = [], isLoading, refetch, isFetching } = useAllRegularizationRequests(statusFilter === "all" ? undefined : statusFilter);
   const reviewMutation = useReviewRegularizationRequest();
+
+  const canUpdate = useHasPermission("Attendance", "update");
 
   const pendingCount = requests.filter((r: any) => r.status === "pending").length;
   const approvedCount = requests.filter((r: any) => r.status === "approved").length;
@@ -430,7 +433,7 @@ export default function AttendanceRegularizationPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {request.status === "pending" && (
+                        {request.status === "pending" && canUpdate && (
                           <>
                             <Button
                               size="sm"
