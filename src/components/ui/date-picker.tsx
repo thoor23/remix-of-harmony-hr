@@ -1,6 +1,6 @@
 import * as React from "react";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,15 +17,19 @@ interface DatePickerProps {
   disabled?: boolean;
   className?: string;
   error?: boolean;
+  fromYear?: number;
+  toYear?: number;
 }
 
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Pick a date",
+  placeholder = "Select date",
   disabled = false,
   className,
   error = false,
+  fromYear = 1940,
+  toYear = new Date().getFullYear(),
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -47,14 +51,14 @@ export function DatePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-between text-left font-normal",
             !date && "text-muted-foreground",
             error && "border-destructive",
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+          {date ? date.toLocaleDateString() : <span>{placeholder}</span>}
+          <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -62,7 +66,9 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={handleSelect}
-          initialFocus
+          captionLayout="dropdown-buttons"
+          fromYear={fromYear}
+          toYear={toYear}
           className="pointer-events-auto"
         />
       </PopoverContent>
