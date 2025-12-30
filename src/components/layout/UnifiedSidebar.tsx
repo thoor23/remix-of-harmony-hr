@@ -418,6 +418,7 @@ const navItemToModule: Record<string, string> = {
   "Templates": "Templates",
   "Letters": "Documents",
   "Audit Logs": "Audit Logs",
+  "Holidays": "Holidays",
 };
 
 interface UnifiedSidebarProps {
@@ -437,8 +438,9 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
 
   // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
+    // Return empty array while loading to prevent flash of all items
     if (permLoading || permissions.length === 0) {
-      return unifiedNavSections;
+      return [];
     }
 
     return unifiedNavSections
