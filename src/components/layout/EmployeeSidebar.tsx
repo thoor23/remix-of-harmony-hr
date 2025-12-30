@@ -45,6 +45,7 @@ import {
   Eye,
   MessageSquarePlus,
   UserCircle,
+  BarChart3,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,6 +73,7 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "Attendance Records", href: "/employee/attendance", icon: Clock },
       { title: "Regularization Requests", href: "/employee/attendance/regularization", icon: ClipboardEdit },
+      { title: "My Report", href: "/employee/attendance/report", icon: BarChart3 },
     ],
   },
   {
@@ -80,6 +82,7 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "My Shift Schedule", href: "/employee/shifts", icon: Eye },
       { title: "Shift Exchange Requests", href: "/employee/shift-exchange", icon: ArrowLeftRight },
+      { title: "My Report", href: "/employee/shifts/report", icon: BarChart3 },
     ],
   },
   { title: "Holiday Calendar", href: "/employee/holidays", icon: Calendar },
@@ -90,6 +93,7 @@ const employeeNavItems: NavItem[] = [
       { title: "Apply Leave", href: "/employee/leaves/apply", icon: Plus },
       { title: "Leave Records", href: "/employee/leaves", icon: History },
       { title: "Leave Balance", href: "/employee/leaves/balance", icon: PieChart },
+      { title: "My Report", href: "/employee/leaves/report", icon: BarChart3 },
     ],
   },
   {
@@ -98,6 +102,7 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "Payslip Records", href: "/employee/payslips", icon: Receipt },
       { title: "Salary Configuration", href: "/employee/payslips/details", icon: TrendingUp },
+      { title: "My Report", href: "/employee/payroll/report", icon: BarChart3 },
     ],
   },
   {
@@ -106,6 +111,7 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "My Documents", href: "/employee/documents", icon: FolderOpen },
       { title: "Document Policies", href: "/employee/documents/policies", icon: FileStack },
+      { title: "My Report", href: "/employee/documents/report", icon: BarChart3 },
     ],
   },
   {
@@ -113,6 +119,7 @@ const employeeNavItems: NavItem[] = [
     icon: Package,
     children: [
       { title: "Assigned Assets", href: "/employee/assets", icon: Package },
+      { title: "My Report", href: "/employee/assets/report", icon: BarChart3 },
     ],
   },
   {
@@ -121,6 +128,7 @@ const employeeNavItems: NavItem[] = [
     children: [
       { title: "New Ticket", href: "/employee/helpdesk/new", icon: MessageSquarePlus },
       { title: "All Tickets", href: "/employee/helpdesk", icon: Ticket },
+      { title: "My Report", href: "/employee/helpdesk/report", icon: BarChart3 },
     ],
   },
   { title: "Profile", href: "/employee/profile", icon: UserCircle },
