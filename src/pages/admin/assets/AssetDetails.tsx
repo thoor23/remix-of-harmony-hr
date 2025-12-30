@@ -103,7 +103,7 @@ export default function AssetDetails() {
 
   const handleDelete = async () => {
     await deleteAsset.mutateAsync(id!);
-    navigate('/admin/assets');
+    navigate('/app/assets');
   };
 
   const handleAssign = async () => {
@@ -164,7 +164,7 @@ export default function AssetDetails() {
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">The requested asset was not found.</p>
-            <Button className="mt-4" onClick={() => navigate('/admin/assets')}>
+            <Button className="mt-4" onClick={() => navigate('/app/assets')}>
               Back to Assets
             </Button>
           </CardContent>
@@ -176,14 +176,14 @@ export default function AssetDetails() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate('/admin/assets')}>
+        <Button variant="ghost" onClick={() => navigate('/app/assets')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Assets
         </Button>
       </div>
 
       <PageHeader title={asset.name} description="View complete asset information">
-        <Button variant="outline" onClick={() => navigate(`/admin/assets/${id}/edit`)}>
+        <Button variant="outline" onClick={() => navigate(`/app/assets/${id}/edit`)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>

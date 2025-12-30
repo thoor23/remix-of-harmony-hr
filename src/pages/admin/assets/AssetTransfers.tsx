@@ -151,12 +151,12 @@ export default function AssetTransfers() {
               {isLoading ? Array.from({ length: 5 }).map((_, i) => (<TableRow key={i}><TableCell><Skeleton className="h-4 w-4" /></TableCell>{visibleColumns.map((col) => (<TableCell key={col.id}><Skeleton className="h-4 w-24" /></TableCell>))}<TableCell><Skeleton className="h-4 w-8" /></TableCell></TableRow>))
               : paginatedData.length === 0 ? (<TableRow><TableCell colSpan={visibleColumns.length + 2} className="h-32 text-center"><div className="flex flex-col items-center justify-center text-muted-foreground"><ArrowRightLeft className="h-10 w-10 mb-2" /><p>No transfer history found</p></div></TableCell></TableRow>)
               : paginatedData.map((transfer) => (
-                <TableRow key={transfer.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/assets/${transfer.asset_id}`)}>
+                 <TableRow key={transfer.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/app/assets/${transfer.asset_id}`)}>
                   <TableCell onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedRows.has(transfer.id)} onCheckedChange={(checked) => handleSelectRow(transfer.id, !!checked)} /></TableCell>
                   {visibleColumns.map((column) => (<TableCell key={column.id}>{renderCellValue(transfer, column)}</TableCell>))}
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                      <DropdownMenuContent align="end"><DropdownMenuItem onClick={() => navigate(`/admin/assets/${transfer.asset_id}`)}><Eye className="h-4 w-4 mr-2" />View Asset</DropdownMenuItem></DropdownMenuContent>
+                      <DropdownMenuContent align="end"><DropdownMenuItem onClick={() => navigate(`/app/assets/${transfer.asset_id}`)}><Eye className="h-4 w-4 mr-2" />View Asset</DropdownMenuItem></DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>

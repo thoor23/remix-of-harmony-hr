@@ -404,7 +404,7 @@ export const NotificationsDropdown = () => {
               className="w-full h-8 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => {
                 // Close dropdown by clicking outside
-                navigate("/admin/notifications");
+                navigate("/app/notifications");
               }}
             >
               View all notifications

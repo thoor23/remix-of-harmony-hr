@@ -14,9 +14,9 @@ export default function Unauthorized() {
 
   const goToDashboard = () => {
     if (role === 'admin' || role === 'hr' || role === 'manager') {
-      navigate('/admin');
+      navigate('/app/dashboard');
     } else {
-      navigate('/employee');
+      navigate('/app/my-dashboard');
     }
   };
 
