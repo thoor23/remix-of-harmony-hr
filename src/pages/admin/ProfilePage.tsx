@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +13,9 @@ import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useDepartmentsData } from "@/hooks/useDepartments";
 import { useDesignationsData } from "@/hooks/useDesignations";
 import { useUpdateProfile } from "@/hooks/useProfileUpdate";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { 
   User, 
   Mail, 
@@ -34,12 +35,14 @@ import {
 
 export default function AdminProfilePage() {
   const { user, profile, role } = useAuth();
-  const { data: employeeData, isLoading: employeeLoading } = useCurrentEmployee();
+  const { data: employeeData, isLoading: employeeLoading, refetch } = useCurrentEmployee();
   const { data: departments } = useDepartmentsData();
   const { data: designations } = useDesignationsData();
   const updateProfile = useUpdateProfile();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -50,7 +53,46 @@ export default function AdminProfilePage() {
     address_zip_code: "",
   });
 
-  // Populate form when data loads or editing starts
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size should be less than 2MB");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${employeeData?.id || user?.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("company-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("company-assets")
+        .getPublicUrl(filePath);
+
+      await updateProfile.mutateAsync({ avatar_url: publicUrl });
+      await refetch();
+      toast.success("Avatar updated successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload avatar");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const startEditing = () => {
     if (profile || employeeData) {
       setFormData({
@@ -124,10 +166,10 @@ export default function AdminProfilePage() {
     return (
       <PageContainer>
         <PageHeader title="My Profile" description="View and manage your profile information" />
-        <Card className="mb-6">
+        <Card className="mb-6 shadow-md">
           <CardContent className="p-6">
             <div className="flex gap-6">
-              <Skeleton className="h-24 w-24 rounded-full" />
+              <Skeleton className="h-28 w-28 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-4 w-32" />
@@ -165,18 +207,35 @@ export default function AdminProfilePage() {
       </PageHeader>
 
       {/* Profile Header */}
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-md">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="relative">
-              <Avatar className="h-24 w-24">
+              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
                 <AvatarImage src={profile?.avatar_url || employee?.avatar_url || ""} alt={fullName} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 h-8 w-8 rounded-full">
-                <Camera className="h-4 w-4" />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <Button 
+                size="icon" 
+                variant="secondary" 
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-md"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <div className="flex-1">
@@ -230,263 +289,251 @@ export default function AdminProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Profile Details Tabs */}
-      <Tabs defaultValue="personal">
-        <TabsList className="mb-4">
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="work">Work</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
-          <TabsTrigger value="bank">Bank</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="personal">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isEditing ? (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input 
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input 
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={user?.email || ""} disabled className="bg-muted" />
-                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input 
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Date of Birth</Label>
-                    <Input value={employee?.date_of_birth || ""} disabled className="bg-muted" />
-                  </div>
+      {/* Profile Details Grid */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Personal Information */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-primary">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <User className="h-5 w-5 text-primary" />
+              Personal Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label>First Name</Label>
+                  <Input 
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  />
                 </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">First Name</p>
-                    <p className="font-medium">{employee?.first_name || profile?.first_name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Last Name</p>
-                    <p className="font-medium">{employee?.last_name || profile?.last_name || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Email</p>
-                    <p className="font-medium">{user?.email || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                    <p className="font-medium">{employee?.phone || profile?.phone || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
-                    <p className="font-medium">{employee?.date_of_birth || "N/A"}</p>
-                  </div>
+                <div className="space-y-2">
+                  <Label>Last Name</Label>
+                  <Input 
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="work">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Work Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Employee ID</p>
-                  <p className="font-medium font-mono">{employee?.employee_id || "N/A"}</p>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={user?.email || ""} disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Department</p>
-                  <p className="font-medium">{department?.name || getDepartmentName(employee?.department_id)}</p>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input 
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Designation</p>
-                  <p className="font-medium">{designation?.name || getDesignationName(employee?.designation_id)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Role</p>
-                  <p className="font-medium">{getRoleBadgeLabel()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Employment Type</p>
-                  <p className="font-medium capitalize">{employee?.employment_type || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Joining Date</p>
-                  <p className="font-medium">{employee?.date_of_joining || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <p className="font-medium capitalize">{employee?.status || "N/A"}</p>
+                <div className="space-y-2">
+                  <Label>Date of Birth</Label>
+                  <Input value={employee?.date_of_birth || ""} disabled className="bg-muted" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            ) : (
+              <div className="grid gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">First Name</p>
+                  <p className="font-medium">{employee?.first_name || profile?.first_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Last Name</p>
+                  <p className="font-medium">{employee?.last_name || profile?.last_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Email</p>
+                  <p className="font-medium">{user?.email || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                  <p className="font-medium">{employee?.phone || profile?.phone || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
+                  <p className="font-medium">{employee?.date_of_birth || "N/A"}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <TabsContent value="contact">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Street Address</Label>
-                      <Textarea 
-                        value={formData.address_street}
-                        onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
-                        rows={2}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>City</Label>
-                        <Input 
-                          value={formData.address_city}
-                          onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>State</Label>
-                        <Input 
-                          value={formData.address_state}
-                          onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Zip Code</Label>
-                        <Input 
-                          value={formData.address_zip_code}
-                          onChange={(e) => setFormData({ ...formData, address_zip_code: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Country</Label>
-                        <Input value={employee?.address_country || "India"} disabled className="bg-muted" />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Street</p>
-                      <p className="font-medium">{employee?.address_street || "N/A"}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">City</p>
-                        <p className="font-medium">{employee?.address_city || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">State</p>
-                        <p className="font-medium">{employee?.address_state || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
-                        <p className="font-medium">{employee?.address_zip_code || "N/A"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Country</p>
-                        <p className="font-medium">{employee?.address_country || "N/A"}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Work Information */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5 text-blue-500" />
+              Work Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Employee ID</p>
+                <p className="font-medium font-mono">{employee?.employee_id || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Department</p>
+                <p className="font-medium">{department?.name || getDepartmentName(employee?.department_id)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Designation</p>
+                <p className="font-medium">{designation?.name || getDesignationName(employee?.designation_id)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Role</p>
+                <p className="font-medium">{getRoleBadgeLabel()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Employment Type</p>
+                <p className="font-medium capitalize">{employee?.employment_type || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Joining Date</p>
+                <p className="font-medium">{employee?.date_of_joining || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Status</p>
+                <p className="font-medium capitalize">{employee?.status || "N/A"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Emergency Contact
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Name</p>
-                    <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
+        {/* Address */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-green-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MapPin className="h-5 w-5 text-green-500" />
+              Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Street Address</Label>
+                  <Textarea 
+                    value={formData.address_street}
+                    onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input 
+                      value={formData.address_city}
+                      onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
+                    />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Relationship</p>
-                    <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Input 
+                      value={formData.address_state}
+                      onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
+                    />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                    <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
+                  <div className="space-y-2">
+                    <Label>Zip Code</Label>
+                    <Input 
+                      value={formData.address_zip_code}
+                      onChange={(e) => setFormData({ ...formData, address_zip_code: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Country</Label>
+                    <Input value={employee?.address_country || "India"} disabled className="bg-muted" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Street</p>
+                  <p className="font-medium">{employee?.address_street || "N/A"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">City</p>
+                    <p className="font-medium">{employee?.address_city || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">State</p>
+                    <p className="font-medium">{employee?.address_state || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Zip Code</p>
+                    <p className="font-medium">{employee?.address_zip_code || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Country</p>
+                    <p className="font-medium">{employee?.address_country || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Emergency Contact */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Emergency Contact
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Name</p>
+                <p className="font-medium">{employee?.emergency_contact_name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Relationship</p>
+                <p className="font-medium">{employee?.emergency_contact_relationship || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                <p className="font-medium">{employee?.emergency_contact_phone || "N/A"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bank Details - Full Width */}
+      <Card className="mt-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CreditCard className="h-5 w-5 text-purple-500" />
+            Bank Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
+              <p className="font-medium">{employee?.bank_name || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
+              <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Account Number</p>
+              <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
+              <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
+            </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="bank">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Bank Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
-                  <p className="font-medium">{employee?.bank_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
-                  <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Number</p>
-                  <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
-                  <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </PageContainer>
   );
 }
