@@ -206,10 +206,13 @@ serve(async (req) => {
 
       const id = idMatch[1];
       const body = await req.json();
+      
+      // Remove fields that don't belong to employees table
+      const { role, ...employeeData } = body;
 
       const { data, error } = await supabase
         .from('employees')
-        .update(body)
+        .update(employeeData)
         .eq('id', id)
         .select()
         .single();
