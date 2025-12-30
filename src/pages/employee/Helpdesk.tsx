@@ -368,7 +368,7 @@ export default function EmployeeHelpdesk() {
               </div>
             )}
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto show-scrollbar">
             <Table className="min-w-[1200px]">
               <TableHeader>
                 <TableRow>
