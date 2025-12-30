@@ -271,36 +271,6 @@ export default function EmployeeLeaves() {
     <PageContainer>
       <PageHeader title="Leave History" description="Apply for leaves and view your leave history" />
 
-      {/* Leave Balance Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        {leaveBalances.map((balance) => {
-          const type = leaveTypes.find((t) => t.id === balance.leave_type_id);
-          const available = Number(balance.total_days) - Number(balance.used_days) - Number(balance.pending_days);
-          return (
-            <Card key={balance.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: type?.color || "#3B82F6" }}
-                  />
-                  <span className="font-medium">{type?.name || "Leave"}</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-3xl font-bold text-primary">{available}</p>
-                    <p className="text-xs text-muted-foreground">Available</p>
-                  </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    <p>Used: {balance.used_days}</p>
-                    <p>Total: {balance.total_days}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-6">
