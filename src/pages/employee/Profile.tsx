@@ -2,25 +2,8 @@ import { useState, useRef } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   User,
@@ -31,42 +14,21 @@ import {
   Calendar,
   CreditCard,
   AlertCircle,
-  Edit,
   Camera,
   Loader2,
 } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
 import { useEmployee } from "@/hooks/useEmployees";
-import { useCreateProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const fieldOptions = [
-  { value: "phone", label: "Phone Number" },
-  { value: "address_street", label: "Street Address" },
-  { value: "address_city", label: "City" },
-  { value: "address_state", label: "State" },
-  { value: "address_zip_code", label: "Zip Code" },
-  { value: "emergency_contact_name", label: "Emergency Contact Name" },
-  { value: "emergency_contact_phone", label: "Emergency Contact Phone" },
-  { value: "bank_name", label: "Bank Name" },
-  { value: "bank_account_number", label: "Bank Account Number" },
-  { value: "bank_ifsc_code", label: "Bank IFSC Code" },
-];
-
 export default function EmployeeProfile() {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedField, setSelectedField] = useState("");
-  const [currentValue, setCurrentValue] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [reason, setReason] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: currentEmployee, isLoading: currentLoading, refetch: refetchCurrentEmployee } = useCurrentEmployee();
   const { data: employee, isLoading: employeeLoading, refetch: refetchEmployee } = useEmployee(currentEmployee?.id || "");
-  const createRequest = useCreateProfileChangeRequest();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,49 +80,6 @@ export default function EmployeeProfile() {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
-
-  const handleRequestChange = () => {
-    if (!selectedField || !newValue) return;
-    
-    createRequest.mutate({
-      field_name: selectedField,
-      current_value: currentValue,
-      new_value: newValue,
-      reason,
-    }, {
-      onSuccess: () => {
-        setIsEditDialogOpen(false);
-        setSelectedField("");
-        setCurrentValue("");
-        setNewValue("");
-        setReason("");
-      },
-    });
-  };
-
-  const getFieldCurrentValue = (fieldName: string) => {
-    if (!employee) return "";
-    
-    const fieldMap: Record<string, string> = {
-      phone: employee.phone || "",
-      address_street: employee.address_street || "",
-      address_city: employee.address_city || "",
-      address_state: employee.address_state || "",
-      address_zip_code: employee.address_zip_code || "",
-      emergency_contact_name: employee.emergency_contact_name || "",
-      emergency_contact_phone: employee.emergency_contact_phone || "",
-      bank_name: employee.bank_name || "",
-      bank_account_number: employee.bank_account_number || "",
-      bank_ifsc_code: employee.bank_ifsc_code || "",
-    };
-    
-    return fieldMap[fieldName] || "";
-  };
-
-  const handleFieldChange = (value: string) => {
-    setSelectedField(value);
-    setCurrentValue(getFieldCurrentValue(value));
   };
 
   const isLoading = currentLoading || employeeLoading;
@@ -216,12 +135,7 @@ export default function EmployeeProfile() {
 
   return (
     <PageContainer>
-      <PageHeader title="My Profile" description="View and manage your profile information">
-        <Button onClick={() => setIsEditDialogOpen(true)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Request Change
-        </Button>
-      </PageHeader>
+      <PageHeader title="My Profile" description="View and manage your profile information" />
 
       {/* Profile Header */}
       <Card className="mb-6 shadow-md">
@@ -464,64 +378,6 @@ export default function EmployeeProfile() {
 
       </div>
 
-      {/* Request Change Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Request Profile Change</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Submit a request to update your profile information. HR will review and approve your changes.
-            </p>
-            <div className="space-y-2">
-              <Label>Field to Update *</Label>
-              <Select value={selectedField} onValueChange={handleFieldChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a field" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fieldOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Current Value</Label>
-              <Input value={currentValue} disabled placeholder="Current value" />
-            </div>
-            <div className="space-y-2">
-              <Label>New Value *</Label>
-              <Input 
-                value={newValue} 
-                onChange={(e) => setNewValue(e.target.value)}
-                placeholder="Enter new value" 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Reason for Change</Label>
-              <Textarea 
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Explain why you need this change..." 
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={handleRequestChange}
-              disabled={!selectedField || !newValue || createRequest.isPending}
-            >
-              {createRequest.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Submit Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 }

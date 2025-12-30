@@ -3,7 +3,9 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -11,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -25,8 +34,10 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
-import { Clock, CheckCircle, XCircle, ArrowUpDown, Search, X } from "lucide-react";
-import { useMyProfileChangeRequests } from "@/hooks/useProfileChangeRequests";
+import { Clock, CheckCircle, XCircle, ArrowUpDown, Search, X, Plus, Loader2 } from "lucide-react";
+import { useMyProfileChangeRequests, useCreateProfileChangeRequest } from "@/hooks/useProfileChangeRequests";
+import { useCurrentEmployee } from "@/hooks/useCurrentEmployee";
+import { useEmployee } from "@/hooks/useEmployees";
 import { format } from "date-fns";
 
 const fieldOptions = [
@@ -64,13 +75,66 @@ export default function ProfileChangeRequests() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
+  // New request dialog state
+  const [isNewRequestDialogOpen, setIsNewRequestDialogOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState("");
+  const [currentValue, setCurrentValue] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [reason, setReason] = useState("");
+
   const { data: changeRequests = [], isLoading, refetch } = useMyProfileChangeRequests();
+  const { data: currentEmployee } = useCurrentEmployee();
+  const { data: employee } = useEmployee(currentEmployee?.id || "");
+  const createRequest = useCreateProfileChangeRequest();
 
   const hasActiveFilters = statusFilter !== "all" || searchQuery;
 
   const handleClearFilters = () => {
     setStatusFilter("all");
     setSearchQuery("");
+  };
+
+  const getFieldCurrentValue = (fieldName: string) => {
+    if (!employee) return "";
+    
+    const fieldMap: Record<string, string> = {
+      phone: employee.phone || "",
+      address_street: employee.address_street || "",
+      address_city: employee.address_city || "",
+      address_state: employee.address_state || "",
+      address_zip_code: employee.address_zip_code || "",
+      emergency_contact_name: employee.emergency_contact_name || "",
+      emergency_contact_phone: employee.emergency_contact_phone || "",
+      bank_name: employee.bank_name || "",
+      bank_account_number: employee.bank_account_number || "",
+      bank_ifsc_code: employee.bank_ifsc_code || "",
+    };
+    
+    return fieldMap[fieldName] || "";
+  };
+
+  const handleFieldChange = (value: string) => {
+    setSelectedField(value);
+    setCurrentValue(getFieldCurrentValue(value));
+  };
+
+  const handleSubmitRequest = () => {
+    if (!selectedField || !newValue) return;
+    
+    createRequest.mutate({
+      field_name: selectedField,
+      current_value: currentValue,
+      new_value: newValue,
+      reason,
+    }, {
+      onSuccess: () => {
+        setIsNewRequestDialogOpen(false);
+        setSelectedField("");
+        setCurrentValue("");
+        setNewValue("");
+        setReason("");
+      },
+    });
   };
 
   const filteredRequests = useMemo(() => {
@@ -200,7 +264,12 @@ export default function ProfileChangeRequests() {
 
   return (
     <PageContainer>
-      <PageHeader title="My Change Requests" description="View your profile change requests and their status" />
+      <PageHeader title="My Change Requests" description="View your profile change requests and their status">
+        <Button onClick={() => setIsNewRequestDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Request
+        </Button>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -349,7 +418,7 @@ export default function ProfileChangeRequests() {
                 <TableCell colSpan={visibleColumns.length + 1} className="h-24 text-center">
                   <div className="text-muted-foreground">
                     <p>No change requests found</p>
-                    <p className="text-sm mt-1">Go to your Profile page to request changes</p>
+                    <p className="text-sm mt-1">Click "New Request" to submit a profile change request</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -366,6 +435,65 @@ export default function ProfileChangeRequests() {
           onPageSizeChange={setPageSize}
         />
       </Card>
+
+      {/* New Request Dialog */}
+      <Dialog open={isNewRequestDialogOpen} onOpenChange={setIsNewRequestDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Request Profile Change</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Submit a request to update your profile information. HR will review and approve your changes.
+            </p>
+            <div className="space-y-2">
+              <Label>Field to Update *</Label>
+              <Select value={selectedField} onValueChange={handleFieldChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fieldOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Current Value</Label>
+              <Input value={currentValue} disabled placeholder="Current value" />
+            </div>
+            <div className="space-y-2">
+              <Label>New Value *</Label>
+              <Input 
+                value={newValue} 
+                onChange={(e) => setNewValue(e.target.value)}
+                placeholder="Enter new value" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Reason for Change</Label>
+              <Textarea 
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Explain why you need this change..." 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewRequestDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSubmitRequest}
+              disabled={!selectedField || !newValue || createRequest.isPending}
+            >
+              {createRequest.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }
