@@ -53,6 +53,10 @@ export default function AdminProfilePage() {
     emergency_contact_name: "",
     emergency_contact_phone: "",
     emergency_contact_relationship: "",
+    bank_name: "",
+    bank_account_holder_name: "",
+    bank_account_number: "",
+    bank_ifsc_code: "",
   });
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,6 +112,10 @@ export default function AdminProfilePage() {
         emergency_contact_name: employeeData?.emergency_contact_name || "",
         emergency_contact_phone: employeeData?.emergency_contact_phone || "",
         emergency_contact_relationship: employeeData?.emergency_contact_relationship || "",
+        bank_name: employeeData?.bank_name || "",
+        bank_account_holder_name: employeeData?.bank_account_holder_name || "",
+        bank_account_number: employeeData?.bank_account_number || "",
+        bank_ifsc_code: employeeData?.bank_ifsc_code || "",
       });
     }
     setIsEditing(true);
@@ -125,6 +133,10 @@ export default function AdminProfilePage() {
       emergency_contact_name: formData.emergency_contact_name,
       emergency_contact_phone: formData.emergency_contact_phone,
       emergency_contact_relationship: formData.emergency_contact_relationship,
+      bank_name: formData.bank_name,
+      bank_account_holder_name: formData.bank_account_holder_name,
+      bank_account_number: formData.bank_account_number,
+      bank_ifsc_code: formData.bank_ifsc_code,
     });
     setIsEditing(false);
   };
@@ -563,24 +575,57 @@ export default function AdminProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
-                <p className="font-medium">{employee?.bank_name || "N/A"}</p>
+            {isEditing ? (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label>Bank Name</Label>
+                  <Input 
+                    value={formData.bank_name}
+                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Holder</Label>
+                  <Input 
+                    value={formData.bank_account_holder_name}
+                    onChange={(e) => setFormData({ ...formData, bank_account_holder_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Number</Label>
+                  <Input 
+                    value={formData.bank_account_number}
+                    onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>IFSC Code</Label>
+                  <Input 
+                    value={formData.bank_ifsc_code}
+                    onChange={(e) => setFormData({ ...formData, bank_ifsc_code: e.target.value })}
+                  />
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
-                <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
+                  <p className="font-medium">{employee?.bank_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Account Holder</p>
+                  <p className="font-medium">{employee?.bank_account_holder_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Account Number</p>
+                  <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
+                  <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Account Number</p>
-                <p className="font-medium font-mono">{employee?.bank_account_number || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">IFSC Code</p>
-                <p className="font-medium font-mono">{employee?.bank_ifsc_code || "N/A"}</p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
