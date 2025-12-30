@@ -7,7 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TimePickerProps {
   value?: string;
@@ -91,8 +90,8 @@ export function TimePicker({
           {/* Hours */}
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground mb-2 text-center">Hour</span>
-            <ScrollArea className="h-48 w-14">
-              <div className="flex flex-col gap-1">
+            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border/50 bg-background/40">
+              <div className="flex flex-col gap-1 p-1">
                 {hourOptions.map((h) => {
                   const displayHour = use24Hour ? h : h;
                   const actualHour = use24Hour ? h : (h === 12 ? 0 : h);
@@ -119,14 +118,14 @@ export function TimePicker({
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Minutes */}
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground mb-2 text-center">Min</span>
-            <ScrollArea className="h-48 w-14">
-              <div className="flex flex-col gap-1">
+            <div className="h-48 w-14 overflow-y-auto rounded-md border border-border/50 bg-background/40">
+              <div className="flex flex-col gap-1 p-1">
                 {minuteOptions.filter((m) => m % 5 === 0).map((m) => (
                   <Button
                     key={m}
@@ -139,7 +138,7 @@ export function TimePicker({
                   </Button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* AM/PM for 12-hour mode */}
