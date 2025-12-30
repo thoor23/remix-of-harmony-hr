@@ -14,7 +14,7 @@ const ScrollArea = React.forwardRef<
   <ScrollAreaPrimitive.Root 
     ref={ref} 
     className={cn(
-      "relative overflow-hidden",
+      "relative overflow-hidden min-h-0 min-w-0",
       hideScrollbar && "[&_[data-radix-scroll-area-viewport]]:scrollbar-hidden",
       className
     )} 
