@@ -14,7 +14,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePicker } from "@/components/ui/date-picker";
-import { TimePicker } from "@/components/ui/time-picker";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Search, Edit, Trash2, Eye, FileText, MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -562,10 +561,10 @@ export default function AnnouncementsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Schedule Time (Optional)</Label>
-                <TimePicker
+                <Input
+                  type="time"
                   value={formData.scheduled_time}
-                  onChange={(value) => setFormData({ ...formData, scheduled_time: value })}
-                  placeholder="Select time"
+                  onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
                 />
               </div>
             </div>
@@ -581,10 +580,10 @@ export default function AnnouncementsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Expires Time (Optional)</Label>
-                <TimePicker
+                <Input
+                  type="time"
                   value={formData.expires_time}
-                  onChange={(value) => setFormData({ ...formData, expires_time: value })}
-                  placeholder="Select time"
+                  onChange={(e) => setFormData({ ...formData, expires_time: e.target.value })}
                 />
               </div>
             </div>
