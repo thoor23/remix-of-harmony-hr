@@ -1,9 +1,55 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DropdownProps } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Custom dropdown component for month/year selection with proper theming
+function CustomDropdown({ value, onChange, children, ...props }: DropdownProps) {
+  const options = React.Children.toArray(children) as React.ReactElement<
+    React.HTMLProps<HTMLOptionElement>
+  >[];
+
+  const handleValueChange = (newValue: string) => {
+    if (onChange) {
+      const syntheticEvent = {
+        target: { value: newValue },
+      } as React.ChangeEvent<HTMLSelectElement>;
+      onChange(syntheticEvent);
+    }
+  };
+
+  const selectedOption = options.find(
+    (option) => option.props.value?.toString() === value?.toString()
+  );
+
+  return (
+    <Select value={value?.toString()} onValueChange={handleValueChange}>
+      <SelectTrigger className="h-7 w-auto gap-1 border-none bg-transparent px-2 text-sm font-medium focus:ring-0 focus:ring-offset-0">
+        <SelectValue>{selectedOption?.props.children}</SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-60">
+        {options.map((option) => (
+          <SelectItem
+            key={option.props.value?.toString()}
+            value={option.props.value?.toString() ?? ""}
+            disabled={option.props.disabled}
+          >
+            {option.props.children}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -44,6 +90,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        Dropdown: CustomDropdown,
       }}
       {...props}
     />
