@@ -128,12 +128,12 @@ export default function InvoiceList() {
                 className="pl-10"
               />
             </div>
-            <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
+            <Select value={filters.status || "all"} onValueChange={(v) => setFilters({ ...filters, status: v === "all" ? "" : v })}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
@@ -141,23 +141,23 @@ export default function InvoiceList() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.invoice_type} onValueChange={(v) => setFilters({ ...filters, invoice_type: v })}>
+            <Select value={filters.invoice_type || "all"} onValueChange={(v) => setFilters({ ...filters, invoice_type: v === "all" ? "" : v })}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Invoice Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="expense_reimbursement">Expense Reimbursement</SelectItem>
                 <SelectItem value="internal_service">Internal Service</SelectItem>
                 <SelectItem value="goods_transfer">Goods Transfer</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.from_location_id} onValueChange={(v) => setFilters({ ...filters, from_location_id: v })}>
+            <Select value={filters.from_location_id || "all"} onValueChange={(v) => setFilters({ ...filters, from_location_id: v === "all" ? "" : v })}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="From Location" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Locations</SelectItem>
+                <SelectItem value="all">All Locations</SelectItem>
                 {locations?.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                 ))}
