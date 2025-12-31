@@ -48,7 +48,7 @@ export function useSuperAdmin() {
   const companiesQuery = useQuery({
     queryKey: ["super-admin", "companies"],
     queryFn: async () => {
-      const response = await api.get<{ data: Company[] }>("/api-super-admin/companies");
+      const response = await api.get<{ data: Company[] }>("/super-admin/companies");
       return response.data;
     },
   });
@@ -57,7 +57,7 @@ export function useSuperAdmin() {
   const statsQuery = useQuery({
     queryKey: ["super-admin", "stats"],
     queryFn: async () => {
-      const response = await api.get<PlatformStats>("/api-super-admin/stats");
+      const response = await api.get<PlatformStats>("/super-admin/stats");
       return response;
     },
   });
@@ -66,7 +66,7 @@ export function useSuperAdmin() {
   const superAdminsQuery = useQuery({
     queryKey: ["super-admin", "users"],
     queryFn: async () => {
-      const response = await api.get<{ data: SuperAdmin[] }>("/api-super-admin/super-admins");
+      const response = await api.get<{ data: SuperAdmin[] }>("/super-admin/super-admins");
       return response.data;
     },
   });
@@ -74,7 +74,7 @@ export function useSuperAdmin() {
   // Create company
   const createCompanyMutation = useMutation({
     mutationFn: async (data: Partial<Company>) => {
-      return api.post<Company>("/api-super-admin/companies", data);
+      return api.post<Company>("/super-admin/companies", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -89,7 +89,7 @@ export function useSuperAdmin() {
   // Update company
   const updateCompanyMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Company> }) => {
-      return api.put<Company>(`/api-super-admin/companies/${id}`, data);
+      return api.put<Company>(`/super-admin/companies/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -103,7 +103,7 @@ export function useSuperAdmin() {
   // Toggle company status
   const toggleCompanyStatusMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return api.patch(`/api-super-admin/companies/${id}/status`, { is_active: isActive });
+      return api.patch(`/super-admin/companies/${id}/status`, { is_active: isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -117,7 +117,7 @@ export function useSuperAdmin() {
   // Add super admin
   const addSuperAdminMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return api.post("/api-super-admin/super-admins", { user_id: userId });
+      return api.post("/super-admin/super-admins", { user_id: userId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "users"] });
@@ -131,7 +131,7 @@ export function useSuperAdmin() {
   // Remove super admin
   const removeSuperAdminMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/api-super-admin/super-admins/${id}`);
+      return api.delete(`/super-admin/super-admins/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "users"] });
