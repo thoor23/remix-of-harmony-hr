@@ -399,16 +399,16 @@ const App = () => (
                 <Route path="recruitment/analytics" element={<RecruitmentAnalytics />} />
 
                 {/* Onboarding */}
-                <Route path="onboarding" element={<OnboardingDashboard />} />
-                <Route path="onboarding/templates" element={<OnboardingTemplates />} />
-                <Route path="onboarding/start" element={<StartOnboarding />} />
-                <Route path="onboarding/:id" element={<OnboardingDetails />} />
+                <Route path="onboarding" element={<ProtectedRoute module="Onboarding" action="read"><OnboardingDashboard /></ProtectedRoute>} />
+                <Route path="onboarding/templates" element={<ProtectedRoute module="Onboarding" action="read"><OnboardingTemplates /></ProtectedRoute>} />
+                <Route path="onboarding/start" element={<ProtectedRoute module="Onboarding" action="create"><StartOnboarding /></ProtectedRoute>} />
+                <Route path="onboarding/:id" element={<ProtectedRoute module="Onboarding" action="read"><OnboardingDetails /></ProtectedRoute>} />
 
                 {/* Offboarding */}
-                <Route path="offboarding" element={<OffboardingDashboard />} />
-                <Route path="offboarding/initiate" element={<InitiateExit />} />
-                <Route path="offboarding/:id" element={<OffboardingDetails />} />
-                <Route path="offboarding/:id/interview" element={<ExitInterview />} />
+                <Route path="offboarding" element={<ProtectedRoute module="Offboarding" action="read"><OffboardingDashboard /></ProtectedRoute>} />
+                <Route path="offboarding/initiate" element={<ProtectedRoute module="Offboarding" action="create"><InitiateExit /></ProtectedRoute>} />
+                <Route path="offboarding/:id" element={<ProtectedRoute module="Offboarding" action="read"><OffboardingDetails /></ProtectedRoute>} />
+                <Route path="offboarding/:id/interview" element={<ProtectedRoute module="Offboarding" action="update"><ExitInterview /></ProtectedRoute>} />
 
                 {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />
