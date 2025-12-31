@@ -165,6 +165,7 @@ import JobOpenings from "./pages/admin/recruitment/JobOpenings";
 import CreateJobOpening from "./pages/admin/recruitment/CreateJobOpening";
 import JobOpeningDetails from "./pages/admin/recruitment/JobOpeningDetails";
 import Applications from "./pages/admin/recruitment/Applications";
+import AddApplication from "./pages/admin/recruitment/AddApplication";
 import ApplicationDetails from "./pages/admin/recruitment/ApplicationDetails";
 
 const queryClient = new QueryClient();
@@ -368,6 +369,7 @@ const App = () => (
                 <Route path="recruitment/jobs/create" element={<CreateJobOpening />} />
                 <Route path="recruitment/jobs/:id" element={<JobOpeningDetails />} />
                 <Route path="recruitment/applications" element={<Applications />} />
+                <Route path="recruitment/applications/add" element={<AddApplication />} />
                 <Route path="recruitment/applications/:id" element={<ApplicationDetails />} />
 
                 {/* Holidays */}

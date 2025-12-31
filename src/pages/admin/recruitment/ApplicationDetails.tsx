@@ -3,15 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useApplication, useUpdateApplicationStage, useRejectApplication } from "@/hooks/useRecruitment";
+import { useApplication, useUpdateApplicationStage, useRejectApplication, useScheduleInterview, useInterviews } from "@/hooks/useRecruitment";
+import { useEmployees } from "@/hooks/useEmployees";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { ArrowLeft, Mail, Phone, Briefcase, Building, Calendar, ExternalLink, ChevronRight } from "lucide-react";
-import { ApplicationStage } from "@/types/recruitment";
+import { ArrowLeft, Mail, Phone, Briefcase, Building, Calendar, ExternalLink, ChevronRight, Plus, Video, Clock, User } from "lucide-react";
+import { ApplicationStage, InterviewType } from "@/types/recruitment";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const stageColors: Record<string, string> = {
   screening: "bg-blue-100 text-blue-800",
@@ -23,17 +26,37 @@ const stageColors: Record<string, string> = {
   rejected: "bg-red-100 text-red-800",
 };
 
+const interviewTypeLabels: Record<InterviewType, string> = {
+  phone: "Phone Screen",
+  video: "Video Call",
+  technical: "Technical",
+  hr: "HR Interview",
+  panel: "Panel",
+  final: "Final Round",
+};
+
 const stageOrder: ApplicationStage[] = ["screening", "phone-interview", "technical", "hr-interview", "offer", "hired"];
 
 export default function ApplicationDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: application, isLoading } = useApplication(id!);
+  const { data: interviews } = useInterviews({ application_id: id });
+  const { data: employees } = useEmployees();
   const updateStage = useUpdateApplicationStage();
   const rejectApplication = useRejectApplication();
+  const scheduleInterview = useScheduleInterview();
   
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
+  const [interviewForm, setInterviewForm] = useState({
+    interview_type: "phone" as InterviewType,
+    scheduled_at: "",
+    duration_minutes: 60,
+    interviewer_id: "",
+    location_or_link: "",
+  });
 
   if (isLoading) {
     return (
@@ -67,6 +90,22 @@ export default function ApplicationDetails() {
     setRejectDialogOpen(false);
   };
 
+  const handleScheduleInterview = async () => {
+    await scheduleInterview.mutateAsync({
+      application_id: application.id,
+      ...interviewForm,
+      interviewer_id: interviewForm.interviewer_id || undefined,
+    });
+    setInterviewDialogOpen(false);
+    setInterviewForm({
+      interview_type: "phone",
+      scheduled_at: "",
+      duration_minutes: 60,
+      interviewer_id: "",
+      location_or_link: "",
+    });
+  };
+
   return (
     <PageContainer>
       <PageHeader 
@@ -76,6 +115,11 @@ export default function ApplicationDetails() {
         <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
+        {application.status === "active" && (
+          <Button size="sm" variant="outline" onClick={() => setInterviewDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Schedule Interview
+          </Button>
+        )}
         {application.status === "active" && nextStage && (
           <Button 
             size="sm" 
@@ -128,6 +172,75 @@ export default function ApplicationDetails() {
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Interviews */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Interviews
+                {application.status === "active" && (
+                  <Button size="sm" variant="outline" onClick={() => setInterviewDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> Schedule
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {interviews && interviews.length > 0 ? (
+                <div className="space-y-4">
+                  {interviews.map((interview) => (
+                    <div key={interview.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Video className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium capitalize">{interview.interview_type} Interview</span>
+                          <Badge variant={interview.status === "scheduled" ? "default" : interview.status === "completed" ? "secondary" : "destructive"}>
+                            {interview.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(interview.scheduled_at), "MMM d, yyyy 'at' h:mm a")}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {interview.duration_minutes} min
+                          </span>
+                          {interview.interviewer && (
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {interview.interviewer.first_name} {interview.interviewer.last_name}
+                            </span>
+                          )}
+                        </div>
+                        {interview.location_or_link && (
+                          <div className="mt-2 text-sm">
+                            {interview.location_or_link.startsWith("http") ? (
+                              <a href={interview.location_or_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                Join meeting
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">{interview.location_or_link}</span>
+                            )}
+                          </div>
+                        )}
+                        {interview.feedback && (
+                          <div className="mt-2 p-2 bg-muted rounded text-sm">
+                            <span className="font-medium">Feedback: </span>{interview.feedback}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No interviews scheduled yet</p>
+              )}
             </CardContent>
           </Card>
 
@@ -304,6 +417,81 @@ export default function ApplicationDetails() {
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject} disabled={rejectApplication.isPending}>
               Reject Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Interview Dialog */}
+      <Dialog open={interviewDialogOpen} onOpenChange={setInterviewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Interview</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Interview Type</Label>
+              <Select
+                value={interviewForm.interview_type}
+                onValueChange={(value: InterviewType) => setInterviewForm(prev => ({ ...prev, interview_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(interviewTypeLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Date & Time</Label>
+              <Input
+                type="datetime-local"
+                value={interviewForm.scheduled_at}
+                onChange={(e) => setInterviewForm(prev => ({ ...prev, scheduled_at: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>Duration (minutes)</Label>
+              <Input
+                type="number"
+                value={interviewForm.duration_minutes}
+                onChange={(e) => setInterviewForm(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) || 60 }))}
+              />
+            </div>
+            <div>
+              <Label>Interviewer</Label>
+              <Select
+                value={interviewForm.interviewer_id}
+                onValueChange={(value) => setInterviewForm(prev => ({ ...prev, interviewer_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select interviewer (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees?.filter(e => e.status === "active").map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Location or Meeting Link</Label>
+              <Input
+                value={interviewForm.location_or_link}
+                onChange={(e) => setInterviewForm(prev => ({ ...prev, location_or_link: e.target.value }))}
+                placeholder="e.g., https://meet.google.com/... or Room 101"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInterviewDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleScheduleInterview} disabled={scheduleInterview.isPending || !interviewForm.scheduled_at}>
+              Schedule Interview
             </Button>
           </DialogFooter>
         </DialogContent>
