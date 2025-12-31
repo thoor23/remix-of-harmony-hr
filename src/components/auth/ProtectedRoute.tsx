@@ -48,8 +48,16 @@ export function ProtectedRoute({
     return <Navigate to={roleRedirects[role] || "/employee"} replace />;
   }
 
+  // Wait for permissions to load before checking module access
+  if (module && permLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   // If module is specified, check module permissions
-  // But wait for permissions to load first
   if (module && !permLoading) {
     let hasPermission = false;
     switch (action) {
