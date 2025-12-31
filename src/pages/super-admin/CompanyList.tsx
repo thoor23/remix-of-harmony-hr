@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
+import { ColumnDef } from "@/lib/csvExport";
 import { 
   Building2, 
   Plus, 
@@ -37,12 +39,9 @@ import {
   Eye, 
   Edit, 
   Power,
-  Download,
-  RefreshCw,
   ArrowUpDown,
-  ChevronUp,
-  ChevronDown,
-  Filter,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -52,7 +51,20 @@ import { toast } from "sonner";
 type SortField = "name" | "code" | "email" | "subscription_plan" | "employee_count" | "created_at";
 type SortDirection = "asc" | "desc";
 
+const getInitialColumns = (): ColumnDef[] => [
+  { id: "checkbox", header: "", accessor: "", visible: true },
+  { id: "company", header: "Company", accessor: "name", visible: true },
+  { id: "code", header: "Code", accessor: "code", visible: true },
+  { id: "email", header: "Email", accessor: "email", visible: true },
+  { id: "subscription_plan", header: "Plan", accessor: "subscription_plan", visible: true },
+  { id: "employee_count", header: "Employees", accessor: "employee_count", visible: true },
+  { id: "status", header: "Status", accessor: "is_active", visible: true },
+  { id: "created_at", header: "Created", accessor: "created_at", visible: true },
+  { id: "actions", header: "", accessor: "", visible: true },
+];
+
 export default function CompanyList() {
+  const navigate = useNavigate();
   const { companies, companiesLoading, toggleCompanyStatus } = useSuperAdmin();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -63,6 +75,9 @@ export default function CompanyList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
+  const [columns, setColumns] = useState<ColumnDef[]>(getInitialColumns);
+
+  const visibleColumns = columns.filter(col => col.visible);
 
   // Filter companies
   const filteredCompanies = useMemo(() => {
@@ -141,8 +156,23 @@ export default function CompanyList() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
     return sortDirection === "asc" 
-      ? <ChevronUp className="h-4 w-4 ml-1" />
-      : <ChevronDown className="h-4 w-4 ml-1" />;
+      ? <ArrowUp className="h-4 w-4 ml-1" />
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  const handleToggleColumn = (columnId: string, visible: boolean) => {
+    setColumns(prev => prev.map(col => 
+      col.id === columnId ? { ...col, visible } : col
+    ));
+  };
+
+  const handleExportCsv = () => {
+    handleExport();
+  };
+
+  const handleRefresh = () => {
+    // Trigger a refetch by invalidating the query
+    window.location.reload();
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -210,31 +240,21 @@ export default function CompanyList() {
       </PageHeader>
 
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle>All Companies</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-                <Button variant="outline" size="sm" disabled={companiesLoading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${companiesLoading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
+        <DataTableToolbar
+          columns={columns.filter(c => c.id !== "checkbox" && c.id !== "actions")}
+          onToggleColumn={handleToggleColumn}
+          onExport={handleExportCsv}
+          onRefresh={handleRefresh}
+          onAddRow={() => navigate("/super-admin/companies/new")}
+          onToggleFilter={() => setShowFilters(!showFilters)}
+          showFilter={showFilters}
+          isRefreshing={companiesLoading}
+          addRowLabel="Add Company"
+        />
 
-            {/* Search and Filters */}
+        {/* Filters */}
+        {showFilters && (
+          <div className="p-4 border-b bg-muted/30">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -246,53 +266,49 @@ export default function CompanyList() {
                 />
               </div>
               
-              {showFilters && (
-                <>
-                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
 
-                  <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Plans</SelectItem>
-                      {uniquePlans.map(plan => (
-                        <SelectItem key={plan} value={plan} className="capitalize">
-                          {plan}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
+              <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Plans</SelectItem>
+                  {uniquePlans.map(plan => (
+                    <SelectItem key={plan} value={plan} className="capitalize">
+                      {plan}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            {/* Bulk Actions */}
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <span className="text-sm font-medium">{selectedIds.length} selected</span>
-                <Button size="sm" variant="outline" onClick={() => handleBulkAction("activate")}>
-                  Activate All
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleBulkAction("deactivate")}>
-                  Deactivate All
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
-                  Clear Selection
-                </Button>
-              </div>
-            )}
           </div>
-        </CardHeader>
+        )}
+
+        {/* Bulk Actions */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center gap-3 p-4 border-b bg-primary/5">
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction("activate")}>
+              Activate All
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction("deactivate")}>
+              Deactivate All
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+              Clear Selection
+            </Button>
+          </div>
+        )}
         <CardContent>
           {companiesLoading ? (
             <div className="space-y-3">
