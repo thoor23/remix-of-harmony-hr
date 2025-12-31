@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 
 import { ClipboardList, BarChart3 } from "lucide-react";
+import { EnvironmentSwitcher } from "@/components/super-admin/EnvironmentSwitcher";
 
 const sidebarItems = [
   { label: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
@@ -212,6 +213,11 @@ export function SuperAdminLayout() {
                 </div>
               ))}
             </nav>
+          </div>
+
+          {/* Environment Switcher */}
+          <div className="hidden md:flex items-center mr-2">
+            <EnvironmentSwitcher />
           </div>
 
           {/* User menu */}

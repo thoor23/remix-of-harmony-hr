@@ -1,9 +1,13 @@
 /**
  * API Client for Edge Functions Backend
  * Calls Supabase Edge Functions for all operations
+ * Supports environment switching between Lovable Cloud and VPS Testing
  */
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { getSupabaseUrl } from '@/integrations/supabase/env-switcher';
+
+// Dynamic Supabase URL based on environment
+const getBaseUrl = () => getSupabaseUrl();
 
 // Token management
 const getAccessToken = () => localStorage.getItem('access_token');
@@ -19,6 +23,8 @@ const clearTokens = () => {
 
 // Map endpoint to edge function name
 function getEdgeFunctionUrl(endpoint: string): string {
+  const baseUrl = getBaseUrl();
+  
   // Separate path from query string
   const [pathPart, queryString] = endpoint.split('?');
   
@@ -33,7 +39,7 @@ function getEdgeFunctionUrl(endpoint: string): string {
   const fullPath = subPath ? `/${subPath}` : '';
   const query = queryString ? `?${queryString}` : '';
   
-  return `${SUPABASE_URL}/functions/v1/${functionName}${fullPath}${query}`;
+  return `${baseUrl}/functions/v1/${functionName}${fullPath}${query}`;
 }
 
 // Request helper with auth
@@ -89,7 +95,8 @@ async function refreshAccessToken(): Promise<boolean> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) return false;
     
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-auth/refresh`, {
+    const baseUrl = getBaseUrl();
+    const response = await fetch(`${baseUrl}/functions/v1/api-auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -133,7 +140,8 @@ export const api = {
 // Auth-specific methods
 export const authApi = {
   login: async (email: string, password: string) => {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-auth/login`, {
+    const baseUrl = getBaseUrl();
+    const response = await fetch(`${baseUrl}/functions/v1/api-auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -153,7 +161,8 @@ export const authApi = {
     try {
       const token = getAccessToken();
       if (token) {
-        await fetch(`${SUPABASE_URL}/functions/v1/api-auth/logout`, {
+        const baseUrl = getBaseUrl();
+        await fetch(`${baseUrl}/functions/v1/api-auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
