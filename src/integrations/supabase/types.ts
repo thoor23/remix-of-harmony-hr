@@ -3198,6 +3198,75 @@ export type Database = {
         }
         Relationships: []
       }
+      status_history: {
+        Row: {
+          checked_at: string
+          created_at: string
+          id: string
+          response_time_ms: number | null
+          service_group: string
+          service_name: string
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          service_group: string
+          service_name: string
+          status?: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          service_group?: string
+          service_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      status_incidents: {
+        Row: {
+          affected_services: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          resolved_at: string | null
+          severity: string
+          started_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_services?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          started_at?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_services?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          started_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           address_city: string | null

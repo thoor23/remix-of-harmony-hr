@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Bell, History, Building2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function StatusPage() {
   const { data, isLoading, error } = useServerStatus(30000);
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigate = useNavigate();
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -133,6 +135,7 @@ export default function StatusPage() {
           <Button
             variant="ghost"
             className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+            onClick={() => navigate('/status/history')}
           >
             <History className="h-4 w-4 mr-2" />
             View history

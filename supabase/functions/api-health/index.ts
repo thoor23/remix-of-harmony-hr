@@ -166,6 +166,22 @@ serve(async (req) => {
         overallStatus = 'degraded';
       }
       
+      // Log status to history (async, don't wait)
+      const supabase = getSupabaseClient();
+      const historyRecords = [
+        ...coreResults.map(s => ({ service_name: s.name, service_group: 'core', status: s.status, response_time_ms: s.responseTime })),
+        ...businessResults.map(s => ({ service_name: s.name, service_group: 'business', status: s.status, response_time_ms: s.responseTime })),
+        ...supportResults.map(s => ({ service_name: s.name, service_group: 'support', status: s.status, response_time_ms: s.responseTime })),
+      ];
+      
+      supabase.from('status_history').insert(historyRecords).then(({ error }) => {
+        if (error) {
+          console.error('[api-health] Failed to log status history:', error);
+        } else {
+          console.log('[api-health] Logged', historyRecords.length, 'status records');
+        }
+      });
+      
       return jsonResponse({
         status: overallStatus,
         timestamp: new Date().toISOString(),

@@ -187,6 +187,7 @@ import Careers from "./pages/public/Careers";
 import JobDetails from "./pages/public/JobDetails";
 import ApplicationStatus from "./pages/public/ApplicationStatus";
 import StatusPage from "./pages/public/StatusPage";
+import StatusHistoryPage from "./pages/public/StatusHistoryPage";
 
 const queryClient = new QueryClient();
 
@@ -210,8 +211,9 @@ const App = () => (
                 <Route path="/careers/:id" element={<JobDetails />} />
                 <Route path="/careers/status" element={<ApplicationStatus />} />
                 
-                {/* Public Status Page */}
+                {/* Public Status Pages */}
                 <Route path="/status" element={<StatusPage />} />
+                <Route path="/status/history" element={<StatusHistoryPage />} />
               
               {/* Unified App Routes - Protected */}
               <Route
