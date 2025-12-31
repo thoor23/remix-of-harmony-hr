@@ -143,6 +143,14 @@ import EmployeePayrollReport from "./pages/employee/reports/PayrollReport";
 import EmployeeDocumentsReport from "./pages/employee/reports/DocumentsReport";
 import EmployeeAssetsReport from "./pages/employee/reports/AssetsReport";
 import EmployeeHelpdeskReport from "./pages/employee/reports/HelpdeskReport";
+import EmployeeExpensesReport from "./pages/employee/reports/ExpensesReport";
+
+// Expense Management Pages
+import ExpenseManagement from "./pages/admin/expenses/ExpenseManagement";
+import ExpenseCategories from "./pages/admin/expenses/ExpenseCategories";
+import ExpensePolicies from "./pages/admin/expenses/ExpensePolicies";
+import ExpenseReports from "./pages/admin/reports/ExpenseReports";
+import EmployeeExpenses from "./pages/employee/Expenses";
 
 const queryClient = new QueryClient();
 
@@ -269,6 +277,15 @@ const App = () => (
                 <Route path="reports/attendance" element={<AttendanceReports />} />
                 <Route path="reports/leave" element={<LeaveReports />} />
                 <Route path="reports/payroll" element={<PayrollReports />} />
+                <Route path="reports/expenses" element={<ExpenseReports />} />
+                
+                {/* Expenses */}
+                <Route path="expenses" element={<ExpenseManagement />} />
+                <Route path="expenses/categories" element={<ExpenseCategories />} />
+                <Route path="expenses/policies" element={<ExpensePolicies />} />
+                {/* My Expenses */}
+                <Route path="my-expenses" element={<EmployeeExpenses />} />
+                <Route path="my-expenses/report" element={<EmployeeExpensesReport />} />
                 
                 {/* Shifts */}
                 <Route path="shifts" element={<ShiftList />} />

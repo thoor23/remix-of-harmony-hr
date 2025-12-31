@@ -80,6 +80,13 @@ export const adminModuleConfig: Record<string, ModuleConfig> = {
     category: 'admin',
     description: 'Salary and payslip management',
   },
+  'Expenses': {
+    name: 'Expenses',
+    routes: ['/app/expenses'],
+    icon: Wallet,
+    category: 'admin',
+    description: 'Expense claims and reimbursements',
+  },
   'Documents': {
     name: 'Documents',
     routes: ['/app/file-manager', '/app/letters'],
@@ -182,6 +189,13 @@ export const employeeModuleConfig: Record<string, ModuleConfig> = {
     category: 'employee',
     description: 'Personal payslips',
   },
+  'My Expenses': {
+    name: 'My Expenses',
+    routes: ['/app/my-expenses'],
+    icon: Wallet,
+    category: 'employee',
+    description: 'Personal expense claims',
+  },
   'My Documents': {
     name: 'My Documents',
     routes: ['/app/my-documents'],
@@ -224,6 +238,7 @@ export const employeeModuleConfig: Record<string, ModuleConfig> = {
       '/app/my-shifts/report',
       '/app/my-leaves/report',
       '/app/my-payroll/report',
+      '/app/my-expenses/report',
       '/app/my-helpdesk/report',
     ],
     icon: BarChart3,

@@ -81,7 +81,7 @@ const defaultFormData = {
   title: "",
   description: "",
   amount: 0,
-  expense_date: new Date(),
+  expense_date: new Date().toISOString().split('T')[0],
 };
 
 export default function EmployeeExpenses() {
@@ -624,8 +624,8 @@ export default function EmployeeExpenses() {
               <div className="space-y-2">
                 <Label>Expense Date *</Label>
                 <DatePicker
-                  date={formData.expense_date}
-                  onDateChange={(date) => setFormData({ ...formData, expense_date: date || new Date() })}
+                  value={formData.expense_date}
+                  onChange={(value) => setFormData({ ...formData, expense_date: value })}
                 />
               </div>
             </div>
