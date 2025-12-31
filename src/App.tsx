@@ -186,6 +186,7 @@ import ExitInterview from "./pages/admin/offboarding/ExitInterview";
 import Careers from "./pages/public/Careers";
 import JobDetails from "./pages/public/JobDetails";
 import ApplicationStatus from "./pages/public/ApplicationStatus";
+import StatusPage from "./pages/public/StatusPage";
 
 const queryClient = new QueryClient();
 
@@ -208,6 +209,9 @@ const App = () => (
                 <Route path="/careers" element={<Careers />} />
                 <Route path="/careers/:id" element={<JobDetails />} />
                 <Route path="/careers/status" element={<ApplicationStatus />} />
+                
+                {/* Public Status Page */}
+                <Route path="/status" element={<StatusPage />} />
               
               {/* Unified App Routes - Protected */}
               <Route
