@@ -114,7 +114,7 @@ export function SuperAdminLayout() {
   const breadcrumbs = generateBreadcrumbs();
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -123,10 +123,10 @@ export function SuperAdminLayout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 md:relative md:translate-x-0 flex-shrink-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -180,10 +180,10 @@ export function SuperAdminLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-14 border-b bg-card flex items-center justify-between px-4">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
+        {/* Top bar - Fixed */}
+        <header className="h-14 border-b bg-card flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -242,7 +242,7 @@ export function SuperAdminLayout() {
           </DropdownMenu>
         </header>
 
-        {/* Page content */}
+        {/* Page content - Scrollable */}
         <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
