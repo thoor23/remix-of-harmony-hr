@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401);
     }
 
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
 
     async function getEmployeeId(): Promise<string | null> {
@@ -46,6 +47,7 @@ Deno.serve(async (req) => {
           reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, first_name, last_name, email, avatar_url)
         `)
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
           employee:employees!profile_change_requests_employee_id_fkey(id, employee_id, first_name, last_name, email, avatar_url),
           reviewer:employees!profile_change_requests_reviewed_by_fkey(id, employee_id, first_name, last_name, email, avatar_url)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (status) {
@@ -89,14 +92,14 @@ Deno.serve(async (req) => {
       
       const { data, error } = await supabase
         .from('profile_change_requests')
-        .insert({
+        .insert(withCompanyId({
           employee_id: employeeId,
           field_name: body.field_name,
           current_value: body.current_value,
           new_value: body.new_value,
           reason: body.reason,
           status: 'pending',
-        })
+        }, companyId))
         .select()
         .single();
 

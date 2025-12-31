@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401);
     }
 
+    const companyId = getRequestCompanyId(url, auth);
+
     const templateType = subPath[0]; // letters, emails, announcements, payslips, banners
     const templateId = subPath[1];
 
@@ -75,6 +77,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
+        .eq('company_id', companyId)
         .eq('is_default', true)
         .maybeSingle();
 
@@ -88,6 +91,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
+        .eq('company_id', companyId)
         .eq('type', letterType)
         .eq('is_default', true)
         .maybeSingle();
@@ -99,7 +103,7 @@ Deno.serve(async (req) => {
     // GET /type - List templates
     if (req.method === 'GET' && !templateId && tableName) {
       const type = url.searchParams.get('type');
-      let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
+      let query = supabase.from(tableName).select('*').eq('company_id', companyId).order('created_at', { ascending: false });
       
       if (type) {
         query = query.eq('type', type);
@@ -127,10 +131,10 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from(tableName)
-        .insert({
+        .insert(withCompanyId({
           ...body,
           created_by: auth.userId
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -196,10 +200,10 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('generated_letters')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           generated_by: auth.userId
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -219,6 +223,7 @@ Deno.serve(async (req) => {
           employee:employees(id, employee_id, user_id),
           template:letter_templates(id, name)
         `)
+        .eq('company_id', companyId)
         .order('generated_at', { ascending: false });
 
       if (type) query = query.eq('type', type);

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 interface InvoiceItem {
@@ -29,14 +29,16 @@ serve(async (req) => {
     const supabase = getSupabaseClient();
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
+    const url = new URL(req.url);
+    const companyId = getRequestCompanyId(url, auth);
     // Get employee record
     const { data: employeeData } = await supabase
       .from('employees')
       .select('id, first_name, last_name')
       .eq('user_id', auth.userId)
+      .eq('company_id', companyId)
       .single();
 
-    const url = new URL(req.url);
     const pathname = url.pathname.replace('/api-internal-invoices', '');
     const method = req.method;
 
@@ -51,6 +53,7 @@ serve(async (req) => {
         const { data, error } = await supabase
           .from('internal_invoice_categories')
           .select('*')
+          .eq('company_id', companyId)
           .order('name');
 
         if (error) throw error;
@@ -66,7 +69,7 @@ serve(async (req) => {
         const body = await req.json();
         const { data, error } = await supabase
           .from('internal_invoice_categories')
-          .insert(body)
+          .insert(withCompanyId(body, companyId))
           .select()
           .single();
 
@@ -117,7 +120,8 @@ serve(async (req) => {
       // Get all invoices for stats
       const { data: invoices, error } = await supabase
         .from('internal_invoices')
-        .select('id, status, total_amount, paid_at');
+        .select('id, status, total_amount, paid_at')
+        .eq('company_id', companyId);
 
       if (error) throw error;
 
@@ -148,6 +152,7 @@ serve(async (req) => {
       const { data: recurringInvoices, error: fetchError } = await supabase
         .from('internal_invoices')
         .select('*, internal_invoice_items(*)')
+        .eq('company_id', companyId)
         .eq('is_recurring', true)
         .lte('next_recurring_date', today)
         .not('status', 'eq', 'cancelled');
@@ -184,7 +189,7 @@ serve(async (req) => {
         // Create new invoice
         const { data: newInvoice, error: createError } = await supabase
           .from('internal_invoices')
-          .insert({
+          .insert(withCompanyId({
             from_location_id: invoice.from_location_id,
             to_location_id: invoice.to_location_id,
             invoice_type: invoice.invoice_type,
@@ -199,7 +204,7 @@ serve(async (req) => {
             is_recurring: false,
             parent_invoice_id: invoice.id,
             created_by: invoice.created_by,
-          })
+          }, companyId))
           .select()
           .single();
 
@@ -210,14 +215,14 @@ serve(async (req) => {
 
         // Copy line items
         if (invoice.internal_invoice_items?.length > 0) {
-          const items = invoice.internal_invoice_items.map((item: InvoiceItem) => ({
+          const items = invoice.internal_invoice_items.map((item: InvoiceItem) => withCompanyId({
             invoice_id: newInvoice.id,
             category_id: item.category_id,
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
             amount: item.quantity * item.unit_price,
-          }));
+          }, companyId));
 
           await supabase.from('internal_invoice_items').insert(items);
         }
@@ -251,6 +256,7 @@ serve(async (req) => {
           to_location:stores!internal_invoices_to_location_id_fkey(id, name, code, type),
           created_by_employee:employees!internal_invoices_created_by_fkey(id, first_name, last_name, employee_id)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       // Apply filters

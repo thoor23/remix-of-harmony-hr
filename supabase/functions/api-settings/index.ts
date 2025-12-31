@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 // Helper function to generate default permissions based on legacy role enum
@@ -111,6 +111,7 @@ serve(async (req) => {
     }
 
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
+    const companyId = getRequestCompanyId(url, auth);
 
     // GET /user-permissions - Get current user's permissions from their role
     if (method === 'GET' && path === '/user-permissions') {
@@ -170,6 +171,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('system_settings')
         .select('*')
+        .eq('company_id', companyId)
         .order('key');
 
       if (error) throw error;
@@ -262,7 +264,7 @@ serve(async (req) => {
       } else {
         const { data, error } = await supabase
           .from('system_settings')
-          .insert({ key, value: body.value, category: body.category || 'general' })
+          .insert(withCompanyId({ key, value: body.value, category: body.category || 'general' }, companyId))
           .select()
           .single();
         if (error) throw error;
@@ -279,6 +281,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('roles')
         .select('*')
+        .eq('company_id', companyId)
         .order('name');
 
       if (error) throw error;
@@ -294,7 +297,7 @@ serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('roles')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
