@@ -89,6 +89,7 @@ import {
   Eye,
   UserCircle,
   Briefcase,
+  Activity,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -424,6 +425,7 @@ const unifiedNavSections: NavSection[] = [
           { title: "Email Configuration", href: "/app/settings/email", icon: Mail },
           { title: "System Preferences", href: "/app/settings/system", icon: Settings2 },
           { title: "Data Management", href: "/app/settings/seeder", icon: Database },
+          { title: "Server Status", href: "/app/settings/server-status", icon: Activity },
         ],
       },
       {
