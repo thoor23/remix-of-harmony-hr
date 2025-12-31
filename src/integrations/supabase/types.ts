@@ -1153,6 +1153,154 @@ export type Database = {
           },
         ]
       }
+      expense_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_amount: number | null
+          name: string
+          requires_receipt: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_amount?: number | null
+          name: string
+          requires_receipt?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_amount?: number | null
+          name?: string
+          requires_receipt?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_claims: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          description: string | null
+          employee_id: string
+          expense_date: string
+          id: string
+          receipt_url: string | null
+          reimbursed_at: string | null
+          review_comments: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          reimbursed_at?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          reimbursed_at?: string | null
+          review_comments?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_claims_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_policies: {
+        Row: {
+          auto_approve_below: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          max_monthly_limit: number | null
+          name: string
+          requires_manager_approval: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          auto_approve_below?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_monthly_limit?: number | null
+          name: string
+          requires_manager_approval?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          auto_approve_below?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_monthly_limit?: number | null
+          name?: string
+          requires_manager_approval?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       generated_letters: {
         Row: {
           content: string
