@@ -78,7 +78,7 @@ const GeometricPattern = () => (
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user } = useAuth();
+  const { signIn, user, isSuperAdmin } = useAuth();
   const { data: branding } = useCompanyBranding();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -104,7 +104,9 @@ export default function AuthPage() {
   }
 
   if (user && !isPasswordReset) {
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app/dashboard";
+    // Redirect super admins to super admin portal, others to app dashboard
+    const defaultPath = isSuperAdmin ? "/super-admin" : "/app/dashboard";
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || defaultPath;
     navigate(from, { replace: true });
     return null;
   }
@@ -139,9 +141,7 @@ export default function AuthPage() {
     }
 
     toast.success("Welcome back!");
-    // Redirect based on role type - will be determined by PermissionContext after load
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/app/dashboard";
-    navigate(from, { replace: true });
+    // The AuthContext will update and trigger a re-render which will redirect appropriately
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
