@@ -273,6 +273,16 @@ const unifiedNavSections: NavSection[] = [
           { title: "Expense Reports", href: "/app/reports/expenses", icon: BarChart3 },
         ],
       },
+      {
+        title: "Internal Billing",
+        icon: Receipt,
+        children: [
+          { title: "Invoices", href: "/app/internal-billing/invoices", icon: FileText },
+          { title: "Create Invoice", href: "/app/internal-billing/invoices/add", icon: FilePlus },
+          { title: "Categories", href: "/app/internal-billing/categories", icon: Tags },
+          { title: "Billing Reports", href: "/app/internal-billing/reports", icon: BarChart3 },
+        ],
+      },
     ],
   },
   {
@@ -428,6 +438,7 @@ const navItemToModule: Record<string, string> = {
   "Payroll": "Payroll",
   "Expenses": "Expenses",
   "My Expenses": "My Expenses",
+  "Internal Billing": "Internal Billing",
   "Documents": "Documents",
   "Assets": "Assets",
   "Locations": "Locations",
