@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -20,10 +20,11 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401);
     }
 
+    const companyId = getRequestCompanyId(url, auth);
+    const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
+
     // GET / - List all tickets (admin/hr) or user's tickets
     if (req.method === 'GET' && subPath.length === 0) {
-      const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
-      
       let query = supabase
         .from('helpdesk_tickets')
         .select(`
@@ -31,6 +32,7 @@ Deno.serve(async (req) => {
           employee:employees!helpdesk_tickets_employee_id_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url),
           assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (!isAdminOrHR) {
@@ -39,6 +41,7 @@ Deno.serve(async (req) => {
           .from('employees')
           .select('id')
           .eq('user_id', auth.userId)
+          .eq('company_id', companyId)
           .maybeSingle();
 
         if (employee) {
@@ -65,10 +68,10 @@ Deno.serve(async (req) => {
           assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
       return jsonResponse(data || []);
     }
 
@@ -83,10 +86,10 @@ Deno.serve(async (req) => {
           assigned:employees!helpdesk_tickets_assigned_to_fkey(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (error) throw error;
-
       return jsonResponse(data);
     }
 
@@ -101,6 +104,7 @@ Deno.serve(async (req) => {
           .from('employees')
           .select('id')
           .eq('user_id', auth.userId)
+          .eq('company_id', companyId)
           .maybeSingle();
         
         if (employee) {
@@ -110,10 +114,10 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('helpdesk_tickets')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           employee_id: employeeId
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -126,7 +130,7 @@ Deno.serve(async (req) => {
       const id = subPath[0];
       const body = await req.json();
       
-      const updateData: any = { ...body };
+      const updateData: Record<string, unknown> = { ...body };
       if (body.status === 'resolved' && !body.resolved_at) {
         updateData.resolved_at = new Date().toISOString();
       }
@@ -135,6 +139,7 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .update(updateData)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -148,7 +153,8 @@ Deno.serve(async (req) => {
       const { error } = await supabase
         .from('helpdesk_tickets')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
@@ -163,6 +169,7 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .select('employee_id')
         .eq('id', ticketId)
+        .eq('company_id', companyId)
         .single();
 
       if (!ticket) {
@@ -174,10 +181,9 @@ Deno.serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
-      const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
-      
       // Check access - must be ticket owner or admin/hr
       if (!isAdminOrHR && employee?.id !== ticket.employee_id) {
         return errorResponse('Access denied', 403);
@@ -190,6 +196,7 @@ Deno.serve(async (req) => {
           sender:employees!ticket_messages_sender_id_fkey(id, employee_id, user_id, first_name, last_name, avatar_url)
         `)
         .eq('ticket_id', ticketId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: true });
 
       // Non-admin users can't see internal messages
@@ -213,6 +220,7 @@ Deno.serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (!employee) {
@@ -224,14 +232,13 @@ Deno.serve(async (req) => {
         .from('helpdesk_tickets')
         .select('employee_id')
         .eq('id', ticketId)
+        .eq('company_id', companyId)
         .single();
 
       if (!ticket) {
         return errorResponse('Ticket not found', 404);
       }
 
-      const isAdminOrHR = auth.role === 'admin' || auth.role === 'hr';
-      
       // Check access - must be ticket owner or admin/hr
       if (!isAdminOrHR && employee.id !== ticket.employee_id) {
         return errorResponse('Access denied', 403);
@@ -242,12 +249,12 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('ticket_messages')
-        .insert({
+        .insert(withCompanyId({
           ticket_id: ticketId,
           sender_id: employee.id,
           message: body.message,
           is_internal: isInternal,
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -257,7 +264,8 @@ Deno.serve(async (req) => {
       await supabase
         .from('helpdesk_tickets')
         .update({ updated_at: new Date().toISOString() })
-        .eq('id', ticketId);
+        .eq('id', ticketId)
+        .eq('company_id', companyId);
 
       return jsonResponse(data, 201);
     }

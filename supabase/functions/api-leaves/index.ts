@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     async function getEmployeeId(): Promise<string | null> {
@@ -26,6 +27,7 @@ serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth!.userId)
+        .eq('company_id', companyId)
         .single();
       return data?.id || null;
     }
@@ -35,6 +37,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('leave_types')
         .select('*')
+        .eq('company_id', companyId)
         .order('name');
 
       if (error) throw error;
@@ -54,6 +57,7 @@ serve(async (req) => {
         .from('leave_balances')
         .select('*, leave_type:leave_types(*)')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('year', year);
 
       if (error) throw error;
@@ -71,6 +75,7 @@ serve(async (req) => {
         .from('leave_requests')
         .select('*, leave_type:leave_types(*)')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -96,6 +101,7 @@ serve(async (req) => {
             avatar_url
           )
         `)
+        .eq('company_id', companyId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -128,6 +134,7 @@ serve(async (req) => {
             avatar_url
           )
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (status) {
@@ -151,11 +158,11 @@ serve(async (req) => {
       
       const { data, error } = await supabase
         .from('leave_requests')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           employee_id: employeeId,
           status: 'pending',
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -167,6 +174,7 @@ serve(async (req) => {
         .from('leave_balances')
         .update({ pending_days: supabase.rpc('increment_pending', { days: body.days }) })
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('leave_type_id', body.leave_type_id)
         .eq('year', year);
 
@@ -184,6 +192,7 @@ serve(async (req) => {
         .from('leave_requests')
         .select('*')
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (!originalRequest) {
@@ -207,6 +216,7 @@ serve(async (req) => {
           .from('leave_balances')
           .select('*')
           .eq('employee_id', originalRequest.employee_id)
+          .eq('company_id', companyId)
           .eq('leave_type_id', originalRequest.leave_type_id)
           .eq('year', year)
           .single();
@@ -227,6 +237,7 @@ serve(async (req) => {
           .from('leave_balances')
           .select('*')
           .eq('employee_id', originalRequest.employee_id)
+          .eq('company_id', companyId)
           .eq('leave_type_id', originalRequest.leave_type_id)
           .eq('year', year)
           .single();
@@ -245,6 +256,7 @@ serve(async (req) => {
         .from('leave_requests')
         .update(updateData)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -261,6 +273,7 @@ serve(async (req) => {
         .from('leave_requests')
         .select('*')
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (!request) {
@@ -280,6 +293,7 @@ serve(async (req) => {
           .from('leave_balances')
           .select('*')
           .eq('employee_id', request.employee_id)
+          .eq('company_id', companyId)
           .eq('leave_type_id', request.leave_type_id)
           .eq('year', year)
           .single();
@@ -297,7 +311,8 @@ serve(async (req) => {
       const { error } = await supabase
         .from('leave_requests')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
@@ -316,6 +331,7 @@ serve(async (req) => {
         .from('leave_requests')
         .select('*, leave_type:leave_types(*)')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -336,6 +352,7 @@ serve(async (req) => {
         .from('leave_balances')
         .select('*, leave_type:leave_types(*)')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('year', year);
 
       if (error) throw error;
