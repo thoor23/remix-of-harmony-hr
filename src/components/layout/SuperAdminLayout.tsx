@@ -62,16 +62,32 @@ export function SuperAdminLayout() {
       dashboard: "Dashboard",
       companies: "Companies",
       users: "Super Admins",
-      settings: "Settings",
+      settings: "Global Settings",
       new: "Add New",
       edit: "Edit",
+      audit: "Audit Logs",
+      analytics: "Analytics",
+      "add-admin": "Create Admin",
     };
+
+    // UUID regex pattern
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
       if (segment === "super-admin") return;
 
-      const label = labels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+      // Skip UUID segments but show "Details" instead
+      if (uuidPattern.test(segment)) {
+        if (index < pathSegments.length - 1) {
+          breadcrumbs.push({ label: "Details", href: currentPath });
+        } else {
+          breadcrumbs.push({ label: "Details" });
+        }
+        return;
+      }
+
+      const label = labels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
       
       if (index < pathSegments.length - 1) {
         breadcrumbs.push({ label, href: currentPath });
