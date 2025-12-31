@@ -4,6 +4,9 @@ const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'your-super-secret-jwt-key-chan
 const JWT_EXPIRES_IN = 60 * 60 * 24; // 24 hours in seconds
 const JWT_REFRESH_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days in seconds
 
+// Default company ID for existing data
+export const DEFAULT_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+
 // Create Supabase client with service role (bypasses RLS)
 export function getSupabaseClient() {
   return createClient(
@@ -164,8 +167,54 @@ export async function comparePassword(password: string, storedHash: string): Pro
   }
 }
 
-// Extract and verify token from request
-export async function authenticateRequest(req: Request): Promise<{ userId: string; email: string; role: string } | null> {
+// Auth context with company information
+export interface AuthContext {
+  userId: string;
+  email: string;
+  role: string;
+  companyId: string;
+  isSuperAdmin: boolean;
+}
+
+// Check if user is super admin
+export async function checkIsSuperAdmin(userId: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data } = await supabase
+    .from('super_admins')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  return !!data;
+}
+
+// Get user's company ID
+export async function getUserCompanyId(userId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  
+  // First check users table
+  const { data: user } = await supabase
+    .from('users')
+    .select('company_id')
+    .eq('id', userId)
+    .maybeSingle();
+  
+  if (user?.company_id) {
+    return user.company_id;
+  }
+  
+  // Fallback to employees table
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('company_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  return employee?.company_id || DEFAULT_COMPANY_ID;
+}
+
+// Extract and verify token from request - now includes company context
+export async function authenticateRequest(req: Request): Promise<AuthContext | null> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return null;
@@ -178,14 +227,24 @@ export async function authenticateRequest(req: Request): Promise<{ userId: strin
     return null;
   }
 
+  const userId = payload.userId as string;
+  
+  // Get company context
+  const [companyId, isSuperAdmin] = await Promise.all([
+    getUserCompanyId(userId),
+    checkIsSuperAdmin(userId)
+  ]);
+
   return {
-    userId: payload.userId as string,
+    userId,
     email: payload.email as string,
     role: payload.role as string,
+    companyId,
+    isSuperAdmin,
   };
 }
 
-// Get user info including employee details (no longer fetches profiles)
+// Get user info including employee details
 export async function getUserInfo(userId: string) {
   const supabase = getSupabaseClient();
   
@@ -212,16 +271,35 @@ export async function getUserInfo(userId: string) {
     .eq('user_id', userId)
     .single();
   
+  // Get super admin status
+  const isSuperAdmin = await checkIsSuperAdmin(userId);
+  
+  // Get company info
+  const companyId = user.company_id || employee?.company_id || DEFAULT_COMPANY_ID;
+  const { data: company } = await supabase
+    .from('companies')
+    .select('*')
+    .eq('id', companyId)
+    .single();
+  
   return {
     user,
     role: roleData?.role || 'employee',
     employee,
+    company,
+    isSuperAdmin,
   };
 }
 
 // Check if user has permission for a specific module and action
 export async function checkPermission(userId: string, module: string, action: 'create' | 'read' | 'update' | 'delete'): Promise<boolean> {
   const supabase = getSupabaseClient();
+  
+  // Super admin always has full access
+  const isSuperAdmin = await checkIsSuperAdmin(userId);
+  if (isSuperAdmin) {
+    return true;
+  }
   
   // Get user's role_id from user_roles
   const { data: userRole } = await supabase
@@ -267,4 +345,52 @@ export async function requirePermission(userId: string, module: string, action: 
   if (!hasPermission) {
     throw new Error(`Permission denied: ${action} on ${module}`);
   }
+}
+
+// Helper to get company ID from request params or auth context
+export function getRequestCompanyId(url: URL, auth: AuthContext): string {
+  // Super admins can specify company_id in query params
+  if (auth.isSuperAdmin) {
+    const requestedCompanyId = url.searchParams.get('company_id');
+    if (requestedCompanyId) {
+      return requestedCompanyId;
+    }
+  }
+  return auth.companyId;
+}
+
+// Apply company filter to query
+export function applyCompanyFilter<T extends { eq: (column: string, value: string) => T }>(
+  query: T, 
+  companyId: string, 
+  columnName: string = 'company_id'
+): T {
+  return query.eq(columnName, companyId);
+}
+
+// Create base query with company filter
+export interface QueryOptions {
+  url: URL;
+  auth: AuthContext;
+  supabase: ReturnType<typeof getSupabaseClient>;
+  table: string;
+  select?: string;
+}
+
+export function createCompanyQuery(options: QueryOptions) {
+  const { url, auth, supabase, table, select = '*' } = options;
+  const companyId = getRequestCompanyId(url, auth);
+  
+  return {
+    query: supabase.from(table).select(select).eq('company_id', companyId),
+    companyId,
+  };
+}
+
+// Helper to prepare insert data with company_id
+export function withCompanyId<T extends Record<string, unknown>>(
+  data: T, 
+  companyId: string
+): T & { company_id: string } {
+  return { ...data, company_id: companyId };
 }

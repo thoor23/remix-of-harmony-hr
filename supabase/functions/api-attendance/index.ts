@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // Helper to get employee ID for current user
@@ -27,6 +28,7 @@ serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth!.userId)
+        .eq('company_id', companyId)
         .single();
       return data?.id || null;
     }
@@ -45,6 +47,7 @@ serve(async (req) => {
           *,
           employee:employees(id, employee_id, user_id, first_name, last_name)
         `)
+        .eq('company_id', companyId)
         .order('date', { ascending: false });
 
       if (month) {
@@ -71,6 +74,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('*')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('date', today)
         .single();
 
@@ -89,11 +93,13 @@ serve(async (req) => {
       const { data: attendance } = await supabase
         .from('attendance_records')
         .select('status')
+        .eq('company_id', companyId)
         .eq('date', today);
 
       const { count: totalEmployees } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
         .eq('status', 'active');
 
       const stats = {
@@ -120,6 +126,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('*')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('date', { ascending: false });
 
       if (month) {
@@ -147,6 +154,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('id')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('date', today)
         .single();
 
@@ -159,12 +167,12 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from('attendance_records')
-        .insert({
+        .insert(withCompanyId({
           employee_id: employeeId,
           date: today,
           check_in: now,
           status,
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -187,6 +195,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('*')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .eq('date', today)
         .single();
 
@@ -210,6 +219,7 @@ serve(async (req) => {
           work_hours: Math.round(workHours * 100) / 100,
         })
         .eq('id', record.id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -227,7 +237,7 @@ serve(async (req) => {
       
       const { data, error } = await supabase
         .from('attendance_records')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -249,6 +259,7 @@ serve(async (req) => {
         .from('attendance_records')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -266,6 +277,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('*')
         .eq('employee_id', id)
+        .eq('company_id', companyId)
         .order('date', { ascending: false });
 
       if (month) {

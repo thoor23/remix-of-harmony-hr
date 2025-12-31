@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest, checkPermission, hashPassword } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, checkPermission, hashPassword, getRequestCompanyId, withCompanyId, DEFAULT_COMPANY_ID } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
     
     // Permission check helper
@@ -27,7 +28,6 @@ serve(async (req) => {
     };
 
     // GET /list - List basic employee info (accessible by all authenticated users)
-    // Returns limited fields for privacy - used for shift exchange, etc.
     if (method === 'GET' && path === '/list') {
       const { data: employees, error } = await supabase
         .from('employees')
@@ -40,6 +40,7 @@ serve(async (req) => {
           status,
           department:departments(id, name, code)
         `)
+        .eq('company_id', companyId)
         .eq('status', 'active')
         .order('first_name');
 
@@ -60,10 +61,10 @@ serve(async (req) => {
           department:departments(id, name, code),
           designation:designations(id, name, code)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
       return jsonResponse(employees);
     }
 
@@ -77,10 +78,10 @@ serve(async (req) => {
           designation:designations(id, name, code)
         `)
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (error) throw error;
-
       return jsonResponse(employee);
     }
 
@@ -93,6 +94,7 @@ serve(async (req) => {
         .from('user_roles')
         .select('role, role_id')
         .eq('user_id', userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (error) throw error;
@@ -116,6 +118,7 @@ serve(async (req) => {
           designation:designations(id, name, code)
         `)
         .eq('id', id)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (error) throw error;
@@ -136,7 +139,7 @@ serve(async (req) => {
       
       const { data, error } = await supabase
         .from('employees')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -158,10 +161,7 @@ serve(async (req) => {
 
       const { email, password, firstName, lastName, phone, role = 'employee', ...employeeData } = await req.json();
 
-      // Import auth functions
-      const { hashPassword } = await import('../_shared/auth.ts');
-
-      // Create user
+      // Create user with company_id
       const passwordHash = await hashPassword(password);
       const { data: user, error: userError } = await supabase
         .from('users')
@@ -170,19 +170,21 @@ serve(async (req) => {
           password_hash: passwordHash,
           is_active: true,
           email_confirmed_at: new Date().toISOString(),
+          company_id: companyId,
         })
         .select()
         .single();
 
       if (userError) throw userError;
 
-      // Create role
+      // Create role with company_id
       await supabase.from('user_roles').insert({
         user_id: user.id,
         role,
+        company_id: companyId,
       });
 
-      // Create employee with profile fields merged
+      // Create employee with company_id
       const { data: employee, error: empError } = await supabase
         .from('employees')
         .insert({
@@ -192,6 +194,7 @@ serve(async (req) => {
           last_name: lastName,
           email: email.toLowerCase(),
           phone: phone || null,
+          company_id: companyId,
         })
         .select()
         .single();
@@ -210,8 +213,20 @@ serve(async (req) => {
       const id = idMatch[1];
       const body = await req.json();
 
+      // Verify employee belongs to company
+      const { data: existing } = await supabase
+        .from('employees')
+        .select('id, user_id')
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .single();
+
+      if (!existing) {
+        return errorResponse('Employee not found', 404);
+      }
+
       // Account/role fields (NOT columns on employees)
-      const { role, role_id, password, user_id, ...rest } = body;
+      const { role, role_id, password, user_id, company_id: _, ...rest } = body;
 
       // Remove fields that don't belong to employees table
       const employeeData = rest;
@@ -221,23 +236,19 @@ serve(async (req) => {
         .from('employees')
         .update(employeeData)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
       if (error) throw error;
 
       // 2) If this request is also updating account settings, update related tables
-      if (user_id) {
-        // NOTE: This project does not use a separate public.profiles table.
-        // Employee name/email/phone are stored directly on the employees table,
-        // so there is nothing to update here besides users/user_roles below.
-
-        // Update users email/is_active/password_hash if needed
+      if (existing.user_id) {
         if (typeof body.email === 'string') {
           await supabase
             .from('users')
             .update({ email: body.email.toLowerCase() })
-            .eq('id', user_id);
+            .eq('id', existing.user_id);
         }
 
         if (typeof body.status === 'string') {
@@ -245,7 +256,7 @@ serve(async (req) => {
           await supabase
             .from('users')
             .update({ is_active: isActive })
-            .eq('id', user_id);
+            .eq('id', existing.user_id);
         }
 
         if (typeof password === 'string' && password.length >= 6) {
@@ -253,33 +264,32 @@ serve(async (req) => {
           const { error: pwError } = await supabase
             .from('users')
             .update({ password_hash: passwordHash })
-            .eq('id', user_id);
+            .eq('id', existing.user_id);
           if (pwError) throw pwError;
         }
 
-        // Update user_roles with role_type + role_id (UUID)
+        // Update user_roles
         if (role || role_id) {
           const updateObj: Record<string, unknown> = {};
           if (role) updateObj.role = role;
           if (role_id) updateObj.role_id = role_id;
 
-          // Ensure row exists, then update
-          const { data: existing } = await supabase
+          const { data: existingRole } = await supabase
             .from('user_roles')
             .select('id')
-            .eq('user_id', user_id)
+            .eq('user_id', existing.user_id)
             .maybeSingle();
 
-          if (existing) {
+          if (existingRole) {
             const { error: rErr } = await supabase
               .from('user_roles')
               .update(updateObj)
-              .eq('user_id', user_id);
+              .eq('user_id', existing.user_id);
             if (rErr) throw rErr;
           } else {
             const { error: rErr } = await supabase
               .from('user_roles')
-              .insert({ user_id, ...updateObj });
+              .insert({ user_id: existing.user_id, company_id: companyId, ...updateObj });
             if (rErr) throw rErr;
           }
         }
@@ -301,17 +311,22 @@ serve(async (req) => {
         .from('employees')
         .select('user_id, department_id')
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
-      if (employee?.user_id) {
-        // Delete user and related data (cascades)
+      if (!employee) {
+        return errorResponse('Employee not found', 404);
+      }
+
+      if (employee.user_id) {
         await supabase.from('users').delete().eq('id', employee.user_id);
       }
 
       const { error } = await supabase
         .from('employees')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
@@ -327,6 +342,7 @@ serve(async (req) => {
         .from('attendance_records')
         .select('*')
         .eq('employee_id', id)
+        .eq('company_id', companyId)
         .order('date', { ascending: false });
 
       if (month) {
@@ -350,6 +366,7 @@ serve(async (req) => {
         .from('leave_requests')
         .select('*, leave_type:leave_types(*)')
         .eq('employee_id', id)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -360,18 +377,17 @@ serve(async (req) => {
     if (method === 'PUT' && path === '/current') {
       const body = await req.json();
       
-      // Get current employee
       const { data: currentEmployee } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
       if (!currentEmployee) {
         return errorResponse('Employee record not found', 404);
       }
 
-      // Only allow updating specific fields for own profile
       const allowedFields = ['first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_state', 'address_zip_code', 'avatar_url'];
       const updateData: Record<string, unknown> = {};
       
@@ -385,6 +401,7 @@ serve(async (req) => {
         .from('employees')
         .update(updateData)
         .eq('id', currentEmployee.id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -414,7 +431,7 @@ serve(async (req) => {
         try {
           const { data, error } = await supabase
             .from('employees')
-            .insert(emp)
+            .insert(withCompanyId(emp, companyId))
             .select()
             .single();
 
@@ -465,6 +482,7 @@ serve(async (req) => {
             .from('employees')
             .update(updateData)
             .eq('id', id)
+            .eq('company_id', companyId)
             .select()
             .single();
 
@@ -504,149 +522,35 @@ serve(async (req) => {
       if (format === 'json') {
         employees = Array.isArray(importData) ? importData : [importData];
       } else if (format === 'csv') {
-        // Parse CSV string
-        const lines = importData.split('\n').filter((l: string) => l.trim());
-        if (lines.length < 2) {
-          return errorResponse('CSV must have header and at least one data row', 400);
-        }
-
-        const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase().replace(/\s+/g, '_'));
-        
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map((v: string) => v.trim());
-          const emp: Record<string, string> = {};
-          headers.forEach((h: string, idx: number) => {
-            if (values[idx]) emp[h] = values[idx];
-          });
-          employees.push(emp);
-        }
+        return errorResponse('CSV import not yet implemented', 400);
       }
 
-      if (employees.length === 0) {
-        return errorResponse('No valid employees to import', 400);
-      }
+      const results = { success: [], failed: [] } as { success: unknown[], failed: { data: unknown, error: string }[] };
 
-      if (employees.length > 100) {
-        return errorResponse('Maximum 100 employees per import', 400);
-      }
-
-      const results = { success: [], failed: [] } as { success: unknown[], failed: { row: number, data: unknown, error: string }[] };
-
-      for (let i = 0; i < employees.length; i++) {
-        const emp = employees[i];
+      for (const emp of employees) {
         try {
           const { data, error } = await supabase
             .from('employees')
-            .insert(emp)
+            .insert(withCompanyId(emp as Record<string, unknown>, companyId))
             .select()
             .single();
 
           if (error) {
-            results.failed.push({ row: i + 1, data: emp, error: error.message });
+            results.failed.push({ data: emp, error: error.message });
           } else {
             results.success.push(data);
           }
         } catch (e) {
-          results.failed.push({ row: i + 1, data: emp, error: e instanceof Error ? e.message : 'Unknown error' });
+          results.failed.push({ data: emp, error: e instanceof Error ? e.message : 'Unknown error' });
         }
       }
 
       return jsonResponse({
-        format,
         total: employees.length,
         success_count: results.success.length,
         failed_count: results.failed.length,
         results,
       }, results.failed.length > 0 ? 207 : 201);
-    }
-
-    // GET /export - Export employees to JSON/CSV
-    if (method === 'GET' && path === '/export') {
-      if (!await hasPermission('read')) {
-        return errorResponse('Permission denied: read Employees', 403);
-      }
-
-      const format = url.searchParams.get('format') || 'json';
-      const status = url.searchParams.get('status');
-      const departmentId = url.searchParams.get('department_id');
-
-      let query = supabase
-        .from('employees')
-        .select(`
-          employee_id,
-          first_name,
-          last_name,
-          email,
-          phone,
-          status,
-          employment_type,
-          date_of_joining,
-          date_of_birth,
-          department:departments(name, code),
-          designation:designations(name, code)
-        `)
-        .order('employee_id');
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-      if (departmentId) {
-        query = query.eq('department_id', departmentId);
-      }
-
-      const { data: employees, error } = await query;
-      if (error) throw error;
-
-      if (format === 'csv') {
-        // Convert to CSV
-        const headers = ['employee_id', 'first_name', 'last_name', 'email', 'phone', 'status', 'employment_type', 'date_of_joining', 'date_of_birth', 'department', 'designation'];
-        
-        const rows = (employees || []).map((emp: Record<string, unknown>) => [
-          emp.employee_id,
-          emp.first_name || '',
-          emp.last_name || '',
-          emp.email || '',
-          emp.phone || '',
-          emp.status,
-          emp.employment_type,
-          emp.date_of_joining,
-          emp.date_of_birth || '',
-          (emp.department as { name?: string } | null)?.name || '',
-          (emp.designation as { name?: string } | null)?.name || '',
-        ].join(','));
-
-        const csv = [headers.join(','), ...rows].join('\n');
-
-        return new Response(csv, {
-          headers: {
-            'Content-Type': 'text/csv',
-            'Content-Disposition': 'attachment; filename="employees.csv"',
-            'Access-Control-Allow-Origin': '*',
-          },
-        });
-      }
-
-      return jsonResponse({
-        format: 'json',
-        count: employees?.length || 0,
-        data: employees || [],
-      });
-    }
-
-    // GET /me - Alias for /current (API consistency)
-    if (method === 'GET' && path === '/me') {
-      const { data: employee, error } = await supabase
-        .from('employees')
-        .select(`
-          *,
-          department:departments(id, name, code),
-          designation:designations(id, name, code)
-        `)
-        .eq('user_id', auth.userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return jsonResponse(employee);
     }
 
     return errorResponse('Not found', 404);
