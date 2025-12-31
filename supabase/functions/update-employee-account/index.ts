@@ -1,4 +1,4 @@
-import { authenticateRequest, hashPassword, getSupabaseClient } from "../_shared/auth.ts";
+import { authenticateRequest, hashPassword, getSupabaseClient, getRequestCompanyId } from "../_shared/auth.ts";
 
 interface UpdateEmployeeRequest {
   employee_id: string; // The UUID of the employee record
@@ -63,6 +63,10 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Get company ID for this request
+    const url = new URL(req.url);
+    const companyId = getRequestCompanyId(url, auth);
 
     // Parse request body
     const body: UpdateEmployeeRequest = await req.json();
@@ -137,10 +141,17 @@ Deno.serve(async (req) => {
     // Update employee status if provided
     if (status) {
       console.log("Updating employee status:", status);
-      const { error: statusError } = await supabase
+      let query = supabase
         .from("employees")
         .update({ status })
         .eq("id", employee_id);
+      
+      // Add company filter if available
+      if (companyId) {
+        query = query.eq("company_id", companyId);
+      }
+
+      const { error: statusError } = await query;
 
       if (statusError) {
         console.error("Status update error:", statusError);
