@@ -297,6 +297,7 @@ const App = () => (
                 {/* Internal Billing */}
                 <Route path="internal-billing/invoices" element={<InvoiceList />} />
                 <Route path="internal-billing/invoices/create" element={<CreateInvoice />} />
+                <Route path="internal-billing/invoices/add" element={<CreateInvoice />} />
                 <Route path="internal-billing/invoices/:id" element={<InvoiceDetails />} />
                 <Route path="internal-billing/categories" element={<InvoiceCategories />} />
                 <Route path="internal-billing/reports" element={<BillingReports />} />
