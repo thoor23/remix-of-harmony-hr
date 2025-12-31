@@ -619,6 +619,7 @@ export default function EmployeeExpenses() {
                   placeholder="e.g., 500"
                   value={formData.amount || ""}
                   onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="space-y-2">
