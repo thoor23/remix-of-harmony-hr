@@ -107,7 +107,6 @@ export default function Interviews() {
         rating: feedback.rating,
         feedback: feedback.feedback,
         recommendation: feedback.recommendation as "proceed" | "reject" | "on-hold",
-        criteria: []
       }
     });
     setFeedbackDialogOpen(false);

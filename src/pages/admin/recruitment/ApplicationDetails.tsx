@@ -7,7 +7,7 @@ import { useApplication, useUpdateApplicationStage, useRejectApplication, useSch
 import { useEmployees } from "@/hooks/useEmployees";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { ArrowLeft, Mail, Phone, Briefcase, Building, Calendar, ExternalLink, ChevronRight, Plus, Video, Clock, User } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Briefcase, Building, Calendar, ExternalLink, ChevronRight, Plus, Video, Clock, User, FileText } from "lucide-react";
 import { ApplicationStage, InterviewType } from "@/types/recruitment";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResumePreview } from "@/components/recruitment/ResumeUpload";
 
 const stageColors: Record<string, string> = {
   screening: "bg-blue-100 text-blue-800",
@@ -353,42 +354,47 @@ export default function ApplicationDetails() {
             </CardContent>
           </Card>
 
-          {/* Links */}
+          {/* Resume & Links */}
           {(application.linkedin_url || application.portfolio_url || application.resume_url) && (
             <Card>
               <CardHeader>
-                <CardTitle>Links</CardTitle>
+                <CardTitle>Documents & Links</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 {application.resume_url && (
-                  <a 
-                    href={application.resume_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" /> View Resume
-                  </a>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <FileText className="h-4 w-4" /> Resume
+                    </div>
+                    <ResumePreview 
+                      url={application.resume_url} 
+                      candidateName={application.candidate_name} 
+                    />
+                  </div>
                 )}
-                {application.linkedin_url && (
-                  <a 
-                    href={application.linkedin_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" /> LinkedIn Profile
-                  </a>
-                )}
-                {application.portfolio_url && (
-                  <a 
-                    href={application.portfolio_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Portfolio
-                  </a>
+                {(application.linkedin_url || application.portfolio_url) && (
+                  <div className="space-y-2 pt-2 border-t">
+                    {application.linkedin_url && (
+                      <a 
+                        href={application.linkedin_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:underline text-sm"
+                      >
+                        <ExternalLink className="h-4 w-4" /> LinkedIn Profile
+                      </a>
+                    )}
+                    {application.portfolio_url && (
+                      <a 
+                        href={application.portfolio_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:underline text-sm"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Portfolio
+                      </a>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
