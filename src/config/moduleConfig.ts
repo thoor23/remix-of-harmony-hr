@@ -27,6 +27,8 @@ import {
   CalendarCheck,
   CalendarDays,
   Briefcase,
+  UserPlus,
+  UserMinus,
 } from "lucide-react";
 
 export interface ModuleConfig {
@@ -164,6 +166,20 @@ export const adminModuleConfig: Record<string, ModuleConfig> = {
     icon: Briefcase,
     category: 'admin',
     description: 'Job openings and candidate management',
+  },
+  'Onboarding': {
+    name: 'Onboarding',
+    routes: ['/app/onboarding'],
+    icon: UserPlus,
+    category: 'admin',
+    description: 'New employee onboarding management',
+  },
+  'Offboarding': {
+    name: 'Offboarding',
+    routes: ['/app/offboarding'],
+    icon: UserMinus,
+    category: 'admin',
+    description: 'Employee exit and offboarding management',
   },
 };
 

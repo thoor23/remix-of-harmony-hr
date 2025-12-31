@@ -188,6 +188,8 @@ export const adminModules = [
   'Settings',
   'Templates',
   'Recruitment',
+  'Onboarding',
+  'Offboarding',
 ];
 
 // Employee Panel modules
