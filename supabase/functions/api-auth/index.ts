@@ -76,6 +76,15 @@ serve(async (req) => {
 
       const role = roleData?.role || 'employee';
 
+      // Check if user is a super admin
+      const { data: superAdmin } = await supabase
+        .from('super_admins')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isSuperAdmin = !!superAdmin;
+
       // Get employee with company info
       const { data: employee } = await supabase
         .from('employees')
@@ -110,7 +119,7 @@ serve(async (req) => {
         .update({ last_sign_in_at: new Date().toISOString() })
         .eq('id', user.id);
 
-      console.log('[api-auth] Login successful for:', email);
+      console.log('[api-auth] Login successful for:', email, 'isSuperAdmin:', isSuperAdmin);
 
       return jsonResponse({
         user: {
@@ -118,6 +127,7 @@ serve(async (req) => {
           email: user.email,
           role,
           companyId,
+          isSuperAdmin,
           profile: employee ? {
             first_name: employee.first_name,
             last_name: employee.last_name,
