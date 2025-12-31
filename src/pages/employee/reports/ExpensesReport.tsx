@@ -142,20 +142,13 @@ export default function EmployeeExpensesReport() {
       <div className="grid gap-4 md:grid-cols-2">
         <BarChartCard
           title="Monthly Spending"
-          description="Your expense claims over the last 6 months"
-          data={monthlyTrend}
-          dataKey="amount"
-          xAxisKey="name"
-          height={300}
+          data={monthlyTrend.map(d => ({ name: d.name, value: d.amount }))}
         />
 
         <PieChartCard
           title="Expenses by Category"
           description="Distribution of your expenses across categories"
           data={categoryBreakdown}
-          dataKey="value"
-          nameKey="name"
-          height={300}
         />
 
         <Card className="md:col-span-2">

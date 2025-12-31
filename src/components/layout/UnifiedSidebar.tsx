@@ -162,6 +162,14 @@ const unifiedNavSections: NavSection[] = [
         ],
       },
       {
+        title: "My Expenses",
+        icon: Receipt,
+        children: [
+          { title: "My Claims", href: "/app/my-expenses", icon: Receipt },
+          { title: "My Report", href: "/app/my-expenses/report", icon: BarChart3 },
+        ],
+      },
+      {
         title: "My Documents",
         icon: FileText,
         children: [
@@ -253,6 +261,16 @@ const unifiedNavSections: NavSection[] = [
         children: [
           { title: "Salary Configuration", href: "/app/payroll/structure", icon: FileSpreadsheet },
           { title: "Payslip Records", href: "/app/payroll/payslips", icon: Receipt },
+        ],
+      },
+      {
+        title: "Expenses",
+        icon: Wallet,
+        children: [
+          { title: "Expense Claims", href: "/app/expenses", icon: Receipt },
+          { title: "Expense Categories", href: "/app/expenses/categories", icon: Tags },
+          { title: "Expense Policies", href: "/app/expenses/policies", icon: Gavel },
+          { title: "Expense Reports", href: "/app/reports/expenses", icon: BarChart3 },
         ],
       },
     ],
@@ -408,6 +426,8 @@ const navItemToModule: Record<string, string> = {
   "Leaves": "Leaves",
   "Shifts": "Shifts",
   "Payroll": "Payroll",
+  "Expenses": "Expenses",
+  "My Expenses": "My Expenses",
   "Documents": "Documents",
   "Assets": "Assets",
   "Locations": "Locations",

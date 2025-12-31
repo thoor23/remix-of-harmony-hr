@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.api-assets]
 verify_jwt = false
+
+[functions.api-expenses]
+verify_jwt = false

@@ -362,13 +362,13 @@ export default function ExpenseManagement() {
           title="Pending Claims"
           value={stats?.pending || 0}
           icon={Clock}
-          trend={{ value: formatCurrency(stats?.pendingAmount || 0), isPositive: false }}
+          trend={{ value: stats?.pending || 0, isPositive: false }}
         />
         <StatCard
           title="Approved"
           value={stats?.approved || 0}
           icon={CheckCircle}
-          trend={{ value: "This month", isPositive: true }}
+          trend={{ value: stats?.approved || 0, isPositive: true }}
         />
         <StatCard
           title="Total Approved Amount"

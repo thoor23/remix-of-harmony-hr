@@ -116,7 +116,7 @@ export default function ExpenseReports() {
           title="Pending"
           value={stats?.pending || 0}
           icon={Clock}
-          trend={{ value: formatCurrency(stats?.pendingAmount || 0), isPositive: false }}
+          trend={{ value: stats?.pending || 0, isPositive: false }}
         />
         <StatCard
           title="Approved Amount"
@@ -134,29 +134,19 @@ export default function ExpenseReports() {
       <div className="grid gap-4 md:grid-cols-2">
         <BarChartCard
           title="Monthly Expense Trend"
-          description="Total expenses claimed over the last 6 months"
-          data={monthlyTrend}
-          dataKey="amount"
-          xAxisKey="name"
-          height={300}
+          data={monthlyTrend.map(d => ({ name: d.name, value: d.amount }))}
         />
 
         <PieChartCard
           title="Expenses by Category"
           description="Distribution of expenses across categories"
           data={categoryBreakdown}
-          dataKey="value"
-          nameKey="name"
-          height={300}
         />
 
         <PieChartCard
           title="Claims by Status"
           description="Current status distribution of expense claims"
           data={statusBreakdown}
-          dataKey="value"
-          nameKey="name"
-          height={300}
         />
 
         <Card>
