@@ -9,7 +9,15 @@ export type EmailNotificationType =
   | "attendance_late"
   | "payslip_generated" 
   | "announcement_new" 
-  | "welcome_employee";
+  | "welcome_employee"
+  // Recruitment email types
+  | "recruitment_application_received"
+  | "recruitment_interview_scheduled"
+  | "recruitment_interview_reminder"
+  | "recruitment_stage_changed"
+  | "recruitment_offer_extended"
+  | "recruitment_application_rejected"
+  | "recruitment_new_application_admin";
 
 interface SendNotificationEmailParams {
   type: EmailNotificationType;
@@ -232,6 +240,178 @@ export async function sendWelcomeEmail(params: {
       temp_password: params.tempPassword,
     },
   });
+}
+
+// ============= RECRUITMENT EMAIL FUNCTIONS =============
+
+/**
+ * Send application received confirmation to candidate
+ */
+export async function sendApplicationReceivedEmail(params: {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  companyName?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_application_received",
+    recipientEmail: params.candidateEmail,
+    recipientName: params.candidateName,
+    data: {
+      job_title: params.jobTitle,
+      company_name: params.companyName || "Our Company",
+      candidate_name: params.candidateName,
+    },
+  });
+}
+
+/**
+ * Send interview scheduled notification to candidate
+ */
+export async function sendInterviewScheduledEmail(params: {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  interviewType: string;
+  scheduledAt: string;
+  duration: number;
+  location?: string;
+  interviewerName?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_interview_scheduled",
+    recipientEmail: params.candidateEmail,
+    recipientName: params.candidateName,
+    data: {
+      job_title: params.jobTitle,
+      interview_type: params.interviewType,
+      scheduled_at: params.scheduledAt,
+      duration: params.duration,
+      location: params.location || "To be confirmed",
+      interviewer_name: params.interviewerName || "Our team",
+    },
+  });
+}
+
+/**
+ * Send interview reminder to candidate and interviewer
+ */
+export async function sendInterviewReminderEmail(params: {
+  recipientEmail: string;
+  recipientName: string;
+  candidateName: string;
+  jobTitle: string;
+  interviewType: string;
+  scheduledAt: string;
+  location?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_interview_reminder",
+    recipientEmail: params.recipientEmail,
+    recipientName: params.recipientName,
+    data: {
+      candidate_name: params.candidateName,
+      job_title: params.jobTitle,
+      interview_type: params.interviewType,
+      scheduled_at: params.scheduledAt,
+      location: params.location || "To be confirmed",
+    },
+  });
+}
+
+/**
+ * Send stage change notification to candidate
+ */
+export async function sendStageChangedEmail(params: {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  newStage: string;
+  message?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_stage_changed",
+    recipientEmail: params.candidateEmail,
+    recipientName: params.candidateName,
+    data: {
+      job_title: params.jobTitle,
+      new_stage: params.newStage,
+      message: params.message || "Your application is progressing to the next stage.",
+    },
+  });
+}
+
+/**
+ * Send offer extended notification to candidate
+ */
+export async function sendOfferExtendedEmail(params: {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  salary?: string;
+  startDate?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_offer_extended",
+    recipientEmail: params.candidateEmail,
+    recipientName: params.candidateName,
+    data: {
+      job_title: params.jobTitle,
+      salary: params.salary || "As discussed",
+      start_date: params.startDate || "To be confirmed",
+    },
+  });
+}
+
+/**
+ * Send rejection notification to candidate
+ */
+export async function sendApplicationRejectedEmail(params: {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  reason?: string;
+}): Promise<boolean> {
+  return sendNotificationEmail({
+    type: "recruitment_application_rejected",
+    recipientEmail: params.candidateEmail,
+    recipientName: params.candidateName,
+    data: {
+      job_title: params.jobTitle,
+      reason: params.reason || "We have decided to move forward with other candidates.",
+    },
+  });
+}
+
+/**
+ * Send new application notification to admins/HR
+ */
+export async function sendNewApplicationAdminEmail(params: {
+  adminEmails: string[];
+  candidateName: string;
+  candidateEmail: string;
+  jobTitle: string;
+  source: string;
+  experienceYears?: number;
+}): Promise<boolean> {
+  const results = await Promise.all(
+    params.adminEmails.map((email) =>
+      sendNotificationEmail({
+        type: "recruitment_new_application_admin",
+        recipientEmail: email,
+        recipientName: "HR Team",
+        data: {
+          candidate_name: params.candidateName,
+          candidate_email: params.candidateEmail,
+          job_title: params.jobTitle,
+          source: params.source,
+          experience_years: params.experienceYears,
+        },
+      })
+    )
+  );
+
+  return results.some((r) => r);
 }
 
 /**

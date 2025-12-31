@@ -7,13 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface ResumeUploadProps {
+export interface ResumeUploadProps {
   value?: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  onUploadStart?: () => void;
+  onUploadEnd?: () => void;
 }
 
-export function ResumeUpload({ value, onChange, disabled }: ResumeUploadProps) {
+export function ResumeUpload({ value, onChange, disabled, onUploadStart, onUploadEnd }: ResumeUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +37,7 @@ export function ResumeUpload({ value, onChange, disabled }: ResumeUploadProps) {
     }
 
     setUploading(true);
+    onUploadStart?.();
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -58,6 +61,7 @@ export function ResumeUpload({ value, onChange, disabled }: ResumeUploadProps) {
       toast.error(error.message || "Failed to upload resume");
     } finally {
       setUploading(false);
+      onUploadEnd?.();
     }
   };
 

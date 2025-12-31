@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useJobOpenings, useCreateApplication } from "@/hooks/useRecruitment";
 import { ApplicationSource } from "@/types/recruitment";
+import { ResumeUpload } from "@/components/recruitment/ResumeUpload";
 
 const sources: { value: ApplicationSource; label: string }[] = [
   { value: "job-portal", label: "Job Portal" },
@@ -23,6 +24,7 @@ export default function AddApplication() {
   const navigate = useNavigate();
   const { data: jobs } = useJobOpenings({ status: "open" });
   const createApplication = useCreateApplication();
+  const [isUploading, setIsUploading] = useState(false);
 
   const [form, setForm] = useState({
     job_opening_id: "",
@@ -205,19 +207,17 @@ export default function AddApplication() {
             </CardContent>
           </Card>
 
-          {/* Links */}
+          {/* Links & Resume Upload */}
           <Card>
             <CardContent className="pt-6 space-y-4">
-              <h3 className="font-semibold text-lg mb-4">Links & Documents</h3>
+              <h3 className="font-semibold text-lg mb-4">Resume & Documents</h3>
 
-              <div>
-                <Label>Resume URL</Label>
-                <Input
-                  value={form.resume_url}
-                  onChange={(e) => setForm(prev => ({ ...prev, resume_url: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
+              <ResumeUpload
+                value={form.resume_url}
+                onChange={(url) => setForm(prev => ({ ...prev, resume_url: url }))}
+                onUploadStart={() => setIsUploading(true)}
+                onUploadEnd={() => setIsUploading(false)}
+              />
 
               <div>
                 <Label>LinkedIn URL</Label>
@@ -259,9 +259,9 @@ export default function AddApplication() {
           </Button>
           <Button 
             type="submit" 
-            disabled={createApplication.isPending || !form.job_opening_id || !form.candidate_name || !form.candidate_email}
+            disabled={createApplication.isPending || isUploading || !form.job_opening_id || !form.candidate_name || !form.candidate_email}
           >
-            {createApplication.isPending ? "Creating..." : "Add Application"}
+            {createApplication.isPending ? "Creating..." : isUploading ? "Uploading..." : "Add Application"}
           </Button>
         </div>
       </form>
