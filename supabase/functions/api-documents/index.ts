@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401);
     }
 
+    const companyId = getRequestCompanyId(url, auth);
+
     // GET / - List documents
     if (req.method === 'GET' && subPath.length === 0) {
       const employeeId = url.searchParams.get('employee_id');
@@ -33,6 +35,7 @@ Deno.serve(async (req) => {
           *,
           employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (employeeId) query = query.eq('employee_id', employeeId);
@@ -52,9 +55,14 @@ Deno.serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
-      let query = supabase.from('documents').select('*').order('created_at', { ascending: false });
+      let query = supabase
+        .from('documents')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
 
       if (employee) {
         query = query.or(`employee_id.eq.${employee.id},is_company_document.eq.true`);
@@ -69,7 +77,11 @@ Deno.serve(async (req) => {
 
     // GET /folders - Get unique folder paths
     if (req.method === 'GET' && subPath[0] === 'folders') {
-      const { data, error } = await supabase.from('documents').select('folder_path').not('folder_path', 'is', null);
+      const { data, error } = await supabase
+        .from('documents')
+        .select('folder_path')
+        .eq('company_id', companyId)
+        .not('folder_path', 'is', null);
       if (error) throw error;
       const uniqueFolders = [...new Set(data?.map(d => d.folder_path).filter(Boolean) || [])];
       return jsonResponse(uniqueFolders);
@@ -81,6 +93,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from('documents')
         .select(`*, employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)`)
+        .eq('company_id', companyId)
         .eq('document_category', category)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -94,6 +107,7 @@ Deno.serve(async (req) => {
         .from('documents')
         .select(`*, employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)`)
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
       if (error) throw error;
       return jsonResponse(data);
@@ -102,11 +116,18 @@ Deno.serve(async (req) => {
     // GET /:id/download
     if (req.method === 'GET' && subPath.length === 2 && subPath[1] === 'download') {
       const id = subPath[0];
-      const { data: doc, error } = await supabase.from('documents').select('file_url, name').eq('id', id).single();
+      const { data: doc, error } = await supabase
+        .from('documents')
+        .select('file_url, name')
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .single();
       if (error) throw error;
       if (!doc?.file_url) return errorResponse('File not found', 404);
       if (doc.file_url.startsWith('documents/')) {
-        const { data: signedUrl, error: signError } = await supabase.storage.from('documents').createSignedUrl(doc.file_url.replace('documents/', ''), 3600);
+        const { data: signedUrl, error: signError } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(doc.file_url.replace('documents/', ''), 3600);
         if (signError) throw signError;
         return jsonResponse({ url: signedUrl?.signedUrl, name: doc.name });
       }
@@ -116,7 +137,11 @@ Deno.serve(async (req) => {
     // POST /
     if (req.method === 'POST' && subPath.length === 0) {
       const body = await req.json();
-      const { data, error } = await supabase.from('documents').insert({ ...body, uploaded_by: auth.userId }).select().single();
+      const { data, error } = await supabase
+        .from('documents')
+        .insert(withCompanyId({ ...body, uploaded_by: auth.userId }, companyId))
+        .select()
+        .single();
       if (error) throw error;
       return jsonResponse(data, 201);
     }
@@ -129,12 +154,33 @@ Deno.serve(async (req) => {
       const folderPath = formData.get('folder_path') as string;
       const documentCategory = formData.get('document_category') as string;
       const isCompanyDocument = formData.get('is_company_document') === 'true';
+      
       if (!file) return errorResponse('No file provided', 400);
+      
       const fileName = `${Date.now()}_${file.name}`;
-      const storagePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('documents').upload(storagePath, file, { contentType: file.type, upsert: false });
+      // Include company_id in storage path for isolation
+      const storagePath = `${companyId}/${folderPath ? `${folderPath}/${fileName}` : fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, file, { contentType: file.type, upsert: false });
       if (uploadError) throw uploadError;
-      const { data: doc, error: docError } = await supabase.from('documents').insert({ name: file.name, type: file.type, file_url: `documents/${uploadData.path}`, file_size: file.size, employee_id: employeeId || null, folder_path: folderPath || null, document_category: documentCategory || 'employee_doc', is_company_document: isCompanyDocument, uploaded_by: auth.userId }).select().single();
+      
+      const { data: doc, error: docError } = await supabase
+        .from('documents')
+        .insert(withCompanyId({
+          name: file.name,
+          type: file.type,
+          file_url: `documents/${uploadData.path}`,
+          file_size: file.size,
+          employee_id: employeeId || null,
+          folder_path: folderPath || null,
+          document_category: documentCategory || 'employee_doc',
+          is_company_document: isCompanyDocument,
+          uploaded_by: auth.userId,
+        }, companyId))
+        .select()
+        .single();
       if (docError) throw docError;
       return jsonResponse(doc, 201);
     }
@@ -143,7 +189,13 @@ Deno.serve(async (req) => {
     if (req.method === 'PUT' && subPath.length === 1) {
       const id = subPath[0];
       const body = await req.json();
-      const { data, error } = await supabase.from('documents').update(body).eq('id', id).select().single();
+      const { data, error } = await supabase
+        .from('documents')
+        .update(body)
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .select()
+        .single();
       if (error) throw error;
       return jsonResponse(data);
     }
@@ -151,9 +203,22 @@ Deno.serve(async (req) => {
     // DELETE /:id
     if (req.method === 'DELETE' && subPath.length === 1) {
       const id = subPath[0];
-      const { data: doc } = await supabase.from('documents').select('file_url').eq('id', id).single();
-      if (doc?.file_url?.startsWith('documents/')) await supabase.storage.from('documents').remove([doc.file_url.replace('documents/', '')]);
-      const { error } = await supabase.from('documents').delete().eq('id', id);
+      const { data: doc } = await supabase
+        .from('documents')
+        .select('file_url')
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .single();
+      
+      if (doc?.file_url?.startsWith('documents/')) {
+        await supabase.storage.from('documents').remove([doc.file_url.replace('documents/', '')]);
+      }
+      
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id)
+        .eq('company_id', companyId);
       if (error) throw error;
       return jsonResponse({ success: true });
     }

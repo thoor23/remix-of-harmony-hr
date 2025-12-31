@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,14 +19,15 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
-    const isStoreManager = auth.role === 'store_manager';
 
     // GET /categories - List asset categories
     if (method === 'GET' && path === '/categories') {
       const { data, error } = await supabase
         .from('asset_categories')
         .select('*')
+        .eq('company_id', companyId)
         .eq('is_active', true)
         .order('name');
 
@@ -42,7 +43,8 @@ serve(async (req) => {
 
       const { data: assets, error } = await supabase
         .from('assets')
-        .select('status, purchase_cost');
+        .select('status, purchase_cost')
+        .eq('company_id', companyId);
 
       if (error) throw error;
 
@@ -73,6 +75,7 @@ serve(async (req) => {
           assigned_by_employee:employees!asset_assignments_assigned_by_fkey(id, first_name, last_name),
           location:stores(id, name, code)
         `)
+        .eq('company_id', companyId)
         .order('assigned_date', { ascending: false });
 
       if (assetId) {
@@ -98,6 +101,7 @@ serve(async (req) => {
           to_location:stores!asset_transfers_to_location_id_fkey(id, name, code, type),
           transferred_by_employee:employees!asset_transfers_transferred_by_fkey(id, first_name, last_name)
         `)
+        .eq('company_id', companyId)
         .order('transfer_date', { ascending: false });
 
       if (assetId) {
@@ -123,6 +127,7 @@ serve(async (req) => {
           asset:assets(id, asset_tag, name),
           created_by_employee:employees!asset_maintenance_created_by_fkey(id, first_name, last_name)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (assetId) {
@@ -142,19 +147,19 @@ serve(async (req) => {
 
       const body = await req.json();
       
-      // Get current employee
       const { data: employee } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
       const { data, error } = await supabase
         .from('asset_maintenance')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           created_by: employee?.id,
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -176,6 +181,7 @@ serve(async (req) => {
         .from('asset_maintenance')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -185,11 +191,11 @@ serve(async (req) => {
 
     // GET /my - Get assets assigned to current employee
     if (method === 'GET' && path === '/my') {
-      // Get current employee
       const { data: employee, error: empError } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
       if (empError || !employee) {
@@ -203,12 +209,129 @@ serve(async (req) => {
           *,
           category:asset_categories(id, name, icon)
         `)
+        .eq('company_id', companyId)
         .eq('assigned_to', employee.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       console.log(`[api-assets] Found ${data?.length || 0} assets for employee ${employee.id}`);
       return jsonResponse(data || []);
+    }
+
+    // GET /maintenance-requests - List maintenance requests
+    if (method === 'GET' && path === '/maintenance-requests') {
+      const status = url.searchParams.get('status');
+      const employeeId = url.searchParams.get('employee_id');
+      
+      let query = supabase
+        .from('asset_maintenance_requests')
+        .select(`
+          *,
+          asset:assets(id, asset_tag, name, category:asset_categories(id, name)),
+          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id),
+          reviewed_by_employee:employees!asset_maintenance_requests_reviewed_by_fkey(id, first_name, last_name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return jsonResponse(data);
+    }
+
+    // GET /maintenance-requests/my - Get current user's maintenance requests
+    if (method === 'GET' && path === '/maintenance-requests/my') {
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (!employee) {
+        return jsonResponse([]);
+      }
+
+      const { data, error } = await supabase
+        .from('asset_maintenance_requests')
+        .select(`
+          *,
+          asset:assets(id, asset_tag, name, category:asset_categories(id, name))
+        `)
+        .eq('company_id', companyId)
+        .eq('employee_id', employee.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
+    // POST /maintenance-requests - Create maintenance request
+    if (method === 'POST' && path === '/maintenance-requests') {
+      const body = await req.json();
+      
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (!employee) {
+        return errorResponse('Employee not found', 404);
+      }
+
+      const { data, error } = await supabase
+        .from('asset_maintenance_requests')
+        .insert(withCompanyId({
+          ...body,
+          employee_id: employee.id,
+          status: 'pending',
+        }, companyId))
+        .select()
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data, 201);
+    }
+
+    // PUT /maintenance-requests/:id - Update maintenance request
+    const maintenanceRequestMatch = path.match(/^\/maintenance-requests\/([a-f0-9-]+)$/);
+    if (method === 'PUT' && maintenanceRequestMatch) {
+      const id = maintenanceRequestMatch[1];
+      const body = await req.json();
+
+      // Get reviewer employee ID if updating status
+      let updateData = { ...body };
+      if (body.status && body.status !== 'pending' && isAdminOrHR) {
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', auth.userId)
+          .eq('company_id', companyId)
+          .single();
+        
+        updateData.reviewed_by = employee?.id;
+        updateData.reviewed_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('asset_maintenance_requests')
+        .update(updateData)
+        .eq('id', id)
+        .eq('company_id', companyId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return jsonResponse(data);
     }
 
     // GET / - List all assets
@@ -226,6 +349,7 @@ serve(async (req) => {
           location:stores!assets_location_id_fkey(id, name, code, type),
           assignee:employees!assets_assigned_to_fkey(id, first_name, last_name, employee_id)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (status) {
@@ -242,7 +366,6 @@ serve(async (req) => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       return jsonResponse(data);
     }
@@ -261,6 +384,7 @@ serve(async (req) => {
           assignee:employees!assets_assigned_to_fkey(id, first_name, last_name, employee_id)
         `)
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (error) throw error;
@@ -281,12 +405,11 @@ serve(async (req) => {
       
       const { data, error } = await supabase
         .from('assets')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
       if (error) throw error;
-
       return jsonResponse(data, 201);
     }
 
@@ -303,6 +426,7 @@ serve(async (req) => {
         .from('assets')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -321,7 +445,8 @@ serve(async (req) => {
       const { error } = await supabase
         .from('assets')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
@@ -335,28 +460,26 @@ serve(async (req) => {
 
       const { asset_id, employee_id, location_id, condition_on_assign, notes } = await req.json();
       
-      // Get current employee
       const { data: currentEmployee } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
-      // Create assignment record
       const { error: assignmentError } = await supabase
         .from('asset_assignments')
-        .insert({
+        .insert(withCompanyId({
           asset_id,
           employee_id,
           location_id,
           assigned_by: currentEmployee?.id,
           condition_on_assign,
           notes,
-        });
+        }, companyId));
 
       if (assignmentError) throw assignmentError;
 
-      // Update asset
       const { error: assetError } = await supabase
         .from('assets')
         .update({
@@ -364,7 +487,8 @@ serve(async (req) => {
           assigned_date: new Date().toISOString().split('T')[0],
           status: 'assigned',
         })
-        .eq('id', asset_id);
+        .eq('id', asset_id)
+        .eq('company_id', companyId);
 
       if (assetError) throw assetError;
 
@@ -379,18 +503,17 @@ serve(async (req) => {
 
       const { asset_id, condition_on_return, notes } = await req.json();
       
-      // Get the latest assignment
       const { data: assignment } = await supabase
         .from('asset_assignments')
         .select('id')
         .eq('asset_id', asset_id)
+        .eq('company_id', companyId)
         .is('returned_date', null)
         .order('assigned_date', { ascending: false })
         .limit(1)
         .single();
 
       if (assignment) {
-        // Update assignment with return info
         await supabase
           .from('asset_assignments')
           .update({
@@ -401,7 +524,6 @@ serve(async (req) => {
           .eq('id', assignment.id);
       }
 
-      // Update asset
       const { error } = await supabase
         .from('assets')
         .update({
@@ -410,7 +532,8 @@ serve(async (req) => {
           status: 'available',
           condition: condition_on_return || 'good',
         })
-        .eq('id', asset_id);
+        .eq('id', asset_id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
 
@@ -425,24 +548,23 @@ serve(async (req) => {
 
       const { asset_id, to_location_id, reason, notes } = await req.json();
       
-      // Get current asset location
       const { data: asset } = await supabase
         .from('assets')
         .select('location_id')
         .eq('id', asset_id)
+        .eq('company_id', companyId)
         .single();
 
-      // Get current employee
       const { data: currentEmployee } = await supabase
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
-      // Create transfer record
       const { error: transferError } = await supabase
         .from('asset_transfers')
-        .insert({
+        .insert(withCompanyId({
           asset_id,
           from_location_id: asset?.location_id,
           to_location_id,
@@ -450,15 +572,15 @@ serve(async (req) => {
           notes,
           transferred_by: currentEmployee?.id,
           status: 'completed',
-        });
+        }, companyId));
 
       if (transferError) throw transferError;
 
-      // Update asset location
       const { error: assetError } = await supabase
         .from('assets')
         .update({ location_id: to_location_id })
-        .eq('id', asset_id);
+        .eq('id', asset_id)
+        .eq('company_id', companyId);
 
       if (assetError) throw assetError;
 
@@ -475,7 +597,7 @@ serve(async (req) => {
       
       const { data, error } = await supabase
         .from('asset_categories')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -497,6 +619,7 @@ serve(async (req) => {
         .from('asset_categories')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -504,7 +627,7 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
-    // DELETE /categories/:id - Delete category (soft delete)
+    // DELETE /categories/:id - Delete category
     if (method === 'DELETE' && categoryMatch) {
       if (!isAdminOrHR) {
         return errorResponse('Admin or HR access required', 403);
@@ -514,189 +637,12 @@ serve(async (req) => {
 
       const { error } = await supabase
         .from('asset_categories')
-        .update({ is_active: false })
-        .eq('id', id);
+        .delete()
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
-    }
-
-    // ========== MAINTENANCE REQUESTS ENDPOINTS ==========
-
-    // GET /maintenance-requests - List maintenance requests
-    if (method === 'GET' && path === '/maintenance-requests') {
-      const isMyRequests = url.searchParams.get('my') === 'true';
-      const statusFilter = url.searchParams.get('status');
-      const priorityFilter = url.searchParams.get('priority');
-
-      // Get current employee
-      const { data: currentEmployee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', auth.userId)
-        .single();
-
-      let query = supabase
-        .from('asset_maintenance_requests')
-        .select(`
-          *,
-          asset:assets(id, asset_tag, name, brand, model),
-          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id),
-          reviewer:employees!asset_maintenance_requests_reviewed_by_fkey(id, first_name, last_name)
-        `)
-        .order('created_at', { ascending: false });
-
-      // If employee requesting their own requests
-      if (isMyRequests || !isAdminOrHR) {
-        if (!currentEmployee) {
-          return errorResponse('Employee not found', 404);
-        }
-        query = query.eq('employee_id', currentEmployee.id);
-      }
-
-      if (statusFilter) {
-        query = query.eq('status', statusFilter);
-      }
-      if (priorityFilter) {
-        query = query.eq('priority', priorityFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return jsonResponse(data);
-    }
-
-    // POST /maintenance-requests - Create a new maintenance request
-    if (method === 'POST' && path === '/maintenance-requests') {
-      const { asset_id, type, description, priority } = await req.json();
-
-      if (!asset_id || !description) {
-        return errorResponse('Asset and description are required', 400);
-      }
-
-      // Get current employee
-      const { data: currentEmployee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', auth.userId)
-        .single();
-
-      if (!currentEmployee) {
-        return errorResponse('Employee not found', 404);
-      }
-
-      // Verify the asset is assigned to this employee
-      const { data: asset } = await supabase
-        .from('assets')
-        .select('id, assigned_to')
-        .eq('id', asset_id)
-        .single();
-
-      if (!asset) {
-        return errorResponse('Asset not found', 404);
-      }
-
-      if (asset.assigned_to !== currentEmployee.id) {
-        return errorResponse('You can only request maintenance for assets assigned to you', 403);
-      }
-
-      const { data, error } = await supabase
-        .from('asset_maintenance_requests')
-        .insert({
-          asset_id,
-          employee_id: currentEmployee.id,
-          type: type || 'repair',
-          description,
-          priority: priority || 'medium',
-          status: 'pending',
-        })
-        .select(`
-          *,
-          asset:assets(id, asset_tag, name, brand, model),
-          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id)
-        `)
-        .single();
-
-      if (error) throw error;
-      return jsonResponse(data, 201);
-    }
-
-    // PUT /maintenance-requests/:id - Update a maintenance request
-    const maintenanceRequestMatch = path.match(/^\/maintenance-requests\/([a-f0-9-]+)$/);
-    if (method === 'PUT' && maintenanceRequestMatch) {
-      const id = maintenanceRequestMatch[1];
-      const body = await req.json();
-
-      // Get current employee
-      const { data: currentEmployee } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('user_id', auth.userId)
-        .single();
-
-      // Get the request
-      const { data: request } = await supabase
-        .from('asset_maintenance_requests')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (!request) {
-        return errorResponse('Maintenance request not found', 404);
-      }
-
-      // If not admin/HR, employee can only cancel their own pending requests
-      if (!isAdminOrHR) {
-        if (request.employee_id !== currentEmployee?.id) {
-          return errorResponse('You can only update your own requests', 403);
-        }
-        if (request.status !== 'pending') {
-          return errorResponse('You can only cancel pending requests', 403);
-        }
-        if (body.status !== 'cancelled') {
-          return errorResponse('You can only cancel requests', 403);
-        }
-      }
-
-      // Admin/HR can update all fields
-      const updateData: Record<string, unknown> = {};
-
-      if (body.status) {
-        updateData.status = body.status;
-        
-        // If status is being approved/rejected, set reviewed fields
-        if (['approved', 'rejected'].includes(body.status)) {
-          updateData.reviewed_by = currentEmployee?.id;
-          updateData.reviewed_at = new Date().toISOString();
-        }
-        
-        // If completed, set completed_at
-        if (body.status === 'completed') {
-          updateData.completed_at = new Date().toISOString();
-        }
-      }
-
-      if (body.review_comments !== undefined) updateData.review_comments = body.review_comments;
-      if (body.assigned_to !== undefined) updateData.assigned_to = body.assigned_to;
-      if (body.scheduled_date !== undefined) updateData.scheduled_date = body.scheduled_date;
-      if (body.estimated_cost !== undefined) updateData.estimated_cost = body.estimated_cost;
-      if (body.actual_cost !== undefined) updateData.actual_cost = body.actual_cost;
-      if (body.resolution_notes !== undefined) updateData.resolution_notes = body.resolution_notes;
-
-      const { data, error } = await supabase
-        .from('asset_maintenance_requests')
-        .update(updateData)
-        .eq('id', id)
-        .select(`
-          *,
-          asset:assets(id, asset_tag, name, brand, model),
-          employee:employees!asset_maintenance_requests_employee_id_fkey(id, first_name, last_name, employee_id),
-          reviewer:employees!asset_maintenance_requests_reviewed_by_fkey(id, first_name, last_name)
-        `)
-        .single();
-
-      if (error) throw error;
-      return jsonResponse(data);
     }
 
     return errorResponse('Not found', 404);

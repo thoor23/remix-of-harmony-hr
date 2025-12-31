@@ -7,12 +7,14 @@ import {
   generateRefreshToken,
   verifyToken,
   authenticateRequest,
-  getUserInfo 
+  getUserInfo,
+  getRequestCompanyId,
+  withCompanyId,
+  DEFAULT_COMPANY_ID
 } from '../_shared/auth.ts';
-import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -74,23 +76,32 @@ serve(async (req) => {
 
       const role = roleData?.role || 'employee';
 
-      // Get employee (which now has profile data)
+      // Get employee with company info
       const { data: employee } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, email, phone, avatar_url')
+        .select('id, first_name, last_name, email, phone, avatar_url, company_id')
         .eq('user_id', user.id)
+        .single();
+
+      // Get company info
+      const companyId = user.company_id || employee?.company_id || DEFAULT_COMPANY_ID;
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id, name, code, logo_url, favicon_url, settings')
+        .eq('id', companyId)
         .single();
 
       // Generate tokens
       const accessToken = await generateAccessToken(user.id, user.email, role);
       const refreshToken = await generateRefreshToken(user.id);
 
-      // Store refresh token
+      // Store refresh token with company_id
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       await supabase.from('refresh_tokens').insert({
         user_id: user.id,
         token: refreshToken,
         expires_at: expiresAt,
+        company_id: companyId,
       });
 
       // Update last sign in
@@ -106,6 +117,7 @@ serve(async (req) => {
           id: user.id,
           email: user.email,
           role,
+          companyId,
           profile: employee ? {
             first_name: employee.first_name,
             last_name: employee.last_name,
@@ -115,6 +127,7 @@ serve(async (req) => {
           } : null,
           employeeId: employee?.id,
         },
+        company,
         session: {
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -129,17 +142,19 @@ serve(async (req) => {
         return errorResponse('Admin or HR access required', 403);
       }
 
+      const companyId = getRequestCompanyId(url, auth);
       const { email, password, firstName, lastName, phone, role = 'employee' } = await req.json();
 
       if (!email || !password) {
         return errorResponse('Email and password are required', 400);
       }
 
-      // Check if user exists
+      // Check if user exists in this company
       const { data: existing } = await supabase
         .from('users')
         .select('id')
         .eq('email', email.toLowerCase())
+        .eq('company_id', companyId)
         .single();
 
       if (existing) {
@@ -149,7 +164,7 @@ serve(async (req) => {
       // Hash password
       const passwordHash = await hashPassword(password);
 
-      // Create user
+      // Create user with company_id
       const { data: newUser, error: userError } = await supabase
         .from('users')
         .insert({
@@ -157,6 +172,7 @@ serve(async (req) => {
           password_hash: passwordHash,
           is_active: true,
           email_confirmed_at: new Date().toISOString(),
+          company_id: companyId,
         })
         .select()
         .single();
@@ -166,15 +182,16 @@ serve(async (req) => {
         return errorResponse('Failed to create user', 500);
       }
 
-      // Create role
+      // Create role with company_id
       await supabase.from('user_roles').insert({
         user_id: newUser.id,
         role,
+        company_id: companyId,
       });
 
       console.log('[api-auth] User registered:', email);
 
-      return jsonResponse({ id: newUser.id, email: newUser.email, role }, 201);
+      return jsonResponse({ id: newUser.id, email: newUser.email, role, companyId }, 201);
     }
 
     // GET /me
@@ -194,6 +211,8 @@ serve(async (req) => {
           id: userInfo.user.id,
           email: userInfo.user.email,
           role: userInfo.role,
+          companyId: userInfo.user.company_id || userInfo.employee?.company_id || DEFAULT_COMPANY_ID,
+          isSuperAdmin: userInfo.isSuperAdmin,
         },
         profile: userInfo.employee ? {
           first_name: userInfo.employee.first_name,
@@ -203,6 +222,7 @@ serve(async (req) => {
           avatar_url: userInfo.employee.avatar_url,
         } : null,
         employee: userInfo.employee,
+        company: userInfo.company,
       });
     }
 
@@ -214,13 +234,11 @@ serve(async (req) => {
         return errorResponse('Refresh token required', 400);
       }
 
-      // Verify refresh token
       const payload = await verifyToken(refresh_token);
       if (!payload || payload.type !== 'refresh') {
         return errorResponse('Invalid refresh token', 401);
       }
 
-      // Check if token exists in database
       const { data: storedToken } = await supabase
         .from('refresh_tokens')
         .select('*')
@@ -228,20 +246,17 @@ serve(async (req) => {
         .single();
 
       if (!storedToken || new Date(storedToken.expires_at) < new Date()) {
-        // Delete expired token
         if (storedToken) {
           await supabase.from('refresh_tokens').delete().eq('id', storedToken.id);
         }
         return errorResponse('Refresh token expired', 401);
       }
 
-      // Get user info
       const userInfo = await getUserInfo(payload.userId as string);
       if (!userInfo) {
         return errorResponse('User not found', 404);
       }
 
-      // Generate new access token
       const accessToken = await generateAccessToken(
         userInfo.user.id,
         userInfo.user.email,
@@ -255,7 +270,6 @@ serve(async (req) => {
     if (method === 'POST' && path === '/logout') {
       const auth = await authenticateRequest(req);
       if (auth) {
-        // Delete all refresh tokens for user
         await supabase.from('refresh_tokens').delete().eq('user_id', auth.userId);
       }
       return jsonResponse({ message: 'Logged out successfully' });
@@ -265,9 +279,8 @@ serve(async (req) => {
     if (method === 'POST' && path === '/forgot-password') {
       const { email } = await req.json();
       
-      // Generate reset token
       const resetToken = crypto.randomUUID();
-      const resetExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       await supabase
         .from('users')
@@ -277,7 +290,6 @@ serve(async (req) => {
         })
         .eq('email', email.toLowerCase());
 
-      // In production, send email here
       console.log('[api-auth] Password reset requested for:', email);
 
       return jsonResponse({ message: 'If the email exists, a reset link has been sent' });
@@ -311,7 +323,7 @@ serve(async (req) => {
       return jsonResponse({ message: 'Password reset successful' });
     }
 
-    // POST /change-password - Change password for authenticated user
+    // POST /change-password
     if (method === 'POST' && path === '/change-password') {
       const auth = await authenticateRequest(req);
       if (!auth) {
@@ -328,7 +340,6 @@ serve(async (req) => {
         return errorResponse('New password must be at least 8 characters', 400);
       }
 
-      // Get user
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, password_hash')
@@ -339,16 +350,13 @@ serve(async (req) => {
         return errorResponse('User not found', 404);
       }
 
-      // Verify current password
       const isValid = await comparePassword(currentPassword, user.password_hash);
       if (!isValid) {
         return errorResponse('Current password is incorrect', 401);
       }
 
-      // Hash new password
       const newPasswordHash = await hashPassword(newPassword);
 
-      // Update password
       const { error: updateError } = await supabase
         .from('users')
         .update({ password_hash: newPasswordHash })
