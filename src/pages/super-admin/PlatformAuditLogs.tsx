@@ -76,7 +76,7 @@ export default function PlatformAuditLogs() {
       const params = new URLSearchParams();
       if (moduleFilter !== "all") params.append("module", moduleFilter);
       if (actionFilter !== "all") params.append("action", actionFilter);
-      const response = await api.get<{ data: AuditLog[] }>(`/api-super-admin/audit-logs?${params.toString()}`);
+      const response = await api.get<{ data: AuditLog[] }>(`/super-admin/audit-logs?${params.toString()}`);
       return response.data;
     },
   });
