@@ -5,6 +5,7 @@ import {
   PublicServiceGroup,
   PublicStatusFooter 
 } from "@/components/status/PublicStatusComponents";
+import { SubscribeModal } from "@/components/status/SubscribeModal";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Bell, History, Building2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ export default function StatusPage() {
   const { data, isLoading, error } = useServerStatus(30000);
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const navigate = useNavigate();
 
   const handleRefresh = async () => {
@@ -53,6 +55,7 @@ export default function StatusPage() {
             variant="outline" 
             size="sm"
             className="bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            onClick={() => setShowSubscribeModal(true)}
           >
             <Bell className="h-4 w-4 mr-2" />
             Subscribe to updates
@@ -145,6 +148,12 @@ export default function StatusPage() {
 
       {/* Footer */}
       <PublicStatusFooter />
+
+      {/* Subscribe Modal */}
+      <SubscribeModal 
+        open={showSubscribeModal} 
+        onOpenChange={setShowSubscribeModal} 
+      />
     </div>
   );
 }
