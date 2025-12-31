@@ -167,7 +167,7 @@ export const authApi = {
   },
   
   getMe: () => api.get<{
-    user: { id: string; email: string; role: string; companyId?: string };
+    user: { id: string; email: string; role: string; companyId?: string; isSuperAdmin?: boolean };
     profile: {
       first_name: string | null;
       last_name: string | null;

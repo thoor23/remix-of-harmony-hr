@@ -24,10 +24,12 @@ interface AuthContextType {
   profile: Profile | null;
   employeeId: string | null;
   companyId: string | null;
+  isSuperAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  switchCompany: (companyId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Check for existing session on mount
@@ -58,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(data.profile);
         setEmployeeId(data.employee?.id || null);
         setCompanyId(data.user.companyId || null);
+        setIsSuperAdmin(data.user.isSuperAdmin || false);
         setSession({ access_token: token });
       } catch (error) {
         // Token invalid, clear it
@@ -68,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setEmployeeId(null);
         setCompanyId(null);
+        setIsSuperAdmin(false);
       } finally {
         setLoading(false);
       }
@@ -84,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(data.user.profile);
       setEmployeeId(data.user.employeeId || null);
       setCompanyId(data.user.companyId || null);
+      setIsSuperAdmin(data.user.isSuperAdmin || false);
       setSession({ access_token: data.session.access_token });
       return { error: null };
     } catch (error) {
@@ -113,6 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setEmployeeId(null);
     setCompanyId(null);
+    setIsSuperAdmin(false);
+  };
+
+  const switchCompany = (newCompanyId: string) => {
+    setCompanyId(newCompanyId);
   };
 
   return (
@@ -124,10 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         employeeId,
         companyId,
+        isSuperAdmin,
         loading,
         signIn,
         signUp,
         signOut,
+        switchCompany,
       }}
     >
       {children}
