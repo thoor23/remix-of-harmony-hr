@@ -1,47 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 import type { InternalInvoice, InternalInvoiceCategory, CreateInvoiceInput, InvoiceStats } from "@/types/invoice";
-
-const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-internal-invoices`;
-
-async function getAuthHeaders() {
-  const { data: { session } } = await supabase.auth.getSession();
-  return {
-    'Authorization': `Bearer ${session?.access_token}`,
-    'Content-Type': 'application/json',
-  };
-}
 
 // Invoice Categories
 export function useInvoiceCategories() {
   return useQuery({
     queryKey: ['internal-invoice-categories'],
-    queryFn: async () => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/categories`, { headers });
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      return response.json() as Promise<InternalInvoiceCategory[]>;
-    },
+    queryFn: () => api.get<InternalInvoiceCategory[]>('/internal-invoices/categories'),
   });
 }
 
 export function useCreateInvoiceCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: Partial<InternalInvoiceCategory>) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/categories`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create category');
-      }
-      return response.json();
-    },
+    mutationFn: (data: Partial<InternalInvoiceCategory>) => 
+      api.post<InternalInvoiceCategory>('/internal-invoices/categories', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-categories'] });
       toast.success('Category created successfully');
@@ -55,19 +29,8 @@ export function useCreateInvoiceCategory() {
 export function useUpdateInvoiceCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<InternalInvoiceCategory> }) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/categories/${id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update category');
-      }
-      return response.json();
-    },
+    mutationFn: ({ id, data }: { id: string; data: Partial<InternalInvoiceCategory> }) => 
+      api.put<InternalInvoiceCategory>(`/internal-invoices/categories/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-categories'] });
       toast.success('Category updated successfully');
@@ -81,18 +44,8 @@ export function useUpdateInvoiceCategory() {
 export function useDeleteInvoiceCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/categories/${id}`, {
-        method: 'DELETE',
-        headers,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete category');
-      }
-      return response.json();
-    },
+    mutationFn: (id: string) => 
+      api.delete<{ success: boolean }>(`/internal-invoices/categories/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-categories'] });
       toast.success('Category deleted successfully');
@@ -112,18 +65,15 @@ export function useInternalInvoices(filters?: {
 }) {
   return useQuery({
     queryKey: ['internal-invoices', filters],
-    queryFn: async () => {
-      const headers = await getAuthHeaders();
+    queryFn: () => {
       const params = new URLSearchParams();
       if (filters?.status) params.append('status', filters.status);
       if (filters?.from_location_id) params.append('from_location_id', filters.from_location_id);
       if (filters?.to_location_id) params.append('to_location_id', filters.to_location_id);
       if (filters?.invoice_type) params.append('invoice_type', filters.invoice_type);
 
-      const url = params.toString() ? `${API_URL}?${params}` : API_URL;
-      const response = await fetch(url, { headers });
-      if (!response.ok) throw new Error('Failed to fetch invoices');
-      return response.json() as Promise<InternalInvoice[]>;
+      const query = params.toString() ? `?${params}` : '';
+      return api.get<InternalInvoice[]>(`/internal-invoices${query}`);
     },
   });
 }
@@ -131,13 +81,7 @@ export function useInternalInvoices(filters?: {
 export function useInternalInvoice(id: string | undefined) {
   return useQuery({
     queryKey: ['internal-invoice', id],
-    queryFn: async () => {
-      if (!id) return null;
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}`, { headers });
-      if (!response.ok) throw new Error('Failed to fetch invoice');
-      return response.json() as Promise<InternalInvoice>;
-    },
+    queryFn: () => api.get<InternalInvoice>(`/internal-invoices/${id}`),
     enabled: !!id,
   });
 }
@@ -145,31 +89,15 @@ export function useInternalInvoice(id: string | undefined) {
 export function useInvoiceStats() {
   return useQuery({
     queryKey: ['internal-invoice-stats'],
-    queryFn: async () => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/stats`, { headers });
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      return response.json() as Promise<InvoiceStats>;
-    },
+    queryFn: () => api.get<InvoiceStats>('/internal-invoices/stats'),
   });
 }
 
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: CreateInvoiceInput) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create invoice');
-      }
-      return response.json();
-    },
+    mutationFn: (data: CreateInvoiceInput) => 
+      api.post<InternalInvoice>('/internal-invoices', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-stats'] });
@@ -184,19 +112,8 @@ export function useCreateInvoice() {
 export function useUpdateInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CreateInvoiceInput }) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update invoice');
-      }
-      return response.json();
-    },
+    mutationFn: ({ id, data }: { id: string; data: CreateInvoiceInput }) => 
+      api.put<InternalInvoice>(`/internal-invoices/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice'] });
@@ -211,18 +128,8 @@ export function useUpdateInvoice() {
 export function useDeleteInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        headers,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete invoice');
-      }
-      return response.json();
-    },
+    mutationFn: (id: string) => 
+      api.delete<{ success: boolean }>(`/internal-invoices/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-stats'] });
@@ -237,18 +144,8 @@ export function useDeleteInvoice() {
 export function useSendInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}/send`, {
-        method: 'PATCH',
-        headers,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send invoice');
-      }
-      return response.json();
-    },
+    mutationFn: (id: string) => 
+      api.patch<InternalInvoice>(`/internal-invoices/${id}/send`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice'] });
@@ -264,19 +161,8 @@ export function useSendInvoice() {
 export function usePayInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payment_reference }: { id: string; payment_reference?: string }) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}/pay`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ payment_reference }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to mark invoice as paid');
-      }
-      return response.json();
-    },
+    mutationFn: ({ id, payment_reference }: { id: string; payment_reference?: string }) => 
+      api.patch<InternalInvoice>(`/internal-invoices/${id}/pay`, { payment_reference }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice'] });
@@ -292,18 +178,8 @@ export function usePayInvoice() {
 export function useCancelInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/${id}/cancel`, {
-        method: 'PATCH',
-        headers,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to cancel invoice');
-      }
-      return response.json();
-    },
+    mutationFn: (id: string) => 
+      api.patch<InternalInvoice>(`/internal-invoices/${id}/cancel`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice'] });
@@ -319,19 +195,9 @@ export function useCancelInvoice() {
 export function useProcessRecurringInvoices() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/recurring/process`, {
-        method: 'POST',
-        headers,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to process recurring invoices');
-      }
-      return response.json();
-    },
-    onSuccess: (data: { processed: number }) => {
+    mutationFn: () => 
+      api.post<{ processed: number }>('/internal-invoices/recurring/process'),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['internal-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['internal-invoice-stats'] });
       toast.success(`Processed ${data.processed} recurring invoice(s)`);
