@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.api-expenses]
 verify_jwt = false
+
+[functions.api-internal-invoices]
+verify_jwt = false

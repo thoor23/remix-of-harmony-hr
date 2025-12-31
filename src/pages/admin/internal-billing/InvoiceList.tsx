@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useInternalInvoices, useInvoiceStats, useSendInvoice, usePayInvoice, us
 import { useLocations } from "@/hooks/useLocations";
 import { downloadInvoicePdf } from "@/lib/invoicePdfGenerator";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Draft", variant: "secondary" },
@@ -64,8 +65,7 @@ export default function InvoiceList() {
   });
 
   const handleDownloadPdf = async (invoice: any) => {
-    // Fetch full invoice details for PDF
-    const { data: { session } } = await import("@/integrations/supabase/client").then(m => m.supabase.auth.getSession());
+    const { data: { session } } = await supabase.auth.getSession();
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-internal-invoices/${invoice.id}`,
       { headers: { Authorization: `Bearer ${session?.access_token}` } }
@@ -75,11 +75,18 @@ export default function InvoiceList() {
   };
 
   return (
-    <PageContainer
-      title="Internal Billing"
-      subtitle="Manage internal invoices between locations"
-      icon={FileText}
-    >
+    <PageContainer>
+      <PageHeader title="Internal Billing" description="Manage internal invoices between locations">
+        <Button variant="outline" onClick={() => processRecurring.mutate()} disabled={processRecurring.isPending}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${processRecurring.isPending ? 'animate-spin' : ''}`} />
+          Process Recurring
+        </Button>
+        <Button onClick={() => navigate("/app/internal-billing/invoices/create")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Invoice
+        </Button>
+      </PageHeader>
+
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         <StatCard
@@ -91,38 +98,23 @@ export default function InvoiceList() {
           title="Pending Amount"
           value={`₹${(stats?.pending_amount || 0).toLocaleString('en-IN')}`}
           icon={Clock}
-          trend="neutral"
         />
         <StatCard
           title="Paid This Month"
           value={`₹${(stats?.paid_this_month || 0).toLocaleString('en-IN')}`}
           icon={DollarSign}
-          trend="up"
         />
         <StatCard
           title="Overdue"
           value={stats?.overdue_count || 0}
           icon={AlertTriangle}
-          trend={stats?.overdue_count ? "down" : "neutral"}
         />
       </div>
 
       <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <CardTitle>Invoices</CardTitle>
-            <CardDescription>View and manage all internal invoices</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => processRecurring.mutate()} disabled={processRecurring.isPending}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${processRecurring.isPending ? 'animate-spin' : ''}`} />
-              Process Recurring
-            </Button>
-            <Button onClick={() => navigate("/app/internal-billing/invoices/create")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Invoice
-            </Button>
-          </div>
+        <CardHeader>
+          <CardTitle>Invoices</CardTitle>
+          <CardDescription>View and manage all internal invoices</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}
