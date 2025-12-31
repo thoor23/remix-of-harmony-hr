@@ -1,28 +1,16 @@
-import { useState } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/shared/StatCard";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { FileText, DollarSign, Clock, TrendingUp, Building2 } from "lucide-react";
+import { StatCardSkeleton } from "@/components/shared/LoadingSkeletons";
+import { BarChartCard } from "@/components/reports/charts/BarChartCard";
+import { PieChartCard } from "@/components/reports/charts/PieChartCard";
+import { FileText, DollarSign, Clock, TrendingUp } from "lucide-react";
 import { useInternalInvoices, useInvoiceStats } from "@/hooks/useInternalInvoices";
-import { useLocations } from "@/hooks/useLocations";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 
-const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-];
-
 export default function BillingReports() {
-  const { data: invoices } = useInternalInvoices();
+  const { data: invoices, isLoading } = useInternalInvoices();
   const { data: stats } = useInvoiceStats();
-  const { data: locations } = useLocations();
-
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
 
   // Monthly trend data (last 6 months)
   const monthlyData = (() => {
@@ -44,10 +32,10 @@ export default function BillingReports() {
       const paid = monthInvoices.filter((i) => i.status === "paid").reduce((sum, i) => sum + Number(i.total_amount), 0);
 
       return {
-        month: format(month, "MMM"),
+        name: format(month, "MMM"),
+        value: sent + paid,
         sent,
         paid,
-        total: sent + paid,
       };
     });
   })();
@@ -76,28 +64,30 @@ export default function BillingReports() {
 
   // Location-wise billing (top 5 by amount)
   const locationData = (() => {
-    const locationTotals: Record<string, { name: string; billed: number; received: number }> = {};
+    const locationTotals: Record<string, { name: string; value: number; billed: number; received: number }> = {};
 
     invoices?.forEach((inv) => {
       // From location (billing out)
       if (inv.from_location) {
         if (!locationTotals[inv.from_location.id]) {
-          locationTotals[inv.from_location.id] = { name: inv.from_location.name, billed: 0, received: 0 };
+          locationTotals[inv.from_location.id] = { name: inv.from_location.name, value: 0, billed: 0, received: 0 };
         }
         locationTotals[inv.from_location.id].billed += Number(inv.total_amount);
+        locationTotals[inv.from_location.id].value += Number(inv.total_amount);
       }
 
       // To location (receiving)
       if (inv.to_location) {
         if (!locationTotals[inv.to_location.id]) {
-          locationTotals[inv.to_location.id] = { name: inv.to_location.name, billed: 0, received: 0 };
+          locationTotals[inv.to_location.id] = { name: inv.to_location.name, value: 0, billed: 0, received: 0 };
         }
         locationTotals[inv.to_location.id].received += Number(inv.total_amount);
+        locationTotals[inv.to_location.id].value += Number(inv.total_amount);
       }
     });
 
     return Object.values(locationTotals)
-      .sort((a, b) => (b.billed + b.received) - (a.billed + a.received))
+      .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   })();
 
@@ -122,6 +112,26 @@ export default function BillingReports() {
   const totalBilled = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
   const totalPaid = invoices?.filter((i) => i.status === "paid").reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
   const totalPending = invoices?.filter((i) => i.status === "sent").reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <PageHeader title="Billing Reports" description="Analytics and insights for internal billing" />
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="lg:col-span-2 h-[350px]">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-muted-foreground">Loading chart...</div>
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -153,135 +163,37 @@ export default function BillingReports() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly Trend */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Monthly Billing Trend</CardTitle>
-            <CardDescription>Invoice amounts over the last 6 months</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis 
-                    className="text-xs"
-                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, ""]}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="sent" name="Sent" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="paid" name="Paid" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <BarChartCard
+          title="Monthly Billing Trend"
+          data={monthlyData}
+          dataKey="sent"
+          secondaryDataKey="paid"
+          className="lg:col-span-2"
+        />
 
         {/* Status Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Status</CardTitle>
-            <CardDescription>Distribution by status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {statusData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <PieChartCard
+          title="Invoice Status"
+          description="Distribution by status"
+          data={statusData}
+        />
 
         {/* Invoice Type Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>By Invoice Type</CardTitle>
-            <CardDescription>Amount distribution by type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {typeData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, ""]}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <PieChartCard
+          title="By Invoice Type"
+          description="Amount distribution by type"
+          data={typeData}
+        />
 
         {/* Location-wise Billing */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Top Locations by Billing</CardTitle>
-            <CardDescription>Billing and receiving amounts by location</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={locationData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    type="number"
-                    className="text-xs"
-                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                  />
-                  <YAxis type="category" dataKey="name" className="text-xs" width={100} />
-                  <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, ""]}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="billed" name="Billed Out" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                  <Bar dataKey="received" name="Received" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <BarChartCard
+          title="Top Locations by Billing"
+          data={locationData}
+          dataKey="billed"
+          secondaryDataKey="received"
+          className="lg:col-span-2"
+          horizontal
+        />
       </div>
     </PageContainer>
   );
