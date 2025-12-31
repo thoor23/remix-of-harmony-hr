@@ -334,12 +334,92 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // GET /search - Search assets with advanced filtering
+    if (method === 'GET' && path === '/search') {
+      const q = url.searchParams.get('q') || '';
+      const field = url.searchParams.get('field') || 'name,asset_tag,serial_number,brand,model';
+      const limit = parseInt(url.searchParams.get('limit') || '20');
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+
+      if (!q) {
+        return errorResponse('Search query (q) is required', 400);
+      }
+
+      // Build OR query based on fields
+      const fields = field.split(',').map(f => f.trim());
+      const orConditions = fields.map(f => `${f}.ilike.%${q}%`).join(',');
+
+      const { data, error } = await supabase
+        .from('assets')
+        .select(`
+          *,
+          category:asset_categories(id, name, icon),
+          location:stores!assets_location_id_fkey(id, name, code, type),
+          assignee:employees!assets_assigned_to_fkey(id, first_name, last_name, employee_id)
+        `)
+        .eq('company_id', companyId)
+        .or(orConditions)
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return jsonResponse({
+        data,
+        query: q,
+        total: data?.length || 0,
+      });
+    }
+
+    // GET /export - Export assets data
+    if (method === 'GET' && path === '/export') {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin or HR access required', 403);
+      }
+
+      const status = url.searchParams.get('status');
+      const categoryId = url.searchParams.get('category_id');
+
+      let query = supabase
+        .from('assets')
+        .select(`
+          asset_tag,
+          name,
+          brand,
+          model,
+          serial_number,
+          status,
+          condition,
+          purchase_date,
+          purchase_cost,
+          warranty_expiry,
+          category:asset_categories(name),
+          location:stores!assets_location_id_fkey(name),
+          assignee:employees!assets_assigned_to_fkey(first_name, last_name, employee_id)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (status) query = query.eq('status', status);
+      if (categoryId) query = query.eq('category_id', categoryId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return jsonResponse({
+        data,
+        exported_at: new Date().toISOString(),
+        total: data?.length || 0,
+      });
+    }
+
     // GET / - List all assets
     if (method === 'GET' && path === '') {
       const status = url.searchParams.get('status');
       const categoryId = url.searchParams.get('category_id');
       const locationId = url.searchParams.get('location_id');
       const search = url.searchParams.get('search');
+      const limit = parseInt(url.searchParams.get('limit') || '1000');
+      const offset = parseInt(url.searchParams.get('offset') || '0');
 
       let query = supabase
         .from('assets')
@@ -364,6 +444,8 @@ serve(async (req) => {
       if (search) {
         query = query.or(`name.ilike.%${search}%,asset_tag.ilike.%${search}%,serial_number.ilike.%${search}%`);
       }
+
+      query = query.range(offset, offset + limit - 1);
 
       const { data, error } = await query;
       if (error) throw error;
