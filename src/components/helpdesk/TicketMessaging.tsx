@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, MessageCircle, X, Lock } from "lucide-react";
 import { useTicketMessages, useSendTicketMessage, TicketMessage } from "@/hooks/useTicketMessages";
@@ -97,12 +97,12 @@ export function TicketMessaging({ ticket, onClose, isAdmin = false }: TicketMess
       </CardHeader>
       <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
         {/* Messages Area */}
-        <ScrollArea className="flex-1 px-4" ref={scrollRef}>
+        <div className="flex-1 overflow-y-auto px-4" ref={scrollRef}>
           {isLoading ? (
             <div className="space-y-4 py-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex gap-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-8 w-8 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-16 w-full" />
@@ -156,7 +156,7 @@ export function TicketMessaging({ ticket, onClose, isAdmin = false }: TicketMess
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Input Area */}
         <div className="p-4 border-t bg-background flex-shrink-0">

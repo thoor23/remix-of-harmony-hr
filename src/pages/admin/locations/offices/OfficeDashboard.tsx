@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedStatCard } from "@/components/dashboard/EnhancedStatCard";
 import { Building2, Users, UserCheck } from "lucide-react";
 import { useOffices } from "@/hooks/useLocations";
+import { CardGridSkeleton } from "@/components/shared/LoadingSkeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export default function OfficeDashboard() {
   const { data: offices = [], isLoading } = useOffices();
@@ -20,7 +22,15 @@ export default function OfficeDashboard() {
       <Card>
         <CardHeader><CardTitle>Offices Overview</CardTitle></CardHeader>
         <CardContent>
-          {isLoading ? <p>Loading...</p> : offices.length === 0 ? <p className="text-muted-foreground">No offices found</p> : (
+          {isLoading ? (
+            <CardGridSkeleton count={6} />
+          ) : offices.length === 0 ? (
+            <EmptyState
+              icon={<Building2 className="h-8 w-8 text-muted-foreground" />}
+              title="No offices found"
+              description="Add your first office location to get started"
+            />
+          ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {offices.map(office => (
                 <Card key={office.id} className="p-4">

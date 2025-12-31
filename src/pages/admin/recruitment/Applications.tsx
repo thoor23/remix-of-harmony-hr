@@ -2,13 +2,15 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, MoreHorizontal } from "lucide-react";
+import { Eye, MoreHorizontal, Users } from "lucide-react";
 import { useApplications, useUpdateApplicationStage } from "@/hooks/useRecruitment";
 import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import type { ApplicationStage } from "@/types/recruitment";
+import { TableRowsSkeleton } from "@/components/shared/LoadingSkeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 const stageBadgeColors: Record<string, string> = {
   screening: "bg-blue-100 text-blue-800",
@@ -53,9 +55,17 @@ export default function Applications() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRowsSkeleton rows={5} cols={6} />
               ) : applications?.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No applications yet</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EmptyState
+                      icon={<Users className="h-8 w-8 text-muted-foreground" />}
+                      title="No applications yet"
+                      description="Applications will appear here when candidates apply"
+                    />
+                  </TableCell>
+                </TableRow>
               ) : (
                 applications?.map((app) => (
                   <TableRow key={app.id}>
