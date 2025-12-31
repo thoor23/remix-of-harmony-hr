@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -15,6 +15,7 @@ serve(async (req) => {
     if (!auth) return errorResponse('Unauthorized', 401);
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET /stats - Admin dashboard stats
@@ -26,20 +27,19 @@ serve(async (req) => {
       const firstOfMonth = `${thisMonth}-01`;
       
       const [employees, pendingLeaves, todayAttendance, todayLeaves, departments, newJoiners, openTickets] = await Promise.all([
-        supabase.from('employees').select('*', { count: 'exact' }).eq('status', 'active'),
-        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('status', 'pending'),
-        supabase.from('attendance_records').select('*').eq('date', today),
-        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('status', 'approved').lte('start_date', today).gte('end_date', today),
-        supabase.from('departments').select('id, name, employee_count'),
-        supabase.from('employees').select('*', { count: 'exact' }).gte('date_of_joining', firstOfMonth),
-        supabase.from('helpdesk_tickets').select('*', { count: 'exact' }).in('status', ['open', 'in_progress']),
+        supabase.from('employees').select('*', { count: 'exact' }).eq('company_id', companyId).eq('status', 'active'),
+        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('company_id', companyId).eq('status', 'pending'),
+        supabase.from('attendance_records').select('*').eq('company_id', companyId).eq('date', today),
+        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('company_id', companyId).eq('status', 'approved').lte('start_date', today).gte('end_date', today),
+        supabase.from('departments').select('id, name, employee_count').eq('company_id', companyId),
+        supabase.from('employees').select('*', { count: 'exact' }).eq('company_id', companyId).gte('date_of_joining', firstOfMonth),
+        supabase.from('helpdesk_tickets').select('*', { count: 'exact' }).eq('company_id', companyId).in('status', ['open', 'in_progress']),
       ]);
 
       const totalEmployees = employees.count || 0;
       const presentToday = todayAttendance.data?.filter(a => a.status === 'present').length || 0;
       const attendancePercentage = totalEmployees > 0 ? Math.round((presentToday / totalEmployees) * 100) : 0;
 
-      // Format department data
       const departmentWiseCount = departments.data?.map(d => ({
         department: d.name,
         count: d.employee_count || 0,
@@ -70,18 +70,18 @@ serve(async (req) => {
       const { data: attendance } = await supabase
         .from('attendance_records')
         .select('date, status')
+        .eq('company_id', companyId)
         .gte('date', startDate.toISOString().split('T')[0])
         .lte('date', endDate.toISOString().split('T')[0]);
 
       const { count: totalEmployees } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
         .eq('status', 'active');
 
-      // Group by date
       const trendData: Record<string, { present: number; absent: number; late: number; leave: number }> = {};
       
-      // Initialize all dates
       for (let i = 0; i < days; i++) {
         const date = new Date(startDate);
         date.setDate(date.getDate() + i);
@@ -89,7 +89,6 @@ serve(async (req) => {
         trendData[dateStr] = { present: 0, absent: 0, late: 0, leave: 0 };
       }
 
-      // Count attendance by status
       attendance?.forEach(record => {
         if (trendData[record.date]) {
           const status = record.status as string;
@@ -100,7 +99,6 @@ serve(async (req) => {
         }
       });
 
-      // Convert to array format
       const trend = Object.entries(trendData).map(([date, counts]) => ({
         date,
         name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -120,6 +118,7 @@ serve(async (req) => {
       const { data: auditLogs } = await supabase
         .from('audit_logs')
         .select('*')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -143,6 +142,7 @@ serve(async (req) => {
           date,
           employee:employees(id, first_name, last_name, avatar_url, employee_id)
         `)
+        .eq('company_id', companyId)
         .eq('date', today)
         .order('check_in', { ascending: false })
         .limit(limit);
@@ -158,22 +158,21 @@ serve(async (req) => {
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
 
-      // Get upcoming holidays
       const { data: holidays } = await supabase
         .from('holidays')
         .select('*')
+        .eq('company_id', companyId)
         .gte('date', today.toISOString().split('T')[0])
         .lte('date', nextWeek.toISOString().split('T')[0])
         .order('date', { ascending: true });
 
-      // Get employees with birthdays this week
       const { data: employees } = await supabase
         .from('employees')
         .select('id, first_name, last_name, avatar_url, date_of_birth')
+        .eq('company_id', companyId)
         .eq('status', 'active')
         .not('date_of_birth', 'is', null);
 
-      // Filter birthdays in the next 7 days
       const upcomingBirthdays = employees?.filter(emp => {
         if (!emp.date_of_birth) return false;
         const dob = new Date(emp.date_of_birth);
@@ -186,7 +185,6 @@ serve(async (req) => {
         avatar_url: emp.avatar_url,
       })) || [];
 
-      // Combine and format events
       const events = [
         ...upcomingBirthdays,
         ...(holidays?.map(h => ({
@@ -206,14 +204,13 @@ serve(async (req) => {
 
       const month = parseInt(url.searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
-      // Get employees with birthdays in selected month
       const { data: employees } = await supabase
         .from('employees')
         .select('id, first_name, last_name, avatar_url, date_of_birth, department:departments(name)')
+        .eq('company_id', companyId)
         .eq('status', 'active')
         .not('date_of_birth', 'is', null);
 
-      // Filter by month
       const birthdaysInMonth = employees?.filter(emp => {
         if (!emp.date_of_birth) return false;
         const dob = new Date(emp.date_of_birth);
@@ -250,11 +247,11 @@ serve(async (req) => {
           status,
           leave_type:leave_types(name, color)
         `)
+        .eq('company_id', companyId)
         .gte('start_date', startOfYear)
         .lte('start_date', endOfYear)
         .eq('status', 'approved');
 
-      // Group by leave type
       const breakdown: Record<string, { count: number; days: number; color: string }> = {};
       leaveRequests?.forEach(request => {
         const leaveType = request.leave_type as { name?: string; color?: string } | null;
@@ -286,8 +283,8 @@ serve(async (req) => {
       const lastMonthStr = lastMonth.toISOString().slice(0, 7);
 
       const [thisMonthPayroll, lastMonthPayroll] = await Promise.all([
-        supabase.from('payslips').select('gross_earnings, net_pay, total_deductions').eq('pay_period', thisMonth),
-        supabase.from('payslips').select('gross_earnings, net_pay, total_deductions').eq('pay_period', lastMonthStr),
+        supabase.from('payslips').select('gross_earnings, net_pay, total_deductions').eq('company_id', companyId).eq('pay_period', thisMonth),
+        supabase.from('payslips').select('gross_earnings, net_pay, total_deductions').eq('company_id', companyId).eq('pay_period', lastMonthStr),
       ]);
 
       const thisMonthTotal = thisMonthPayroll.data?.reduce((sum, p) => sum + (Number(p.net_pay) || 0), 0) || 0;
@@ -308,6 +305,7 @@ serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .single();
 
       if (!employee) return jsonResponse({});
@@ -316,9 +314,9 @@ serve(async (req) => {
       const month = new Date().toISOString().slice(0, 7);
 
       const [leaveBalance, pendingLeaves, attendance] = await Promise.all([
-        supabase.from('leave_balances').select('*, leave_type:leave_types(*)').eq('employee_id', employee.id).eq('year', year),
-        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('employee_id', employee.id).eq('status', 'pending'),
-        supabase.from('attendance_records').select('*').eq('employee_id', employee.id).gte('date', `${month}-01`),
+        supabase.from('leave_balances').select('*, leave_type:leave_types(*)').eq('company_id', companyId).eq('employee_id', employee.id).eq('year', year),
+        supabase.from('leave_requests').select('*', { count: 'exact' }).eq('company_id', companyId).eq('employee_id', employee.id).eq('status', 'pending'),
+        supabase.from('attendance_records').select('*').eq('company_id', companyId).eq('employee_id', employee.id).gte('date', `${month}-01`),
       ]);
 
       return jsonResponse({

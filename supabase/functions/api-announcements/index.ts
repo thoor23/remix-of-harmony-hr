@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -15,6 +15,7 @@ serve(async (req) => {
     if (!auth) return errorResponse('Unauthorized', 401);
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET /recent - Get recent announcements (for dashboard)
@@ -25,6 +26,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('announcements')
         .select('*')
+        .eq('company_id', companyId)
         .eq('is_active', true)
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('created_at', { ascending: false })
@@ -36,7 +38,11 @@ serve(async (req) => {
 
     if (method === 'GET' && path === '') {
       const all = url.searchParams.get('all') === 'true';
-      let query = supabase.from('announcements').select('*').order('created_at', { ascending: false });
+      let query = supabase
+        .from('announcements')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
       if (!all) query = query.eq('is_active', true);
       const { data, error } = await query;
       if (error) throw error;
@@ -48,21 +54,35 @@ serve(async (req) => {
     if (method === 'POST' && path === '') {
       if (!isAdminOrHR) return errorResponse('Admin or HR access required', 403);
       const body = await req.json();
-      const { data, error } = await supabase.from('announcements').insert({ ...body, created_by: auth.userId }).select().single();
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert(withCompanyId({ ...body, created_by: auth.userId }, companyId))
+        .select()
+        .single();
       if (error) throw error;
       return jsonResponse(data, 201);
     }
 
     if (method === 'PUT' && idMatch) {
       if (!isAdminOrHR) return errorResponse('Admin or HR access required', 403);
-      const { data, error } = await supabase.from('announcements').update(await req.json()).eq('id', idMatch[1]).select().single();
+      const { data, error } = await supabase
+        .from('announcements')
+        .update(await req.json())
+        .eq('id', idMatch[1])
+        .eq('company_id', companyId)
+        .select()
+        .single();
       if (error) throw error;
       return jsonResponse(data);
     }
 
     if (method === 'DELETE' && idMatch) {
       if (!isAdminOrHR) return errorResponse('Admin or HR access required', 403);
-      await supabase.from('announcements').delete().eq('id', idMatch[1]);
+      await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', idMatch[1])
+        .eq('company_id', companyId);
       return jsonResponse({ success: true });
     }
 

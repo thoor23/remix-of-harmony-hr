@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET / - Get all designations
@@ -26,6 +27,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('designations')
         .select('*, department:departments(id, name, code)')
+        .eq('company_id', companyId)
         .order('name');
 
       if (error) throw error;
@@ -41,6 +43,7 @@ serve(async (req) => {
         .from('designations')
         .select('*, department:departments(id, name, code)')
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (error) throw error;
@@ -55,11 +58,12 @@ serve(async (req) => {
 
       const body = await req.json();
 
-      // Check for duplicate code
+      // Check for duplicate code in this company
       const { data: existing } = await supabase
         .from('designations')
         .select('id')
         .eq('code', body.code)
+        .eq('company_id', companyId)
         .single();
 
       if (existing) {
@@ -68,7 +72,7 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from('designations')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -91,6 +95,7 @@ serve(async (req) => {
           .from('designations')
           .select('id')
           .eq('code', body.code)
+          .eq('company_id', companyId)
           .neq('id', id)
           .single();
 
@@ -103,6 +108,7 @@ serve(async (req) => {
         .from('designations')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -123,6 +129,7 @@ serve(async (req) => {
         .from('employees')
         .select('*', { count: 'exact', head: true })
         .eq('designation_id', id)
+        .eq('company_id', companyId)
         .eq('status', 'active');
 
       if (count && count > 0) {
@@ -132,7 +139,8 @@ serve(async (req) => {
       const { error } = await supabase
         .from('designations')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });

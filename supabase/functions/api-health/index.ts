@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient } from '../_shared/auth.ts';
+import { getSupabaseClient, DEFAULT_COMPANY_ID } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 // List of services to check
@@ -36,12 +36,11 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
   const startTime = Date.now();
   const url = `${baseUrl}/${service.endpoint}${service.path}`;
   
-  // Use service role key for internal health checks to bypass auth
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -56,8 +55,6 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
     
-    // For authenticated endpoints, 401 is expected without proper user context
-    // Consider them operational if they respond (even with 401/403)
     if (response.ok || response.status === 401 || response.status === 403) {
       return {
         name: service.name,
@@ -65,7 +62,6 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
         responseTime,
       };
     } else if (response.status === 404) {
-      // Endpoint not found - check if it's a valid service
       return {
         name: service.name,
         status: 'degraded',
@@ -118,7 +114,6 @@ serve(async (req) => {
     if (method === 'GET' && path === '/ready') {
       const supabase = getSupabaseClient();
       
-      // Test database connection
       const { error: dbError } = await supabase
         .from('departments')
         .select('id')
@@ -161,7 +156,6 @@ serve(async (req) => {
       
       const baseUrl = `${supabaseUrl}/functions/v1`;
       
-      // Check all services in parallel
       const [coreResults, businessResults, supportResults] = await Promise.all([
         Promise.all(SERVICES.core.map(s => checkService(baseUrl, s))),
         Promise.all(SERVICES.business.map(s => checkService(baseUrl, s))),
@@ -170,7 +164,6 @@ serve(async (req) => {
       
       const allServices = [...coreResults, ...businessResults, ...supportResults];
       
-      // Calculate overall status
       const hasOutage = allServices.some(s => s.status === 'outage');
       const hasDegraded = allServices.some(s => s.status === 'degraded');
       
@@ -181,12 +174,30 @@ serve(async (req) => {
         overallStatus = 'degraded';
       }
       
-      // Log status to history (async, don't wait)
+      // Log status to history with company_id
       const supabase = getSupabaseClient();
       const historyRecords = [
-        ...coreResults.map(s => ({ service_name: s.name, service_group: 'core', status: s.status, response_time_ms: s.responseTime })),
-        ...businessResults.map(s => ({ service_name: s.name, service_group: 'business', status: s.status, response_time_ms: s.responseTime })),
-        ...supportResults.map(s => ({ service_name: s.name, service_group: 'support', status: s.status, response_time_ms: s.responseTime })),
+        ...coreResults.map(s => ({ 
+          service_name: s.name, 
+          service_group: 'core', 
+          status: s.status, 
+          response_time_ms: s.responseTime,
+          company_id: DEFAULT_COMPANY_ID 
+        })),
+        ...businessResults.map(s => ({ 
+          service_name: s.name, 
+          service_group: 'business', 
+          status: s.status, 
+          response_time_ms: s.responseTime,
+          company_id: DEFAULT_COMPANY_ID 
+        })),
+        ...supportResults.map(s => ({ 
+          service_name: s.name, 
+          service_group: 'support', 
+          status: s.status, 
+          response_time_ms: s.responseTime,
+          company_id: DEFAULT_COMPANY_ID 
+        })),
       ];
       
       supabase.from('status_history').insert(historyRecords).then(({ error }) => {
@@ -215,11 +226,10 @@ serve(async (req) => {
       });
     }
 
-    // GET /metrics - Performance metrics (internal use)
+    // GET /metrics - Performance metrics
     if (method === 'GET' && path === '/metrics') {
       const supabase = getSupabaseClient();
       
-      // Get some basic counts
       const [
         { count: employeeCount },
         { count: attendanceCount },
