@@ -163,7 +163,9 @@ import BillingReports from "./pages/admin/internal-billing/BillingReports";
 import RecruitmentDashboard from "./pages/admin/recruitment/RecruitmentDashboard";
 import JobOpenings from "./pages/admin/recruitment/JobOpenings";
 import CreateJobOpening from "./pages/admin/recruitment/CreateJobOpening";
+import JobOpeningDetails from "./pages/admin/recruitment/JobOpeningDetails";
 import Applications from "./pages/admin/recruitment/Applications";
+import ApplicationDetails from "./pages/admin/recruitment/ApplicationDetails";
 
 const queryClient = new QueryClient();
 
@@ -364,7 +366,9 @@ const App = () => (
                 <Route path="recruitment" element={<RecruitmentDashboard />} />
                 <Route path="recruitment/jobs" element={<JobOpenings />} />
                 <Route path="recruitment/jobs/create" element={<CreateJobOpening />} />
+                <Route path="recruitment/jobs/:id" element={<JobOpeningDetails />} />
                 <Route path="recruitment/applications" element={<Applications />} />
+                <Route path="recruitment/applications/:id" element={<ApplicationDetails />} />
 
                 {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />
