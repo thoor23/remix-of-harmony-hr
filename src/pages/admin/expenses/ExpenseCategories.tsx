@@ -442,6 +442,7 @@ export default function ExpenseCategories() {
                 placeholder="e.g., 50000"
                 value={formData.max_amount}
                 onChange={(e) => setFormData({ ...formData, max_amount: Number(e.target.value) })}
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
