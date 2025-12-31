@@ -25,10 +25,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ClipboardList, BarChart3 } from "lucide-react";
+
 const sidebarItems = [
   { label: "Dashboard", href: "/super-admin/dashboard", icon: LayoutDashboard },
   { label: "Companies", href: "/super-admin/companies", icon: Building2 },
   { label: "Super Admins", href: "/super-admin/users", icon: Shield },
+  { label: "Audit Logs", href: "/super-admin/audit", icon: ClipboardList },
+  { label: "Analytics", href: "/super-admin/analytics", icon: BarChart3 },
   { label: "Settings", href: "/super-admin/settings", icon: Settings },
 ];
 

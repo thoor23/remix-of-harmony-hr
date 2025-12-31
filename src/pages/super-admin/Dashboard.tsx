@@ -15,11 +15,20 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { EnhancedStatCard } from "@/components/dashboard/EnhancedStatCard";
+import { SuperAdminQuickActions } from "@/components/super-admin/SuperAdminQuickActions";
+import { PlatformActivityTimeline } from "@/components/super-admin/PlatformActivityTimeline";
+import { CompanyGrowthChart } from "@/components/super-admin/CompanyGrowthChart";
+import { EmployeeDistributionChart } from "@/components/super-admin/EmployeeDistributionChart";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
 
 export default function SuperAdminDashboard() {
   const { stats, statsLoading, companies, companiesLoading } = useSuperAdmin();
+
+  const activeRate = stats?.totalCompanies
+    ? Math.round((stats.activeCompanies / stats.totalCompanies) * 100)
+    : 0;
 
   return (
     <PageContainer>
@@ -27,87 +36,68 @@ export default function SuperAdminDashboard() {
         title="Platform Dashboard"
         description="Overview of all companies and platform metrics"
       />
-      {/* Stats Cards */}
+
+      {/* Stats Cards - Enhanced */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{stats?.totalCompanies || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats?.activeCompanies || 0} active
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {statsLoading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </>
+        ) : (
+          <>
+            <EnhancedStatCard
+              title="Total Companies"
+              value={stats?.totalCompanies || 0}
+              subtitle={`${stats?.activeCompanies || 0} active`}
+              icon={Building2}
+              variant="primary"
+              trend={{ value: 12, isPositive: true }}
+            />
+            <EnhancedStatCard
+              title="Total Employees"
+              value={(stats?.totalEmployees || 0).toLocaleString()}
+              subtitle="Across all companies"
+              icon={Users}
+              variant="success"
+              trend={{ value: 8, isPositive: true }}
+            />
+            <EnhancedStatCard
+              title="Total Users"
+              value={(stats?.totalUsers || 0).toLocaleString()}
+              subtitle="Registered accounts"
+              icon={UserCheck}
+              variant="warning"
+              trend={{ value: 15, isPositive: true }}
+            />
+            <EnhancedStatCard
+              title="Active Rate"
+              value={`${activeRate}%`}
+              subtitle="Companies active"
+              icon={TrendingUp}
+              variant={activeRate >= 80 ? "success" : activeRate >= 50 ? "warning" : "danger"}
+            />
+          </>
+        )}
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
-                <p className="text-xs text-muted-foreground">Across all companies</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* Quick Actions & Activity */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <SuperAdminQuickActions />
+        <PlatformActivityTimeline />
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-                <p className="text-xs text-muted-foreground">Registered accounts</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">
-                  {stats?.totalCompanies
-                    ? Math.round((stats.activeCompanies / stats.totalCompanies) * 100)
-                    : 0}
-                  %
-                </div>
-                <p className="text-xs text-muted-foreground">Companies active</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <CompanyGrowthChart />
+        {!companiesLoading && <EmployeeDistributionChart companies={companies} />}
+        {companiesLoading && <Skeleton className="h-[320px]" />}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Companies by Plan */}
-        <Card>
+        <Card className="dark:border-border/50">
           <CardHeader>
             <CardTitle>Companies by Plan</CardTitle>
           </CardHeader>
@@ -121,9 +111,9 @@ export default function SuperAdminDashboard() {
                     data={stats.companiesByPlan}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
+                    innerRadius={50}
                     outerRadius={80}
-                    fill="#8884d8"
+                    paddingAngle={5}
                     dataKey="count"
                     nameKey="plan"
                     label={({ plan, count }) => `${plan}: ${count}`}
@@ -145,7 +135,7 @@ export default function SuperAdminDashboard() {
         </Card>
 
         {/* Recent Companies */}
-        <Card>
+        <Card className="dark:border-border/50">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Companies</CardTitle>
             <Link to="/super-admin/companies">
@@ -173,7 +163,11 @@ export default function SuperAdminDashboard() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-primary" />
+                        {company.logo_url ? (
+                          <img src={company.logo_url} alt={company.name} className="w-8 h-8 rounded object-cover" />
+                        ) : (
+                          <Building2 className="h-5 w-5 text-primary" />
+                        )}
                       </div>
                       <div>
                         <p className="font-medium">{company.name}</p>

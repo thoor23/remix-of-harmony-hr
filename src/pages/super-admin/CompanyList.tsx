@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -17,23 +18,182 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
-import { Building2, Plus, Search, MoreHorizontal, Eye, Edit, Power } from "lucide-react";
+import { 
+  Building2, 
+  Plus, 
+  Search, 
+  MoreHorizontal, 
+  Eye, 
+  Edit, 
+  Power,
+  Download,
+  RefreshCw,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+  Filter,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { toast } from "sonner";
+
+type SortField = "name" | "code" | "email" | "subscription_plan" | "employee_count" | "created_at";
+type SortDirection = "asc" | "desc";
 
 export default function CompanyList() {
   const { companies, companiesLoading, toggleCompanyStatus } = useSuperAdmin();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [planFilter, setPlanFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredCompanies = companies.filter(
-    (company) =>
-      company.name.toLowerCase().includes(search.toLowerCase()) ||
-      company.code.toLowerCase().includes(search.toLowerCase()) ||
-      company.email.toLowerCase().includes(search.toLowerCase())
+  // Filter companies
+  const filteredCompanies = useMemo(() => {
+    return companies.filter((company) => {
+      const matchesSearch = 
+        company.name.toLowerCase().includes(search.toLowerCase()) ||
+        company.code.toLowerCase().includes(search.toLowerCase()) ||
+        company.email.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "active" && company.is_active) ||
+        (statusFilter === "inactive" && !company.is_active);
+      
+      const matchesPlan = planFilter === "all" || 
+        (company.subscription_plan || "free") === planFilter;
+
+      return matchesSearch && matchesStatus && matchesPlan;
+    });
+  }, [companies, search, statusFilter, planFilter]);
+
+  // Sort companies
+  const sortedCompanies = useMemo(() => {
+    return [...filteredCompanies].sort((a, b) => {
+      let aVal: string | number = "";
+      let bVal: string | number = "";
+
+      switch (sortField) {
+        case "name":
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case "code":
+          aVal = a.code.toLowerCase();
+          bVal = b.code.toLowerCase();
+          break;
+        case "email":
+          aVal = a.email.toLowerCase();
+          bVal = b.email.toLowerCase();
+          break;
+        case "subscription_plan":
+          aVal = (a.subscription_plan || "free").toLowerCase();
+          bVal = (b.subscription_plan || "free").toLowerCase();
+          break;
+        case "employee_count":
+          aVal = a.employee_count || 0;
+          bVal = b.employee_count || 0;
+          break;
+        case "created_at":
+          aVal = new Date(a.created_at).getTime();
+          bVal = new Date(b.created_at).getTime();
+          break;
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredCompanies, sortField, sortDirection]);
+
+  // Paginate
+  const totalPages = Math.ceil(sortedCompanies.length / pageSize);
+  const paginatedCompanies = sortedCompanies.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    return sortDirection === "asc" 
+      ? <ChevronUp className="h-4 w-4 ml-1" />
+      : <ChevronDown className="h-4 w-4 ml-1" />;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(paginatedCompanies.map(c => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkAction = (action: "activate" | "deactivate") => {
+    selectedIds.forEach(id => {
+      toggleCompanyStatus({ id, isActive: action === "activate" });
+    });
+    setSelectedIds([]);
+    toast.success(`${selectedIds.length} companies ${action === "activate" ? "activated" : "deactivated"}`);
+  };
+
+  const handleExport = () => {
+    const csv = [
+      ["Name", "Code", "Email", "Plan", "Employees", "Status", "Created"],
+      ...sortedCompanies.map(c => [
+        c.name,
+        c.code,
+        c.email,
+        c.subscription_plan || "free",
+        c.employee_count || 0,
+        c.is_active ? "Active" : "Inactive",
+        format(new Date(c.created_at), "yyyy-MM-dd"),
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `companies-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    toast.success("Companies exported successfully");
+  };
+
+  // Get unique plans for filter
+  const uniquePlans = [...new Set(companies.map(c => c.subscription_plan || "free"))];
 
   return (
     <PageContainer>
@@ -48,19 +208,89 @@ export default function CompanyList() {
           </Button>
         </Link>
       </PageHeader>
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>All Companies</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search companies..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle>All Companies</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" disabled={companiesLoading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${companiesLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
+
+            {/* Search and Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search companies..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="pl-9"
+                />
+              </div>
+              
+              {showFilters && (
+                <>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Plans</SelectItem>
+                      {uniquePlans.map(plan => (
+                        <SelectItem key={plan} value={plan} className="capitalize">
+                          {plan}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </div>
+
+            {/* Bulk Actions */}
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">{selectedIds.length} selected</span>
+                <Button size="sm" variant="outline" onClick={() => handleBulkAction("activate")}>
+                  Activate All
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleBulkAction("deactivate")}>
+                  Deactivate All
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+                  Clear Selection
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -70,105 +300,175 @@ export default function CompanyList() {
                 <Skeleton key={i} className="h-16" />
               ))}
             </div>
-          ) : filteredCompanies.length === 0 ? (
+          ) : paginatedCompanies.length === 0 ? (
             <div className="text-center py-12">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No companies found</h3>
               <p className="text-muted-foreground">
-                {search ? "Try a different search term" : "Add your first company to get started"}
+                {search || statusFilter !== "all" || planFilter !== "all" 
+                  ? "Try adjusting your filters" 
+                  : "Add your first company to get started"}
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Employees</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCompanies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          {company.logo_url ? (
-                            <img
-                              src={company.logo_url}
-                              alt={company.name}
-                              className="w-8 h-8 rounded object-cover"
-                            />
-                          ) : (
-                            <Building2 className="h-5 w-5 text-primary" />
-                          )}
-                        </div>
-                        <span className="font-medium">{company.name}</span>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={selectedIds.length === paginatedCompanies.length && paginatedCompanies.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground" 
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center">
+                        Company <SortIcon field="name" />
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {company.code}
-                      </code>
-                    </TableCell>
-                    <TableCell>{company.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {company.subscription_plan || "free"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{company.employee_count || 0}</TableCell>
-                    <TableCell>
-                      <Badge variant={company.is_active ? "default" : "secondary"}>
-                        {company.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(company.created_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/super-admin/companies/${company.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to={`/super-admin/companies/${company.id}/edit`}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleCompanyStatus({
-                                id: company.id,
-                                isActive: !company.is_active,
-                              })
-                            }
-                          >
-                            <Power className="h-4 w-4 mr-2" />
-                            {company.is_active ? "Deactivate" : "Activate"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("code")}
+                    >
+                      <div className="flex items-center">
+                        Code <SortIcon field="code" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("email")}
+                    >
+                      <div className="flex items-center">
+                        Email <SortIcon field="email" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("subscription_plan")}
+                    >
+                      <div className="flex items-center">
+                        Plan <SortIcon field="subscription_plan" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("employee_count")}
+                    >
+                      <div className="flex items-center">
+                        Employees <SortIcon field="employee_count" />
+                      </div>
+                    </TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:text-foreground"
+                      onClick={() => handleSort("created_at")}
+                    >
+                      <div className="flex items-center">
+                        Created <SortIcon field="created_at" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCompanies.map((company) => (
+                    <TableRow key={company.id}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedIds.includes(company.id)}
+                          onCheckedChange={(checked) => handleSelectOne(company.id, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            {company.logo_url ? (
+                              <img
+                                src={company.logo_url}
+                                alt={company.name}
+                                className="w-8 h-8 rounded object-cover"
+                              />
+                            ) : (
+                              <Building2 className="h-5 w-5 text-primary" />
+                            )}
+                          </div>
+                          <span className="font-medium truncate max-w-[150px]">{company.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <code className="bg-muted px-2 py-1 rounded text-sm">
+                          {company.code}
+                        </code>
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate">{company.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {company.subscription_plan || "free"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{company.employee_count || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant={company.is_active ? "default" : "secondary"}>
+                          {company.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(company.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link to={`/super-admin/companies/${company.id}`}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link to={`/super-admin/companies/${company.id}/edit`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                toggleCompanyStatus({
+                                  id: company.id,
+                                  isActive: !company.is_active,
+                                })
+                              }
+                            >
+                              <Power className="h-4 w-4 mr-2" />
+                              {company.is_active ? "Deactivate" : "Activate"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              <div className="mt-4">
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  totalItems={sortedCompanies.length}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+                />
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

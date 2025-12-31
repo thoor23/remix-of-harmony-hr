@@ -199,6 +199,8 @@ import AddCompany from "./pages/super-admin/AddCompany";
 import CompanyDetails from "./pages/super-admin/CompanyDetails";
 import SuperAdminUsers from "./pages/super-admin/SuperAdminUsers";
 import GlobalSettings from "./pages/super-admin/GlobalSettings";
+import PlatformAuditLogs from "./pages/super-admin/PlatformAuditLogs";
+import PlatformAnalytics from "./pages/super-admin/PlatformAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -241,6 +243,8 @@ const App = () => (
                   <Route path="companies/new" element={<AddCompany />} />
                   <Route path="companies/:id" element={<CompanyDetails />} />
                   <Route path="users" element={<SuperAdminUsers />} />
+                  <Route path="audit" element={<PlatformAuditLogs />} />
+                  <Route path="analytics" element={<PlatformAnalytics />} />
                   <Route path="settings" element={<GlobalSettings />} />
                 </Route>
                 <Route path="/status/unsubscribe" element={<UnsubscribePage />} />
