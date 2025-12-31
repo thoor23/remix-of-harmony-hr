@@ -151,6 +151,51 @@ export type Database = {
           },
         ]
       }
+      application_stage_history: {
+        Row: {
+          application_id: string
+          created_at: string
+          from_stage: string | null
+          id: string
+          notes: string | null
+          to_stage: string
+          updated_by: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          notes?: string | null
+          to_stage: string
+          updated_by?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          notes?: string | null
+          to_stage?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_stage_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_stage_history_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_assignments: {
         Row: {
           asset_id: string
@@ -1643,6 +1688,298 @@ export type Database = {
             columns: ["to_location_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_feedback: {
+        Row: {
+          comments: string | null
+          created_at: string
+          criteria: string
+          id: string
+          interview_id: string
+          interviewer_id: string | null
+          rating: number
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          criteria: string
+          id?: string
+          interview_id: string
+          interviewer_id?: string | null
+          rating: number
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          criteria?: string
+          id?: string
+          interview_id?: string
+          interviewer_id?: string | null
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_feedback_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interview_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_feedback_interviewer_id_fkey"
+            columns: ["interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_schedules: {
+        Row: {
+          application_id: string
+          created_at: string
+          duration_minutes: number | null
+          feedback: string | null
+          id: string
+          interview_round: number
+          interview_type: string
+          interviewer_id: string | null
+          location_or_link: string | null
+          rating: number | null
+          recommendation: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          feedback?: string | null
+          id?: string
+          interview_round?: number
+          interview_type?: string
+          interviewer_id?: string | null
+          location_or_link?: string | null
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          feedback?: string | null
+          id?: string
+          interview_round?: number
+          interview_type?: string
+          interviewer_id?: string | null
+          location_or_link?: string | null
+          rating?: number | null
+          recommendation?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_schedules_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_schedules_interviewer_id_fkey"
+            columns: ["interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_applications: {
+        Row: {
+          applied_at: string
+          candidate_email: string
+          candidate_name: string
+          candidate_phone: string | null
+          cover_letter: string | null
+          created_at: string
+          current_company: string | null
+          current_designation: string | null
+          current_stage: string
+          expected_salary: number | null
+          experience_years: number | null
+          id: string
+          job_opening_id: string
+          linkedin_url: string | null
+          notes: string | null
+          notice_period_days: number | null
+          portfolio_url: string | null
+          referred_by: string | null
+          rejection_reason: string | null
+          resume_url: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string
+          candidate_email: string
+          candidate_name: string
+          candidate_phone?: string | null
+          cover_letter?: string | null
+          created_at?: string
+          current_company?: string | null
+          current_designation?: string | null
+          current_stage?: string
+          expected_salary?: number | null
+          experience_years?: number | null
+          id?: string
+          job_opening_id: string
+          linkedin_url?: string | null
+          notes?: string | null
+          notice_period_days?: number | null
+          portfolio_url?: string | null
+          referred_by?: string | null
+          rejection_reason?: string | null
+          resume_url?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string
+          candidate_email?: string
+          candidate_name?: string
+          candidate_phone?: string | null
+          cover_letter?: string | null
+          created_at?: string
+          current_company?: string | null
+          current_designation?: string | null
+          current_stage?: string
+          expected_salary?: number | null
+          experience_years?: number | null
+          id?: string
+          job_opening_id?: string
+          linkedin_url?: string | null
+          notes?: string | null
+          notice_period_days?: number | null
+          portfolio_url?: string | null
+          referred_by?: string | null
+          rejection_reason?: string | null
+          resume_url?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_opening_id_fkey"
+            columns: ["job_opening_id"]
+            isOneToOne: false
+            referencedRelation: "job_openings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_openings: {
+        Row: {
+          closing_date: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          designation_id: string | null
+          employment_type: string
+          id: string
+          location: string | null
+          openings_count: number
+          posted_date: string | null
+          remote_policy: string | null
+          requirements: string | null
+          salary_max: number | null
+          salary_min: number | null
+          show_salary: boolean | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closing_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          designation_id?: string | null
+          employment_type?: string
+          id?: string
+          location?: string | null
+          openings_count?: number
+          posted_date?: string | null
+          remote_policy?: string | null
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          show_salary?: boolean | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closing_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          designation_id?: string | null
+          employment_type?: string
+          id?: string
+          location?: string | null
+          openings_count?: number
+          posted_date?: string | null
+          remote_policy?: string | null
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          show_salary?: boolean | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_openings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_openings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_openings_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
             referencedColumns: ["id"]
           },
         ]
