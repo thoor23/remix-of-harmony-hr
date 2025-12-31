@@ -10,6 +10,12 @@ interface InvoiceItem {
   expense_claim_id?: string;
 }
 
+// UUID validation helper
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -266,6 +272,11 @@ serve(async (req) => {
 
     // GET /:id - Get single invoice with items
     if (method === 'GET' && invoiceId && !pathname.includes('/send') && !pathname.includes('/pay') && !pathname.includes('/cancel')) {
+      // Validate UUID format to prevent database errors
+      if (!isValidUUID(invoiceId)) {
+        return errorResponse('Invalid invoice ID format', 400);
+      }
+
       const { data: invoice, error } = await supabase
         .from('internal_invoices')
         .select(`
