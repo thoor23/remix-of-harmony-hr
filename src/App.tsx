@@ -197,6 +197,7 @@ import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import CompanyList from "./pages/super-admin/CompanyList";
 import AddCompany from "./pages/super-admin/AddCompany";
 import CompanyDetails from "./pages/super-admin/CompanyDetails";
+import EditCompany from "./pages/super-admin/EditCompany";
 import SuperAdminUsers from "./pages/super-admin/SuperAdminUsers";
 import GlobalSettings from "./pages/super-admin/GlobalSettings";
 import PlatformAuditLogs from "./pages/super-admin/PlatformAuditLogs";
@@ -242,6 +243,7 @@ const App = () => (
                   <Route path="companies" element={<CompanyList />} />
                   <Route path="companies/new" element={<AddCompany />} />
                   <Route path="companies/:code" element={<CompanyDetails />} />
+                  <Route path="companies/:code/edit" element={<EditCompany />} />
                   <Route path="users" element={<SuperAdminUsers />} />
                   <Route path="audit" element={<PlatformAuditLogs />} />
                   <Route path="analytics" element={<PlatformAnalytics />} />
