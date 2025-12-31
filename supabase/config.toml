@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.api-search]
 verify_jwt = false
+
+[functions.send-status-notification]
+verify_jwt = false

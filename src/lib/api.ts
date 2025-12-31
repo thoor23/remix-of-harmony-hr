@@ -53,7 +53,6 @@ async function request<T>(
   }
   
   const url = getEdgeFunctionUrl(endpoint);
-  console.log(`[API] ${options.method || 'GET'} ${url}`);
   
   const response = await fetch(url, {
     ...options,
