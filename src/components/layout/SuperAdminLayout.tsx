@@ -147,7 +147,7 @@ export function SuperAdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1 overflow-y-auto flex-1">
+        <nav className="p-4 space-y-1 overflow-y-auto flex-1 overscroll-contain">
           {sidebarItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             return (
@@ -170,7 +170,7 @@ export function SuperAdminLayout() {
         </nav>
 
         {/* Back to App */}
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="p-4 border-t mt-auto">
           <Link to="/app/dashboard">
             <Button variant="outline" className="w-full">
               <Home className="h-4 w-4 mr-2" />
@@ -243,7 +243,7 @@ export function SuperAdminLayout() {
         </header>
 
         {/* Page content - Scrollable */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto overscroll-contain">
           <Outlet />
         </main>
       </div>
