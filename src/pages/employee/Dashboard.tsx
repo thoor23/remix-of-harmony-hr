@@ -258,7 +258,7 @@ export default function EmployeeDashboard() {
                 <p className="text-sm text-muted-foreground text-center py-4">No upcoming holidays</p>
               )}
               <Button asChild variant="ghost" className="w-full mt-2" size="sm">
-                <Link to="/app/my-holidays">
+                <Link to="/app/holidays">
                   View All Holidays
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

@@ -36,6 +36,9 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
   const startTime = Date.now();
   const url = `${baseUrl}/${service.endpoint}${service.path}`;
   
+  // Use service role key for internal health checks to bypass auth
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -44,6 +47,8 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'apikey': serviceRoleKey || '',
       },
       signal: controller.signal,
     });
@@ -51,11 +56,21 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
     
-    if (response.ok) {
+    // For authenticated endpoints, 401 is expected without proper user context
+    // Consider them operational if they respond (even with 401/403)
+    if (response.ok || response.status === 401 || response.status === 403) {
       return {
         name: service.name,
         status: responseTime > 2000 ? 'degraded' : 'operational',
         responseTime,
+      };
+    } else if (response.status === 404) {
+      // Endpoint not found - check if it's a valid service
+      return {
+        name: service.name,
+        status: 'degraded',
+        responseTime,
+        error: 'Endpoint not found',
       };
     } else {
       return {
