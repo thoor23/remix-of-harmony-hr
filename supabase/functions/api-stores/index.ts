@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -32,6 +32,7 @@ serve(async (req) => {
 
     // Create service client for operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const companyId = getRequestCompanyId(url, authResult);
 
     // Helper to check if user is admin/HR
     const isAdminOrHR = async () => {
@@ -66,6 +67,7 @@ serve(async (req) => {
           *,
           manager:employees!stores_manager_id_fkey(id, first_name, last_name, employee_id)
         `)
+        .eq("company_id", companyId)
         .order("name");
 
       if (!isAdmin) {
@@ -91,6 +93,7 @@ serve(async (req) => {
       const { data: assignments } = await supabase
         .from("employee_store_assignments")
         .select("store_id")
+        .eq("company_id", companyId)
         .eq("is_active", true);
 
       const storeCounts: Record<string, number> = {};
@@ -120,6 +123,7 @@ serve(async (req) => {
           manager:employees!stores_manager_id_fkey(id, first_name, last_name, employee_id, email)
         `)
         .eq("id", storeId)
+        .eq("company_id", companyId)
         .single();
 
       if (error) {
@@ -151,6 +155,7 @@ serve(async (req) => {
           )
         `)
         .eq("store_id", storeId)
+        .eq("company_id", companyId)
         .eq("is_active", true);
 
       if (error) {
@@ -182,7 +187,7 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from("stores")
-        .insert({
+        .insert(withCompanyId({
           name: body.name,
           code: body.code,
           type: body.type || 'store',
@@ -201,7 +206,7 @@ serve(async (req) => {
           currency: body.currency || 'INR',
           locale: body.locale || 'en-IN',
           is_active: body.is_active ?? true,
-        })
+        }, companyId))
         .select()
         .single();
 
