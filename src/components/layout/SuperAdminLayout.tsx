@@ -147,7 +147,7 @@ export function SuperAdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1 overflow-y-auto flex-1 overscroll-contain">
+        <nav className="p-4 space-y-1 flex-1">
           {sidebarItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             return (
