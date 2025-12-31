@@ -171,6 +171,11 @@ import Interviews from "./pages/admin/recruitment/Interviews";
 import InterviewCalendar from "./pages/admin/recruitment/InterviewCalendar";
 import RecruitmentAnalytics from "./pages/admin/recruitment/RecruitmentAnalytics";
 
+// Public Careers Pages
+import Careers from "./pages/public/Careers";
+import JobDetails from "./pages/public/JobDetails";
+import ApplicationStatus from "./pages/public/ApplicationStatus";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -184,9 +189,14 @@ const App = () => (
           <AuthProvider key="auth-provider">
             <PermissionProvider>
               <Routes>
-                <Route path="/" element={<Index />} />
+              <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
+                
+                {/* Public Careers Portal */}
+                <Route path="/careers" element={<Careers />} />
+                <Route path="/careers/:id" element={<JobDetails />} />
+                <Route path="/careers/status" element={<ApplicationStatus />} />
               
               {/* Unified App Routes - Protected */}
               <Route
