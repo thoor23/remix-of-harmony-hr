@@ -167,6 +167,9 @@ import JobOpeningDetails from "./pages/admin/recruitment/JobOpeningDetails";
 import Applications from "./pages/admin/recruitment/Applications";
 import AddApplication from "./pages/admin/recruitment/AddApplication";
 import ApplicationDetails from "./pages/admin/recruitment/ApplicationDetails";
+import Interviews from "./pages/admin/recruitment/Interviews";
+import InterviewCalendar from "./pages/admin/recruitment/InterviewCalendar";
+import RecruitmentAnalytics from "./pages/admin/recruitment/RecruitmentAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -371,6 +374,9 @@ const App = () => (
                 <Route path="recruitment/applications" element={<Applications />} />
                 <Route path="recruitment/applications/add" element={<AddApplication />} />
                 <Route path="recruitment/applications/:id" element={<ApplicationDetails />} />
+                <Route path="recruitment/interviews" element={<Interviews />} />
+                <Route path="recruitment/interviews/calendar" element={<InterviewCalendar />} />
+                <Route path="recruitment/analytics" element={<RecruitmentAnalytics />} />
 
                 {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />
