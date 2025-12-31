@@ -82,42 +82,21 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
-    // GET /requests/pending - Get pending leave requests (for dashboard)
-    if (method === 'GET' && path === '/requests/pending') {
-      const limit = parseInt(url.searchParams.get('limit') || '10');
+    // GET / or /requests - Get all leave requests (admin/hr only) with query param filtering
+    // Supports: ?status=pending|approved|rejected, ?employee_id=xxx, ?date_from=xxx, ?date_to=xxx
+    // DEPRECATED: /requests/pending - Use /requests?status=pending instead
+    if (method === 'GET' && (path === '' || path === '/requests' || path === '/requests/pending')) {
+      const status = url.searchParams.get('status') || (path === '/requests/pending' ? 'pending' : null);
+      const employeeId = url.searchParams.get('employee_id');
+      const dateFrom = url.searchParams.get('date_from');
+      const dateTo = url.searchParams.get('date_to');
+      const limit = parseInt(url.searchParams.get('limit') || '1000');
+      const offset = parseInt(url.searchParams.get('offset') || '0');
 
-      const { data: leaveRequests, error } = await supabase
-        .from('leave_requests')
-        .select(`
-          *,
-          leave_type:leave_types(*),
-          employee:employees!leave_requests_employee_id_fkey(
-            id,
-            employee_id,
-            user_id,
-            first_name,
-            last_name,
-            email,
-            avatar_url
-          )
-        `)
-        .eq('company_id', companyId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-
-      return jsonResponse(leaveRequests || []);
-    }
-
-    // GET / or /requests - Get all leave requests (admin/hr only)
-    if (method === 'GET' && (path === '' || path === '/requests')) {
-      if (!isAdminOrHR) {
+      // For /requests/pending endpoint (backward compatibility), require admin/hr only for full list
+      if (path !== '/requests/pending' && !isAdminOrHR) {
         return errorResponse('Admin or HR access required', 403);
       }
-
-      const status = url.searchParams.get('status');
 
       let query = supabase
         .from('leave_requests')
@@ -140,11 +119,100 @@ serve(async (req) => {
       if (status) {
         query = query.eq('status', status);
       }
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+      if (dateFrom) {
+        query = query.gte('start_date', dateFrom);
+      }
+      if (dateTo) {
+        query = query.lte('end_date', dateTo);
+      }
+
+      query = query.range(offset, offset + limit - 1);
 
       const { data: leaveRequests, error } = await query;
       if (error) throw error;
 
       return jsonResponse(leaveRequests || []);
+    }
+
+    // GET /search - Search leave requests
+    if (method === 'GET' && path === '/search') {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin or HR access required', 403);
+      }
+
+      const q = url.searchParams.get('q') || '';
+      const limit = parseInt(url.searchParams.get('limit') || '20');
+
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          leave_type:leave_types(*),
+          employee:employees!leave_requests_employee_id_fkey(
+            id,
+            employee_id,
+            user_id,
+            first_name,
+            last_name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq('company_id', companyId)
+        .or(`reason.ilike.%${q}%`)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return jsonResponse(data || []);
+    }
+
+    // GET /export - Export leave requests
+    if (method === 'GET' && path === '/export') {
+      if (!isAdminOrHR) {
+        return errorResponse('Admin or HR access required', 403);
+      }
+
+      const status = url.searchParams.get('status');
+      const dateFrom = url.searchParams.get('date_from');
+      const dateTo = url.searchParams.get('date_to');
+
+      let query = supabase
+        .from('leave_requests')
+        .select(`
+          id,
+          start_date,
+          end_date,
+          days,
+          status,
+          reason,
+          created_at,
+          leave_type:leave_types(name),
+          employee:employees!leave_requests_employee_id_fkey(
+            employee_id,
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (status) query = query.eq('status', status);
+      if (dateFrom) query = query.gte('start_date', dateFrom);
+      if (dateTo) query = query.lte('end_date', dateTo);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return jsonResponse({
+        data,
+        exported_at: new Date().toISOString(),
+        total: data?.length || 0,
+      });
     }
 
     // POST / - Create leave request

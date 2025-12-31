@@ -553,6 +553,89 @@ serve(async (req) => {
       }, results.failed.length > 0 ? 207 : 201);
     }
 
+    // GET /search - Search employees by name, email, employee_id
+    if (method === 'GET' && path === '/search') {
+      const q = url.searchParams.get('q') || '';
+      const field = url.searchParams.get('field') || 'first_name,last_name,email,employee_id';
+      const limit = parseInt(url.searchParams.get('limit') || '20');
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+
+      if (!q) {
+        return errorResponse('Search query (q) is required', 400);
+      }
+
+      // Build OR query based on fields
+      const fields = field.split(',').map(f => f.trim());
+      const orConditions = fields.map(f => `${f}.ilike.%${q}%`).join(',');
+
+      const { data, error } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          department:departments(id, name, code),
+          designation:designations(id, name, code)
+        `)
+        .eq('company_id', companyId)
+        .or(orConditions)
+        .range(offset, offset + limit - 1)
+        .order('first_name');
+
+      if (error) throw error;
+      return jsonResponse({
+        data,
+        query: q,
+        total: data?.length || 0,
+      });
+    }
+
+    // GET /export - Export employees data
+    if (method === 'GET' && path === '/export') {
+      if (!await hasPermission('read')) {
+        return errorResponse('Permission denied: read Employees', 403);
+      }
+
+      const status = url.searchParams.get('status');
+      const departmentId = url.searchParams.get('department_id');
+
+      let query = supabase
+        .from('employees')
+        .select(`
+          employee_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          date_of_birth,
+          date_of_joining,
+          employment_type,
+          status,
+          department:departments(name),
+          designation:designations(name),
+          address_street,
+          address_city,
+          address_state,
+          address_zip_code,
+          address_country,
+          emergency_contact_name,
+          emergency_contact_phone,
+          emergency_contact_relationship
+        `)
+        .eq('company_id', companyId)
+        .order('first_name');
+
+      if (status) query = query.eq('status', status);
+      if (departmentId) query = query.eq('department_id', departmentId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return jsonResponse({
+        data,
+        exported_at: new Date().toISOString(),
+        total: data?.length || 0,
+      });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-employees] Error:', error);
