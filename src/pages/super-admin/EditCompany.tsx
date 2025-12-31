@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,8 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Form,
@@ -36,11 +35,11 @@ import {
   Building2,
   Save,
   ArrowLeft,
+  ArrowRight,
   CreditCard,
   Settings,
   LayoutGrid,
   Calendar,
-  Users,
   Clock,
   FileText,
   Package,
@@ -50,7 +49,9 @@ import {
   UserPlus,
   Receipt,
   Loader2,
+  Check,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Company {
   id: string;
@@ -146,6 +147,13 @@ const DATE_FORMATS = [
   { value: "YYYY-MM-DD", label: "YYYY-MM-DD" },
 ];
 
+const STEPS = [
+  { id: 1, title: "Company Info", icon: Building2 },
+  { id: 2, title: "Regional Settings", icon: Settings },
+  { id: 3, title: "Subscription", icon: CreditCard },
+  { id: 4, title: "Modules", icon: LayoutGrid },
+];
+
 const formSchema = z.object({
   name: z.string().min(2, "Company name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
@@ -183,6 +191,7 @@ export default function EditCompany() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [currentStep, setCurrentStep] = useState(1);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ["super-admin", "company", code],
@@ -296,6 +305,41 @@ export default function EditCompany() {
     },
   });
 
+  const validateCurrentStep = async () => {
+    let fieldsToValidate: (keyof FormValues)[] = [];
+    
+    switch (currentStep) {
+      case 1:
+        fieldsToValidate = ["name", "email", "phone", "address", "website", "domain", "logo_url", "favicon_url"];
+        break;
+      case 2:
+        fieldsToValidate = ["timezone", "currency", "date_format"];
+        break;
+      case 3:
+        fieldsToValidate = ["subscription_plan", "subscription_status", "subscription_expires_at", "max_employees"];
+        break;
+      case 4:
+        fieldsToValidate = ["modules"];
+        break;
+    }
+    
+    const result = await form.trigger(fieldsToValidate);
+    return result;
+  };
+
+  const handleNext = async () => {
+    const isValid = await validateCurrentStep();
+    if (isValid && currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   const onSubmit = (data: FormValues) => {
     updateMutation.mutate(data);
   };
@@ -305,8 +349,7 @@ export default function EditCompany() {
       <PageContainer>
         <PageHeader title="Edit Company" />
         <div className="space-y-6 max-w-4xl">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-48" />
+          <Skeleton className="h-20" />
           <Skeleton className="h-64" />
         </div>
       </PageContainer>
@@ -344,408 +387,480 @@ export default function EditCompany() {
         </div>
       </PageHeader>
 
+      {/* Step Indicator */}
+      <div className="max-w-4xl mb-8">
+        <div className="flex items-center justify-between">
+          {STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const isCompleted = currentStep > step.id;
+            const isCurrent = currentStep === step.id;
+            
+            return (
+              <div key={step.id} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(step.id)}
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
+                      isCompleted && "bg-primary border-primary text-primary-foreground",
+                      isCurrent && "border-primary bg-primary/10 text-primary",
+                      !isCompleted && !isCurrent && "border-muted-foreground/30 text-muted-foreground"
+                    )}
+                  >
+                    {isCompleted ? (
+                      <Check className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
+                  </button>
+                  <span className={cn(
+                    "text-xs mt-2 font-medium text-center",
+                    isCurrent && "text-primary",
+                    !isCurrent && "text-muted-foreground"
+                  )}>
+                    {step.title}
+                  </span>
+                </div>
+                {index < STEPS.length - 1 && (
+                  <div className={cn(
+                    "h-0.5 flex-1 mx-2 -mt-6",
+                    isCompleted ? "bg-primary" : "bg-muted-foreground/30"
+                  )} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-4xl">
-          {/* Company Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Company Information
-              </CardTitle>
-              <CardDescription>
-                Basic company details and contact information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter company name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email *</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" placeholder="company@example.com" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="+91 1234567890" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://example.com" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="domain"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custom Domain</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="hr.company.com" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} placeholder="Enter company address" rows={2} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="logo_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Logo URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://example.com/logo.png" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="favicon_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Favicon URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://example.com/favicon.ico" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Regional Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Regional Settings
-              </CardTitle>
-              <CardDescription>
-                Timezone, currency, and date format preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Timezone</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+          {/* Step 1: Company Information */}
+          {currentStep === 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Company Information
+                </CardTitle>
+                <CardDescription>
+                  Basic company details and contact information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select timezone" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="Enter company name" />
                         </FormControl>
-                        <SelectContent>
-                          {TIMEZONES.map((tz) => (
-                            <SelectItem key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Currency</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
+                          <Input {...field} type="email" placeholder="company@example.com" />
                         </FormControl>
-                        <SelectContent>
-                          {CURRENCIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="date_format"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date Format</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select format" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="+91 1234567890" />
                         </FormControl>
-                        <SelectContent>
-                          {DATE_FORMATS.map((df) => (
-                            <SelectItem key={df.value} value={df.value}>
-                              {df.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          {/* Subscription Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Subscription Management
-              </CardTitle>
-              <CardDescription>
-                Manage subscription plan, status, and limits
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="subscription_plan"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subscription Plan</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  <FormField
+                    control={form.control}
+                    name="website"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Website</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select plan" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="https://example.com" />
                         </FormControl>
-                        <SelectContent>
-                          {SUBSCRIPTION_PLANS.map((plan) => (
-                            <SelectItem key={plan.value} value={plan.value}>
-                              {plan.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="subscription_status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subscription Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  <FormField
+                    control={form.control}
+                    name="domain"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Domain</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="hr.company.com" />
                         </FormControl>
-                        <SelectContent>
-                          {SUBSCRIPTION_STATUSES.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="subscription_expires_at"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expiry Date</FormLabel>
-                      <FormControl>
-                        <DatePicker
-                          value={field.value ? format(field.value, "yyyy-MM-dd") : undefined}
-                          onChange={(dateStr) => field.onChange(dateStr ? new Date(dateStr) : null)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Leave empty for no expiry
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Enter company address" rows={2} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="max_employees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Employees</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-                          placeholder="50"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Maximum number of employees allowed
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="grid gap-4 md:grid-cols-2 pt-4">
+                  <FormField
+                    control={form.control}
+                    name="logo_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Logo URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://example.com/logo.png" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          {/* Module Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LayoutGrid className="h-5 w-5" />
-                Module Management
-              </CardTitle>
-              <CardDescription>
-                Enable or disable specific modules for this company
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {MODULES.map((module) => {
-                  const Icon = module.icon;
-                  return (
-                    <FormField
-                      key={module.key}
-                      control={form.control}
-                      name={`modules.${module.key}` as any}
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="flex items-start gap-3">
-                            <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base cursor-pointer">
-                                {module.label}
-                              </FormLabel>
-                              <FormDescription className="text-xs">
-                                {module.description}
-                              </FormDescription>
-                            </div>
-                          </div>
+                  <FormField
+                    control={form.control}
+                    name="favicon_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Favicon URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://example.com/favicon.ico" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: Regional Settings */}
+          {currentStep === 2 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Regional Settings
+                </CardTitle>
+                <CardDescription>
+                  Timezone, currency, and date format preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Timezone</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select timezone" />
+                            </SelectTrigger>
                           </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                          <SelectContent>
+                            {TIMEZONES.map((tz) => (
+                              <SelectItem key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          {/* Submit */}
-          <div className="flex justify-end gap-3">
-            <Link to={`/super-admin/companies/${company.code}`}>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </Link>
-            <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Currency</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {CURRENCIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="date_format"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date Format</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select format" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {DATE_FORMATS.map((df) => (
+                              <SelectItem key={df.value} value={df.value}>
+                                {df.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: Subscription Management */}
+          {currentStep === 3 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Subscription Management
+                </CardTitle>
+                <CardDescription>
+                  Manage subscription plan, status, and limits
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="subscription_plan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subscription Plan</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select plan" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SUBSCRIPTION_PLANS.map((plan) => (
+                              <SelectItem key={plan.value} value={plan.value}>
+                                {plan.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="subscription_status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subscription Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SUBSCRIPTION_STATUSES.map((status) => (
+                              <SelectItem key={status.value} value={status.value}>
+                                {status.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="subscription_expires_at"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expiry Date</FormLabel>
+                        <FormControl>
+                          <DatePicker
+                            value={field.value ? format(field.value, "yyyy-MM-dd") : undefined}
+                            onChange={(dateStr) => field.onChange(dateStr ? new Date(dateStr) : null)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Leave empty for no expiry
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="max_employees"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Employees</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                            placeholder="50"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Maximum number of employees allowed
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Module Management */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LayoutGrid className="h-5 w-5" />
+                  Module Management
+                </CardTitle>
+                <CardDescription>
+                  Enable or disable specific modules for this company
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {MODULES.map((module) => {
+                    const Icon = module.icon;
+                    return (
+                      <FormField
+                        key={module.key}
+                        control={form.control}
+                        name={`modules.${module.key}` as any}
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="flex items-start gap-3">
+                              <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base cursor-pointer">
+                                  {module.label}
+                                </FormLabel>
+                                <FormDescription className="text-xs">
+                                  {module.description}
+                                </FormDescription>
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between gap-3">
+            <div>
+              {currentStep > 1 && (
+                <Button type="button" variant="outline" onClick={handlePrevious}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
               )}
-            </Button>
+            </div>
+            
+            <div className="flex gap-3">
+              <Link to={`/super-admin/companies/${company.code}`}>
+                <Button type="button" variant="ghost">
+                  Cancel
+                </Button>
+              </Link>
+              
+              {currentStep < 4 ? (
+                <Button type="button" onClick={handleNext}>
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </Form>
