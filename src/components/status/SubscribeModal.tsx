@@ -41,6 +41,7 @@ export function SubscribeModal({ open, onOpenChange }: SubscribeModalProps) {
           email: email.toLowerCase().trim(),
           verification_token: verificationToken,
           is_verified: true, // Auto-verify for simplicity
+          company_id: '00000000-0000-0000-0000-000000000001', // Default company
         });
 
       if (error) {
