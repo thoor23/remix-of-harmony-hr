@@ -88,6 +88,7 @@ import {
   History,
   Eye,
   UserCircle,
+  Briefcase,
 } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -248,6 +249,15 @@ const unifiedNavSections: NavSection[] = [
           { title: "Shift Exchange", href: "/app/shifts/exchange", icon: ArrowLeftRight },
           { title: "Shift Calendar", href: "/app/shifts/calendar", icon: CalendarRange },
           { title: "Shift Policies", href: "/app/shifts/policy", icon: Gavel },
+        ],
+      },
+      {
+        title: "Recruitment",
+        icon: Briefcase,
+        children: [
+          { title: "Dashboard", href: "/app/recruitment", icon: LayoutDashboard },
+          { title: "Job Openings", href: "/app/recruitment/jobs", icon: FileText },
+          { title: "Applications", href: "/app/recruitment/applications", icon: Users },
         ],
       },
     ],
@@ -450,6 +460,7 @@ const navItemToModule: Record<string, string> = {
   "Letters": "Documents",
   "Audit Logs": "Audit Logs",
   "Holidays": "Holidays",
+  "Recruitment": "Recruitment",
 };
 
 interface UnifiedSidebarProps {

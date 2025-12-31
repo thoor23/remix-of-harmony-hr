@@ -1,4 +1,4 @@
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Users, Calendar, Gift, Plus, Eye } from "lucide-react";
@@ -6,7 +6,6 @@ import { useRecruitmentStats, usePipelineStats, useApplications, useJobOpenings 
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 
 const stageBadgeColors: Record<string, string> = {
   screening: "bg-blue-100 text-blue-800",
@@ -31,15 +30,12 @@ export default function RecruitmentDashboard() {
   ];
 
   return (
-    <PageContainer
-      title="Recruitment"
-      description="Manage job openings and track candidates"
-      actions={
+    <PageContainer>
+      <PageHeader title="Recruitment" description="Manage job openings and track candidates">
         <Button asChild>
           <Link to="/app/recruitment/jobs/create"><Plus className="h-4 w-4 mr-2" /> Post New Job</Link>
         </Button>
-      }
-    >
+      </PageHeader>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
