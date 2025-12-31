@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export interface OnboardingTemplate {
   id: string;
@@ -73,8 +73,8 @@ export function useOnboardingTemplates() {
   return useQuery({
     queryKey: ["onboarding-templates"],
     queryFn: async () => {
-      const response = await apiRequest("/onboarding/templates");
-      return response as OnboardingTemplate[];
+      const response = await api.get<OnboardingTemplate[]>("/onboarding/templates");
+      return response;
     },
   });
 }
@@ -83,8 +83,8 @@ export function useOnboardingTemplate(id: string) {
   return useQuery({
     queryKey: ["onboarding-template", id],
     queryFn: async () => {
-      const response = await apiRequest(`/onboarding/templates/${id}`);
-      return response as OnboardingTemplate;
+      const response = await api.get<OnboardingTemplate>(`/onboarding/templates/${id}`);
+      return response;
     },
     enabled: !!id,
   });
@@ -94,10 +94,7 @@ export function useCreateOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Partial<OnboardingTemplate>) => {
-      return apiRequest("/onboarding/templates", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return api.post("/onboarding/templates", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
@@ -109,10 +106,7 @@ export function useUpdateOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<OnboardingTemplate> & { id: string }) => {
-      return apiRequest(`/onboarding/templates/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return api.put(`/onboarding/templates/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
@@ -124,9 +118,7 @@ export function useDeleteOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/onboarding/templates/${id}`, {
-        method: "DELETE",
-      });
+      return api.delete(`/onboarding/templates/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
@@ -140,8 +132,8 @@ export function useOnboardingProcesses(status?: string) {
     queryKey: ["onboarding-processes", status],
     queryFn: async () => {
       const url = status ? `/onboarding?status=${status}` : "/onboarding";
-      const response = await apiRequest(url);
-      return response as OnboardingProcess[];
+      const response = await api.get<OnboardingProcess[]>(url);
+      return response;
     },
   });
 }
@@ -150,8 +142,8 @@ export function useOnboardingProcess(id: string) {
   return useQuery({
     queryKey: ["onboarding-process", id],
     queryFn: async () => {
-      const response = await apiRequest(`/onboarding/${id}`);
-      return response as OnboardingProcess;
+      const response = await api.get<OnboardingProcess>(`/onboarding/${id}`);
+      return response;
     },
     enabled: !!id,
   });
@@ -167,10 +159,7 @@ export function useStartOnboarding() {
       expected_completion_date?: string;
       notes?: string;
     }) => {
-      return apiRequest("/onboarding", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return api.post("/onboarding", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-processes"] });
@@ -182,10 +171,7 @@ export function useUpdateOnboardingProcess() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; status?: string; notes?: string }) => {
-      return apiRequest(`/onboarding/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return api.put(`/onboarding/${id}`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-processes"] });
@@ -208,10 +194,7 @@ export function useUpdateOnboardingTask() {
       status?: string;
       completed_at?: string | null;
     }) => {
-      return apiRequest(`/onboarding/${onboardingId}/tasks/${taskId}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return api.put(`/onboarding/${onboardingId}/tasks/${taskId}`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-process", variables.onboardingId] });
@@ -225,13 +208,13 @@ export function useOnboardingStats() {
   return useQuery({
     queryKey: ["onboarding-stats"],
     queryFn: async () => {
-      const response = await apiRequest("/onboarding/stats");
-      return response as {
+      const response = await api.get<{
         active: number;
         pending: number;
         completed_this_month: number;
         overdue_tasks: number;
-      };
+      }>("/onboarding/stats");
+      return response;
     },
   });
 }

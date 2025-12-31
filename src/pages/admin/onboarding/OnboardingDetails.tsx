@@ -12,7 +12,7 @@ import {
   FileText,
   MoreHorizontal
 } from "lucide-react";
-import PageContainer from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +81,7 @@ export default function OnboardingDetails() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Loading...">
+      <PageContainer>
         <div className="space-y-4">
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-60 w-full" />
@@ -92,7 +92,7 @@ export default function OnboardingDetails() {
 
   if (!process) {
     return (
-      <PageContainer title="Not Found">
+      <PageContainer>
         <Card>
           <CardContent className="text-center py-12">
             <p className="text-muted-foreground">Onboarding process not found</p>
@@ -147,31 +147,30 @@ export default function OnboardingDetails() {
   };
 
   return (
-    <PageContainer
-      title={`Onboarding: ${process.employee?.first_name} ${process.employee?.last_name}`}
-      description="Track and manage onboarding progress"
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/app/onboarding">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Link>
-          </Button>
-          <Select value={process.status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      }
-    >
+    <PageContainer>
+      <PageHeader 
+        title={`Onboarding: ${process.employee?.first_name} ${process.employee?.last_name}`} 
+        description="Track and manage onboarding progress"
+      >
+        <Button variant="outline" asChild>
+          <Link to="/app/onboarding">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Link>
+        </Button>
+        <Select value={process.status} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </PageHeader>
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Employee Info & Progress */}
         <div className="lg:col-span-1 space-y-4">

@@ -11,7 +11,7 @@ import {
   Eye,
   MoreHorizontal
 } from "lucide-react";
-import PageContainer from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,26 +61,22 @@ export default function OnboardingDashboard() {
   };
 
   return (
-    <PageContainer
-      title="Employee Onboarding"
-      description="Manage new employee onboarding processes and track their progress"
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/app/onboarding/templates">
-              <LayoutTemplate className="h-4 w-4 mr-2" />
-              Templates
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to="/app/onboarding/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Start Onboarding
-            </Link>
-          </Button>
-        </div>
-      }
-    >
+    <PageContainer>
+      <PageHeader title="Employee Onboarding" description="Manage new employee onboarding processes and track their progress">
+        <Button variant="outline" asChild>
+          <Link to="/app/onboarding/templates">
+            <LayoutTemplate className="h-4 w-4 mr-2" />
+            Templates
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link to="/app/onboarding/new">
+            <Plus className="h-4 w-4 mr-2" />
+            Start Onboarding
+          </Link>
+        </Button>
+      </PageHeader>
+
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         <Card>
