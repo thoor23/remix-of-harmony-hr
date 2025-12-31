@@ -6,11 +6,10 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Copy,
   CheckCircle2,
   ArrowLeft
 } from "lucide-react";
-import PageContainer from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -177,153 +176,149 @@ export default function OnboardingTemplates() {
   };
 
   return (
-    <PageContainer
-      title="Onboarding Templates"
-      description="Create and manage reusable onboarding checklists"
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/app/onboarding">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
-          <Dialog open={isCreateOpen} onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Template
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingTemplate ? "Edit Template" : "Create Onboarding Template"}
-                </DialogTitle>
-                <DialogDescription>
-                  Define the tasks and checklist for new employee onboarding
-                </DialogDescription>
-              </DialogHeader>
+    <PageContainer>
+      <PageHeader title="Onboarding Templates" description="Create and manage reusable onboarding checklists">
+        <Button variant="outline" asChild>
+          <Link to="/app/onboarding">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Link>
+        </Button>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) resetForm();
+        }}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Template
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingTemplate ? "Edit Template" : "Create Onboarding Template"}
+              </DialogTitle>
+              <DialogDescription>
+                Define the tasks and checklist for new employee onboarding
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-6 py-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Template Name *</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g., Standard Onboarding"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Switch
-                      id="is_default"
-                      checked={isDefault}
-                      onCheckedChange={setIsDefault}
-                    />
-                    <Label htmlFor="is_default">Set as default template</Label>
-                  </div>
-                </div>
-
+            <div className="space-y-6 py-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of this template..."
-                    rows={2}
+                  <Label htmlFor="name">Template Name *</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Standard Onboarding"
                   />
                 </div>
-
-                <div className="space-y-4">
-                  <Label>Tasks</Label>
-                  
-                  {/* Add Task */}
-                  <div className="flex gap-2">
-                    <Input
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      placeholder="Add a new task..."
-                      onKeyPress={(e) => e.key === "Enter" && handleAddTask()}
-                    />
-                    <Select value={newTaskCategory} onValueChange={setNewTaskCategory}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(categoryLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" onClick={handleAddTask}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Tasks by Category */}
-                  {Object.entries(groupedTasks(tasks)).map(([category, categoryTasks]) => (
-                    <div key={category} className="space-y-2">
-                      <h4 className="font-medium text-sm text-muted-foreground">
-                        {categoryLabels[category]}
-                      </h4>
-                      <div className="space-y-1">
-                        {categoryTasks.sort((a, b) => a.order - b.order).map((task, idx) => {
-                          const globalIndex = tasks.findIndex(
-                            t => t.title === task.title && t.category === task.category
-                          );
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between p-2 rounded-md bg-muted/50"
-                            >
-                              <div className="flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">{task.title}</span>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => handleRemoveTask(globalIndex)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center space-x-2 pt-6">
+                  <Switch
+                    id="is_default"
+                    checked={isDefault}
+                    onCheckedChange={setIsDefault}
+                  />
+                  <Label htmlFor="is_default">Set as default template</Label>
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setIsCreateOpen(false);
-                  resetForm();
-                }}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  disabled={createTemplate.isPending || updateTemplate.isPending}
-                >
-                  {editingTemplate ? "Update Template" : "Create Template"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      }
-    >
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Brief description of this template..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <Label>Tasks</Label>
+                
+                {/* Add Task */}
+                <div className="flex gap-2">
+                  <Input
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Add a new task..."
+                    onKeyPress={(e) => e.key === "Enter" && handleAddTask()}
+                  />
+                  <Select value={newTaskCategory} onValueChange={setNewTaskCategory}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(categoryLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" onClick={handleAddTask}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Tasks by Category */}
+                {Object.entries(groupedTasks(tasks)).map(([category, categoryTasks]) => (
+                  <div key={category} className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">
+                      {categoryLabels[category]}
+                    </h4>
+                    <div className="space-y-1">
+                      {categoryTasks.sort((a, b) => a.order - b.order).map((task, idx) => {
+                        const globalIndex = tasks.findIndex(
+                          t => t.title === task.title && t.category === task.category
+                        );
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-2 rounded-md bg-muted/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{task.title}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleRemoveTask(globalIndex)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsCreateOpen(false);
+                resetForm();
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSave}
+                disabled={createTemplate.isPending || updateTemplate.isPending}
+              >
+                {editingTemplate ? "Update Template" : "Create Template"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </PageHeader>
+
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (

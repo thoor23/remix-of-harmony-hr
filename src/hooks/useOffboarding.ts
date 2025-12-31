@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export interface OffboardingProcess {
   id: string;
@@ -113,8 +113,8 @@ export function useOffboardingProcesses(status?: string) {
     queryKey: ["offboarding-processes", status],
     queryFn: async () => {
       const url = status ? `/offboarding?status=${status}` : "/offboarding";
-      const response = await apiRequest(url);
-      return response as OffboardingProcess[];
+      const response = await api.get<OffboardingProcess[]>(url);
+      return response;
     },
   });
 }
@@ -123,8 +123,8 @@ export function useOffboardingProcess(id: string) {
   return useQuery({
     queryKey: ["offboarding-process", id],
     queryFn: async () => {
-      const response = await apiRequest(`/offboarding/${id}`);
-      return response as OffboardingProcess;
+      const response = await api.get<OffboardingProcess>(`/offboarding/${id}`);
+      return response;
     },
     enabled: !!id,
   });
@@ -143,10 +143,7 @@ export function useInitiateOffboarding() {
       handover_to?: string;
       notes?: string;
     }) => {
-      return apiRequest("/offboarding", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return api.post("/offboarding", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-processes"] });
@@ -158,10 +155,7 @@ export function useUpdateOffboardingProcess() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; status?: string; notes?: string }) => {
-      return apiRequest(`/offboarding/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return api.put(`/offboarding/${id}`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-processes"] });
@@ -185,10 +179,7 @@ export function useUpdateOffboardingTask() {
       notes?: string;
       completed_at?: string | null;
     }) => {
-      return apiRequest(`/offboarding/${offboardingId}/tasks/${taskId}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return api.put(`/offboarding/${offboardingId}/tasks/${taskId}`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-process", variables.offboardingId] });
@@ -215,10 +206,7 @@ export function useSaveExitInterview() {
       suggestions?: string;
       status?: string;
     }) => {
-      return apiRequest(`/offboarding/${offboardingId}/interview`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return api.post(`/offboarding/${offboardingId}/interview`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-process", variables.offboardingId] });
@@ -249,10 +237,7 @@ export function useCalculateFnF() {
       other_deductions?: number;
       other_deductions_notes?: string;
     }) => {
-      return apiRequest(`/offboarding/${offboardingId}/fnf`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return api.post(`/offboarding/${offboardingId}/fnf`, data);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-process", variables.offboardingId] });
@@ -274,10 +259,7 @@ export function useUpdateFnFStatus() {
       payment_reference?: string;
       payment_date?: string;
     }) => {
-      return apiRequest(`/offboarding/${offboardingId}/fnf/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status, payment_reference, payment_date }),
-      });
+      return api.put(`/offboarding/${offboardingId}/fnf/status`, { status, payment_reference, payment_date });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offboarding-process", variables.offboardingId] });
@@ -291,13 +273,13 @@ export function useOffboardingStats() {
   return useQuery({
     queryKey: ["offboarding-stats"],
     queryFn: async () => {
-      const response = await apiRequest("/offboarding/stats");
-      return response as {
+      const response = await api.get<{
         active: number;
         in_notice_period: number;
         fnf_pending: number;
         completed_this_month: number;
-      };
+      }>("/offboarding/stats");
+      return response;
     },
   });
 }

@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { format, addDays } from "date-fns";
 import { ArrowLeft, UserPlus, Search } from "lucide-react";
-import PageContainer from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,8 +37,8 @@ export default function StartOnboarding() {
   const navigate = useNavigate();
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [templateId, setTemplateId] = useState<string>("");
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [expectedCompletionDate, setExpectedCompletionDate] = useState<Date>(addDays(new Date(), 30));
+  const [startDate, setStartDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [expectedCompletionDate, setExpectedCompletionDate] = useState<string>(format(addDays(new Date(), 30), "yyyy-MM-dd"));
   const [notes, setNotes] = useState("");
   const [employeeOpen, setEmployeeOpen] = useState(false);
 
@@ -60,8 +59,8 @@ export default function StartOnboarding() {
       await startOnboarding.mutateAsync({
         employee_id: selectedEmployee.id,
         template_id: templateId || undefined,
-        start_date: format(startDate, "yyyy-MM-dd"),
-        expected_completion_date: format(expectedCompletionDate, "yyyy-MM-dd"),
+        start_date: startDate,
+        expected_completion_date: expectedCompletionDate,
         notes: notes || undefined,
       });
       toast.success("Onboarding started successfully");
@@ -72,18 +71,16 @@ export default function StartOnboarding() {
   };
 
   return (
-    <PageContainer
-      title="Start Onboarding"
-      description="Initiate onboarding process for a new employee"
-      actions={
+    <PageContainer>
+      <PageHeader title="Start Onboarding" description="Initiate onboarding process for a new employee">
         <Button variant="outline" asChild>
           <Link to="/app/onboarding">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
         </Button>
-      }
-    >
+      </PageHeader>
+
       <div className="max-w-2xl">
         <Card>
           <CardHeader>
@@ -222,15 +219,15 @@ export default function StartOnboarding() {
               <div className="space-y-2">
                 <Label>Start Date *</Label>
                 <DatePicker
-                  date={startDate}
-                  onDateChange={(date) => date && setStartDate(date)}
+                  value={startDate}
+                  onChange={(date) => date && setStartDate(date)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Expected Completion Date</Label>
                 <DatePicker
-                  date={expectedCompletionDate}
-                  onDateChange={(date) => date && setExpectedCompletionDate(date)}
+                  value={expectedCompletionDate}
+                  onChange={(date) => date && setExpectedCompletionDate(date)}
                 />
               </div>
             </div>
