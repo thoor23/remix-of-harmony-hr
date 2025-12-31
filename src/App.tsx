@@ -171,6 +171,16 @@ import Interviews from "./pages/admin/recruitment/Interviews";
 import InterviewCalendar from "./pages/admin/recruitment/InterviewCalendar";
 import RecruitmentAnalytics from "./pages/admin/recruitment/RecruitmentAnalytics";
 
+// Onboarding & Offboarding Pages
+import OnboardingDashboard from "./pages/admin/onboarding/OnboardingDashboard";
+import OnboardingTemplates from "./pages/admin/onboarding/OnboardingTemplates";
+import StartOnboarding from "./pages/admin/onboarding/StartOnboarding";
+import OnboardingDetails from "./pages/admin/onboarding/OnboardingDetails";
+import OffboardingDashboard from "./pages/admin/offboarding/OffboardingDashboard";
+import InitiateExit from "./pages/admin/offboarding/InitiateExit";
+import OffboardingDetails from "./pages/admin/offboarding/OffboardingDetails";
+import ExitInterview from "./pages/admin/offboarding/ExitInterview";
+
 // Public Careers Pages
 import Careers from "./pages/public/Careers";
 import JobDetails from "./pages/public/JobDetails";
@@ -387,6 +397,18 @@ const App = () => (
                 <Route path="recruitment/interviews" element={<Interviews />} />
                 <Route path="recruitment/interviews/calendar" element={<InterviewCalendar />} />
                 <Route path="recruitment/analytics" element={<RecruitmentAnalytics />} />
+
+                {/* Onboarding */}
+                <Route path="onboarding" element={<OnboardingDashboard />} />
+                <Route path="onboarding/templates" element={<OnboardingTemplates />} />
+                <Route path="onboarding/start" element={<StartOnboarding />} />
+                <Route path="onboarding/:id" element={<OnboardingDetails />} />
+
+                {/* Offboarding */}
+                <Route path="offboarding" element={<OffboardingDashboard />} />
+                <Route path="offboarding/initiate" element={<InitiateExit />} />
+                <Route path="offboarding/:id" element={<OffboardingDetails />} />
+                <Route path="offboarding/:id/interview" element={<ExitInterview />} />
 
                 {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />

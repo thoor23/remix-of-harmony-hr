@@ -263,6 +263,23 @@ const unifiedNavSections: NavSection[] = [
           { title: "Analytics", href: "/app/recruitment/analytics", icon: BarChart3 },
         ],
       },
+      {
+        title: "Onboarding",
+        icon: UserPlus,
+        children: [
+          { title: "Dashboard", href: "/app/onboarding", icon: LayoutDashboard },
+          { title: "Start Onboarding", href: "/app/onboarding/start", icon: UserPlus },
+          { title: "Templates", href: "/app/onboarding/templates", icon: LayoutTemplate },
+        ],
+      },
+      {
+        title: "Offboarding",
+        icon: FileOutput,
+        children: [
+          { title: "Dashboard", href: "/app/offboarding", icon: LayoutDashboard },
+          { title: "Initiate Exit", href: "/app/offboarding/initiate", icon: FileOutput },
+        ],
+      },
     ],
   },
   {
@@ -464,6 +481,8 @@ const navItemToModule: Record<string, string> = {
   "Audit Logs": "Audit Logs",
   "Holidays": "Holidays",
   "Recruitment": "Recruitment",
+  "Onboarding": "Onboarding",
+  "Offboarding": "Offboarding",
 };
 
 interface UnifiedSidebarProps {

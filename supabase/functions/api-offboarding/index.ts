@@ -97,7 +97,6 @@ serve(async (req) => {
           handover_to: body.handover_to || null,
           notes: body.notes,
           status: body.status || 'initiated',
-          created_by: auth.employeeId,
         })
         .select()
         .single();
@@ -168,7 +167,6 @@ serve(async (req) => {
         .update({
           ...body,
           completed_at: body.status === 'completed' ? new Date().toISOString() : null,
-          completed_by: body.status === 'completed' ? auth.employeeId : null,
         })
         .eq('id', taskId)
         .select()
@@ -220,7 +218,6 @@ serve(async (req) => {
           .from('exit_interviews')
           .update({
             ...body,
-            conducted_by: auth.employeeId,
           })
           .eq('id', existing.id)
           .select()
@@ -234,7 +231,6 @@ serve(async (req) => {
           .insert({
             ...body,
             offboarding_id: processId,
-            conducted_by: auth.employeeId,
           })
           .select()
           .single();
@@ -258,7 +254,6 @@ serve(async (req) => {
         .from('fnf_settlements')
         .update({
           ...body,
-          processed_by: body.status === 'processed' ? auth.employeeId : null,
           processed_at: body.status === 'processed' ? new Date().toISOString() : null,
         })
         .eq('offboarding_id', processId)

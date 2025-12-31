@@ -89,3 +89,9 @@ verify_jwt = false
 
 [functions.api-recruitment]
 verify_jwt = false
+
+[functions.api-onboarding]
+verify_jwt = false
+
+[functions.api-offboarding]
+verify_jwt = false
