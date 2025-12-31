@@ -159,6 +159,12 @@ import InvoiceDetails from "./pages/admin/internal-billing/InvoiceDetails";
 import InvoiceCategories from "./pages/admin/internal-billing/InvoiceCategories";
 import BillingReports from "./pages/admin/internal-billing/BillingReports";
 
+// Recruitment Pages
+import RecruitmentDashboard from "./pages/admin/recruitment/RecruitmentDashboard";
+import JobOpenings from "./pages/admin/recruitment/JobOpenings";
+import CreateJobOpening from "./pages/admin/recruitment/CreateJobOpening";
+import Applications from "./pages/admin/recruitment/Applications";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -354,6 +360,12 @@ const App = () => (
                 <Route path="my-helpdesk/tickets" element={<EmployeeHelpdesk />} />
                 <Route path="my-helpdesk/report" element={<EmployeeHelpdeskReport />} />
                 
+                {/* Recruitment */}
+                <Route path="recruitment" element={<RecruitmentDashboard />} />
+                <Route path="recruitment/jobs" element={<JobOpenings />} />
+                <Route path="recruitment/jobs/create" element={<CreateJobOpening />} />
+                <Route path="recruitment/applications" element={<Applications />} />
+
                 {/* Holidays */}
                 <Route path="holidays" element={<HolidayCalendar />} />
                 

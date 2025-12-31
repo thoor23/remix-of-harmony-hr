@@ -1,4 +1,4 @@
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,8 @@ export default function Applications() {
   };
 
   return (
-    <PageContainer title="Applications" description="Track and manage all candidate applications">
+    <PageContainer>
+      <PageHeader title="Applications" description="Track and manage all candidate applications" />
       <Card>
         <CardContent className="p-0">
           <Table>

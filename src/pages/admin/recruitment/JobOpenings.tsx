@@ -1,4 +1,4 @@
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,11 +22,15 @@ export default function JobOpenings() {
   const updateStatus = useUpdateJobStatus();
 
   return (
-    <PageContainer
-      title="Job Openings"
-      description="Manage your job postings"
-      actions={<Button asChild><Link to="/app/recruitment/jobs/create"><Plus className="h-4 w-4 mr-2" /> Post New Job</Link></Button>}
-    >
+    <PageContainer>
+      <PageHeader title="Job Openings" description="Manage your job postings">
+        <Button asChild>
+          <Link to="/app/recruitment/jobs/create">
+            <Plus className="h-4 w-4 mr-2" /> Post New Job
+          </Link>
+        </Button>
+      </PageHeader>
+
       <Card>
         <CardContent className="p-0">
           <Table>
