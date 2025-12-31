@@ -132,8 +132,8 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
-    // POST /check-in - Clock in
-    if (method === 'POST' && path === '/check-in') {
+    // POST /check-in or /clock-in - Clock in
+    if (method === 'POST' && (path === '/check-in' || path === '/clock-in')) {
       const employeeId = await getEmployeeId();
       if (!employeeId) {
         return errorResponse('Employee record not found', 404);
@@ -172,8 +172,8 @@ serve(async (req) => {
       return jsonResponse(data, 201);
     }
 
-    // POST /check-out - Clock out
-    if (method === 'POST' && path === '/check-out') {
+    // POST /check-out or /clock-out - Clock out
+    if (method === 'POST' && (path === '/check-out' || path === '/clock-out')) {
       const employeeId = await getEmployeeId();
       if (!employeeId) {
         return errorResponse('Employee record not found', 404);

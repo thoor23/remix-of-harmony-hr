@@ -392,6 +392,263 @@ serve(async (req) => {
       return jsonResponse(data);
     }
 
+    // POST /bulk - Bulk create employees
+    if (method === 'POST' && path === '/bulk') {
+      if (!await hasPermission('create')) {
+        return errorResponse('Permission denied: create Employees', 403);
+      }
+
+      const { employees: employeeList } = await req.json();
+      
+      if (!Array.isArray(employeeList) || employeeList.length === 0) {
+        return errorResponse('employees array is required', 400);
+      }
+
+      if (employeeList.length > 100) {
+        return errorResponse('Maximum 100 employees per bulk operation', 400);
+      }
+
+      const results = { success: [], failed: [] } as { success: unknown[], failed: { data: unknown, error: string }[] };
+
+      for (const emp of employeeList) {
+        try {
+          const { data, error } = await supabase
+            .from('employees')
+            .insert(emp)
+            .select()
+            .single();
+
+          if (error) {
+            results.failed.push({ data: emp, error: error.message });
+          } else {
+            results.success.push(data);
+          }
+        } catch (e) {
+          results.failed.push({ data: emp, error: e instanceof Error ? e.message : 'Unknown error' });
+        }
+      }
+
+      return jsonResponse({
+        total: employeeList.length,
+        success_count: results.success.length,
+        failed_count: results.failed.length,
+        results,
+      }, results.failed.length > 0 ? 207 : 201);
+    }
+
+    // PUT /bulk - Bulk update employees
+    if (method === 'PUT' && path === '/bulk') {
+      if (!await hasPermission('update')) {
+        return errorResponse('Permission denied: update Employees', 403);
+      }
+
+      const { updates } = await req.json();
+      
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return errorResponse('updates array is required', 400);
+      }
+
+      if (updates.length > 100) {
+        return errorResponse('Maximum 100 employees per bulk operation', 400);
+      }
+
+      const results = { success: [], failed: [] } as { success: unknown[], failed: { id: string, error: string }[] };
+
+      for (const { id, ...updateData } of updates) {
+        if (!id) {
+          results.failed.push({ id: 'unknown', error: 'id is required for each update' });
+          continue;
+        }
+
+        try {
+          const { data, error } = await supabase
+            .from('employees')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+          if (error) {
+            results.failed.push({ id, error: error.message });
+          } else {
+            results.success.push(data);
+          }
+        } catch (e) {
+          results.failed.push({ id, error: e instanceof Error ? e.message : 'Unknown error' });
+        }
+      }
+
+      return jsonResponse({
+        total: updates.length,
+        success_count: results.success.length,
+        failed_count: results.failed.length,
+        results,
+      }, results.failed.length > 0 ? 207 : 200);
+    }
+
+    // POST /import - Import employees from JSON/CSV
+    if (method === 'POST' && path === '/import') {
+      if (!await hasPermission('create')) {
+        return errorResponse('Permission denied: create Employees', 403);
+      }
+
+      const body = await req.json();
+      const { data: importData, format = 'json' } = body;
+
+      if (!importData) {
+        return errorResponse('data is required', 400);
+      }
+
+      let employees: unknown[] = [];
+
+      if (format === 'json') {
+        employees = Array.isArray(importData) ? importData : [importData];
+      } else if (format === 'csv') {
+        // Parse CSV string
+        const lines = importData.split('\n').filter((l: string) => l.trim());
+        if (lines.length < 2) {
+          return errorResponse('CSV must have header and at least one data row', 400);
+        }
+
+        const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase().replace(/\s+/g, '_'));
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map((v: string) => v.trim());
+          const emp: Record<string, string> = {};
+          headers.forEach((h: string, idx: number) => {
+            if (values[idx]) emp[h] = values[idx];
+          });
+          employees.push(emp);
+        }
+      }
+
+      if (employees.length === 0) {
+        return errorResponse('No valid employees to import', 400);
+      }
+
+      if (employees.length > 100) {
+        return errorResponse('Maximum 100 employees per import', 400);
+      }
+
+      const results = { success: [], failed: [] } as { success: unknown[], failed: { row: number, data: unknown, error: string }[] };
+
+      for (let i = 0; i < employees.length; i++) {
+        const emp = employees[i];
+        try {
+          const { data, error } = await supabase
+            .from('employees')
+            .insert(emp)
+            .select()
+            .single();
+
+          if (error) {
+            results.failed.push({ row: i + 1, data: emp, error: error.message });
+          } else {
+            results.success.push(data);
+          }
+        } catch (e) {
+          results.failed.push({ row: i + 1, data: emp, error: e instanceof Error ? e.message : 'Unknown error' });
+        }
+      }
+
+      return jsonResponse({
+        format,
+        total: employees.length,
+        success_count: results.success.length,
+        failed_count: results.failed.length,
+        results,
+      }, results.failed.length > 0 ? 207 : 201);
+    }
+
+    // GET /export - Export employees to JSON/CSV
+    if (method === 'GET' && path === '/export') {
+      if (!await hasPermission('read')) {
+        return errorResponse('Permission denied: read Employees', 403);
+      }
+
+      const format = url.searchParams.get('format') || 'json';
+      const status = url.searchParams.get('status');
+      const departmentId = url.searchParams.get('department_id');
+
+      let query = supabase
+        .from('employees')
+        .select(`
+          employee_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          status,
+          employment_type,
+          date_of_joining,
+          date_of_birth,
+          department:departments(name, code),
+          designation:designations(name, code)
+        `)
+        .order('employee_id');
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+      if (departmentId) {
+        query = query.eq('department_id', departmentId);
+      }
+
+      const { data: employees, error } = await query;
+      if (error) throw error;
+
+      if (format === 'csv') {
+        // Convert to CSV
+        const headers = ['employee_id', 'first_name', 'last_name', 'email', 'phone', 'status', 'employment_type', 'date_of_joining', 'date_of_birth', 'department', 'designation'];
+        
+        const rows = (employees || []).map((emp: Record<string, unknown>) => [
+          emp.employee_id,
+          emp.first_name || '',
+          emp.last_name || '',
+          emp.email || '',
+          emp.phone || '',
+          emp.status,
+          emp.employment_type,
+          emp.date_of_joining,
+          emp.date_of_birth || '',
+          (emp.department as { name?: string } | null)?.name || '',
+          (emp.designation as { name?: string } | null)?.name || '',
+        ].join(','));
+
+        const csv = [headers.join(','), ...rows].join('\n');
+
+        return new Response(csv, {
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="employees.csv"',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      return jsonResponse({
+        format: 'json',
+        count: employees?.length || 0,
+        data: employees || [],
+      });
+    }
+
+    // GET /me - Alias for /current (API consistency)
+    if (method === 'GET' && path === '/me') {
+      const { data: employee, error } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          department:departments(id, name, code),
+          designation:designations(id, name, code)
+        `)
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return jsonResponse(employee);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-employees] Error:', error);
