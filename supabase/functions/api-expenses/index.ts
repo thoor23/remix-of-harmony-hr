@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 interface ExpenseClaim {
@@ -36,6 +36,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = await getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     async function getEmployeeId(): Promise<string | null> {
@@ -43,6 +44,7 @@ serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth!.userId)
+        .eq('company_id', companyId)
         .single();
       return data?.id || null;
     }
@@ -54,6 +56,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('expense_categories')
         .select('*')
+        .eq('company_id', companyId)
         .order('name');
 
       if (error) throw error;
@@ -69,7 +72,7 @@ serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('expense_categories')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -93,6 +96,7 @@ serve(async (req) => {
           .from('expense_categories')
           .update(body)
           .eq('id', id)
+          .eq('company_id', companyId)
           .select()
           .single();
 
@@ -109,7 +113,8 @@ serve(async (req) => {
         const { error } = await supabase
           .from('expense_categories')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('company_id', companyId);
 
         if (error) throw error;
         return jsonResponse({ success: true });
@@ -123,6 +128,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('expense_policies')
         .select('*')
+        .eq('company_id', companyId)
         .order('name');
 
       if (error) throw error;
@@ -138,7 +144,7 @@ serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('expense_policies')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -162,6 +168,7 @@ serve(async (req) => {
           .from('expense_policies')
           .update(body)
           .eq('id', id)
+          .eq('company_id', companyId)
           .select()
           .single();
 
@@ -178,7 +185,8 @@ serve(async (req) => {
         const { error } = await supabase
           .from('expense_policies')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('company_id', companyId);
 
         if (error) throw error;
         return jsonResponse({ success: true });
@@ -201,6 +209,7 @@ serve(async (req) => {
           category:expense_categories(*)
         `)
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -215,7 +224,8 @@ serve(async (req) => {
 
       const { data: claims, error } = await supabase
         .from('expense_claims')
-        .select('id, status, amount');
+        .select('id, status, amount')
+        .eq('company_id', companyId);
 
       if (error) throw error;
 
@@ -264,6 +274,7 @@ serve(async (req) => {
             last_name
           )
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (status) {
@@ -286,11 +297,11 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from('expense_claims')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           employee_id: employeeId,
           status: 'pending',
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -312,6 +323,7 @@ serve(async (req) => {
           .from('expense_claims')
           .select('*')
           .eq('id', id)
+          .eq('company_id', companyId)
           .single();
 
         if (!originalClaim) {
@@ -344,6 +356,7 @@ serve(async (req) => {
           .from('expense_claims')
           .update(updateData)
           .eq('id', id)
+          .eq('company_id', companyId)
           .select()
           .single();
 
@@ -357,6 +370,7 @@ serve(async (req) => {
           .from('expense_claims')
           .select('*')
           .eq('id', id)
+          .eq('company_id', companyId)
           .single();
 
         if (!claim) {
@@ -377,7 +391,8 @@ serve(async (req) => {
         const { error } = await supabase
           .from('expense_claims')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('company_id', companyId);
 
         if (error) throw error;
         return jsonResponse({ success: true });

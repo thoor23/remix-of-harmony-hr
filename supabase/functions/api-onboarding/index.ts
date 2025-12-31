@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest, checkPermission } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = await getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET /templates - List all templates
@@ -26,6 +27,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('onboarding_templates')
         .select('*')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -41,9 +43,7 @@ serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('onboarding_templates')
-        .insert({
-          ...body,
-        })
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -65,6 +65,7 @@ serve(async (req) => {
         .from('onboarding_templates')
         .update(body)
         .eq('id', templateId)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -82,7 +83,8 @@ serve(async (req) => {
       const { error } = await supabase
         .from('onboarding_templates')
         .delete()
-        .eq('id', templateId);
+        .eq('id', templateId)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });
@@ -92,7 +94,8 @@ serve(async (req) => {
     if (method === 'GET' && path === '/stats') {
       const { data: processes, error } = await supabase
         .from('onboarding_processes')
-        .select('status');
+        .select('status')
+        .eq('company_id', companyId);
 
       if (error) throw error;
 
@@ -116,6 +119,7 @@ serve(async (req) => {
           template:onboarding_templates(id, name),
           tasks:onboarding_tasks(*)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -136,6 +140,7 @@ serve(async (req) => {
           tasks:onboarding_tasks(*)
         `)
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (error) throw error;
@@ -153,13 +158,13 @@ serve(async (req) => {
       // Create process
       const { data: process, error: processError } = await supabase
         .from('onboarding_processes')
-        .insert({
+        .insert(withCompanyId({
           employee_id: body.employee_id,
           template_id: body.template_id,
           start_date: body.start_date,
           expected_completion_date: body.expected_completion_date,
           status: 'pending',
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -171,10 +176,12 @@ serve(async (req) => {
           .from('onboarding_templates')
           .select('tasks')
           .eq('id', body.template_id)
+          .eq('company_id', companyId)
           .single();
 
         if (template?.tasks && Array.isArray(template.tasks)) {
           const tasks = template.tasks.map((task: any, index: number) => ({
+            company_id: companyId,
             onboarding_id: process.id,
             title: task.title,
             description: task.description,
@@ -203,6 +210,7 @@ serve(async (req) => {
         .from('onboarding_processes')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -223,6 +231,7 @@ serve(async (req) => {
           completed_at: body.status === 'completed' ? new Date().toISOString() : null,
         })
         .eq('id', taskId)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -232,7 +241,8 @@ serve(async (req) => {
       const { data: allTasks } = await supabase
         .from('onboarding_tasks')
         .select('status')
-        .eq('onboarding_id', processId);
+        .eq('onboarding_id', processId)
+        .eq('company_id', companyId);
 
       const allCompleted = allTasks?.every(t => t.status === 'completed');
       if (allCompleted) {
@@ -242,12 +252,14 @@ serve(async (req) => {
             status: 'completed',
             completed_date: new Date().toISOString().split('T')[0]
           })
-          .eq('id', processId);
+          .eq('id', processId)
+          .eq('company_id', companyId);
       } else {
         await supabase
           .from('onboarding_processes')
           .update({ status: 'in_progress' })
-          .eq('id', processId);
+          .eq('id', processId)
+          .eq('company_id', companyId);
       }
 
       return jsonResponse(data);
@@ -265,11 +277,11 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from('onboarding_tasks')
-        .insert({
+        .insert(withCompanyId({
           ...body,
           onboarding_id: processId,
           status: 'pending',
-        })
+        }, companyId))
         .select()
         .single();
 

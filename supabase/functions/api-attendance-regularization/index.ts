@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -23,21 +23,17 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const url = new URL(req.url);
     const path = url.pathname.replace("/api-attendance-regularization", "");
+    const companyId = await getRequestCompanyId(url, user);
 
     // Get user's employee record
     const { data: employee } = await supabase
       .from("employees")
       .select("id")
       .eq("user_id", user.userId)
+      .eq("company_id", companyId)
       .maybeSingle();
 
-    // Check if admin/HR
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.userId)
-      .maybeSingle();
-    const isAdmin = userRole?.role === "admin" || userRole?.role === "hr";
+    const isAdmin = ["admin", "hr"].includes(user.role);
 
     // GET /my - Get current user's requests
     if (req.method === "GET" && path === "/my") {
@@ -49,41 +45,13 @@ serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from("attendance_regularization_requests")
-        .select(`
-          *,
-          attendance:attendance_records(date, check_in, check_out, status),
-          reviewer:reviewed_by(
-            employee_id,
-            user_id
-          )
-        `)
+        .select(`*, attendance:attendance_records(date, check_in, check_out, status), reviewer:reviewed_by(employee_id, user_id)`)
         .eq("employee_id", employee.id)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-
-      // Get reviewer profiles
-      const reviewerIds = data?.filter(r => r.reviewer?.user_id).map(r => r.reviewer.user_id) || [];
-      let reviewerProfiles: Record<string, any> = {};
-      if (reviewerIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", reviewerIds);
-        profiles?.forEach(p => {
-          reviewerProfiles[p.user_id] = p;
-        });
-      }
-
-      const enrichedData = data?.map(r => ({
-        ...r,
-        reviewer: r.reviewer ? {
-          ...r.reviewer,
-          profile: reviewerProfiles[r.reviewer.user_id] || null
-        } : null
-      }));
-
-      return new Response(JSON.stringify(enrichedData), {
+      return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -98,18 +66,10 @@ serve(async (req: Request) => {
       }
 
       const status = url.searchParams.get("status");
-      
       let query = supabase
         .from("attendance_regularization_requests")
-        .select(`
-          *,
-          employee:employee_id(
-            id, employee_id, user_id,
-            department:department_id(name),
-            designation:designation_id(name)
-          ),
-          attendance:attendance_records(date, check_in, check_out, status)
-        `)
+        .select(`*, employee:employee_id(id, employee_id, user_id, department:department_id(name), designation:designation_id(name)), attendance:attendance_records(date, check_in, check_out, status)`)
+        .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       if (status && status !== "all") {
@@ -118,29 +78,7 @@ serve(async (req: Request) => {
 
       const { data, error } = await query;
       if (error) throw error;
-
-      // Get profiles for employees
-      const userIds = data?.filter(r => r.employee?.user_id).map(r => r.employee.user_id) || [];
-      let profiles: Record<string, any> = {};
-      if (userIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name")
-          .in("user_id", userIds);
-        profileData?.forEach(p => {
-          profiles[p.user_id] = p;
-        });
-      }
-
-      const enrichedData = data?.map(r => ({
-        ...r,
-        employee: r.employee ? {
-          ...r.employee,
-          profile: profiles[r.employee.user_id] || null
-        } : null
-      }));
-
-      return new Response(JSON.stringify(enrichedData), {
+      return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -157,7 +95,6 @@ serve(async (req: Request) => {
       const body = await req.json();
       const { request_date, request_type, attendance_id, requested_check_in, requested_check_out, reason } = body;
 
-      // Get original attendance if exists
       let originalCheckIn = null;
       let originalCheckOut = null;
       if (attendance_id) {
@@ -165,6 +102,7 @@ serve(async (req: Request) => {
           .from("attendance_records")
           .select("check_in, check_out")
           .eq("id", attendance_id)
+          .eq("company_id", companyId)
           .maybeSingle();
         if (attendance) {
           originalCheckIn = attendance.check_in;
@@ -174,7 +112,7 @@ serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from("attendance_regularization_requests")
-        .insert({
+        .insert(withCompanyId({
           employee_id: employee.id,
           attendance_id,
           request_date,
@@ -184,14 +122,11 @@ serve(async (req: Request) => {
           requested_check_in,
           requested_check_out,
           reason,
-        })
+        }, companyId))
         .select()
         .single();
 
       if (error) throw error;
-
-      console.log(`[api-attendance-regularization] Created request for employee ${employee.id}`);
-
       return new Response(JSON.stringify(data), {
         status: 201,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -212,11 +147,11 @@ serve(async (req: Request) => {
       const body = await req.json();
       const { status, review_comments } = body;
 
-      // Get the request details
       const { data: request } = await supabase
         .from("attendance_regularization_requests")
         .select("*")
         .eq("id", requestId)
+        .eq("company_id", companyId)
         .single();
 
       if (!request) {
@@ -226,48 +161,28 @@ serve(async (req: Request) => {
         });
       }
 
-      // Update the request
       const { data, error } = await supabase
         .from("attendance_regularization_requests")
-        .update({
-          status,
-          review_comments,
-          reviewed_by: employee?.id,
-          reviewed_at: new Date().toISOString(),
-        })
+        .update({ status, review_comments, reviewed_by: employee?.id, reviewed_at: new Date().toISOString() })
         .eq("id", requestId)
+        .eq("company_id", companyId)
         .select()
         .single();
 
       if (error) throw error;
 
-      // If approved, update or create attendance record
       if (status === "approved") {
         if (request.attendance_id) {
-          // Update existing attendance
           await supabase
             .from("attendance_records")
-            .update({
-              check_in: request.requested_check_in,
-              check_out: request.requested_check_out,
-              status: "present",
-              notes: `Regularized: ${request.reason}`,
-            })
-            .eq("id", request.attendance_id);
+            .update({ check_in: request.requested_check_in, check_out: request.requested_check_out, status: "present", notes: `Regularized: ${request.reason}` })
+            .eq("id", request.attendance_id)
+            .eq("company_id", companyId);
         } else {
-          // Create new attendance record
           await supabase
             .from("attendance_records")
-            .insert({
-              employee_id: request.employee_id,
-              date: request.request_date,
-              check_in: request.requested_check_in,
-              check_out: request.requested_check_out,
-              status: "present",
-              notes: `Created via regularization: ${request.reason}`,
-            });
+            .insert(withCompanyId({ employee_id: request.employee_id, date: request.request_date, check_in: request.requested_check_in, check_out: request.requested_check_out, status: "present", notes: `Created via regularization: ${request.reason}` }, companyId));
         }
-        console.log(`[api-attendance-regularization] Approved and applied regularization ${requestId}`);
       }
 
       return new Response(JSON.stringify(data), {
@@ -279,7 +194,6 @@ serve(async (req: Request) => {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[api-attendance-regularization] Error:", errorMessage);

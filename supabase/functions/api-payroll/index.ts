@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401);
     }
 
+    const companyId = await getRequestCompanyId(url, auth);
+
     // GET /payslips - List all payslips
     if (req.method === 'GET' && subPath[0] === 'payslips' && subPath.length === 1) {
       const payPeriod = url.searchParams.get('pay_period');
@@ -29,6 +31,7 @@ Deno.serve(async (req) => {
           *,
           employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
+        .eq('company_id', companyId)
         .order('pay_date', { ascending: false });
 
       if (payPeriod) {
@@ -47,6 +50,7 @@ Deno.serve(async (req) => {
         .from('employees')
         .select('id')
         .eq('user_id', auth.userId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (!employee) {
@@ -57,6 +61,7 @@ Deno.serve(async (req) => {
         .from('payslips')
         .select('*')
         .eq('employee_id', employee.id)
+        .eq('company_id', companyId)
         .order('pay_date', { ascending: false });
 
       if (error) throw error;
@@ -70,6 +75,7 @@ Deno.serve(async (req) => {
         .from('payslips')
         .select('*')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('pay_date', { ascending: false });
 
       if (error) throw error;
@@ -81,7 +87,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('payslips')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -99,6 +105,7 @@ Deno.serve(async (req) => {
       const { data: salaryStructures, error: ssError } = await supabase
         .from('salary_structures')
         .select('*')
+        .eq('company_id', companyId)
         .order('effective_from', { ascending: false });
 
       if (ssError) throw ssError;
@@ -107,7 +114,8 @@ Deno.serve(async (req) => {
       const { data: existingPayslips } = await supabase
         .from('payslips')
         .select('employee_id')
-        .eq('pay_period', payPeriod);
+        .eq('pay_period', payPeriod)
+        .eq('company_id', companyId);
 
       const existingEmployeeIds = new Set((existingPayslips || []).map((p: any) => p.employee_id));
 
@@ -139,6 +147,7 @@ Deno.serve(async (req) => {
         const netPay = grossEarnings - totalDeductions;
 
         payslipsToInsert.push({
+          company_id: companyId,
           employee_id: employeeId,
           pay_period: payPeriod,
           pay_date: payDate,
@@ -179,6 +188,7 @@ Deno.serve(async (req) => {
           *,
           employee:employees(id, employee_id, user_id, first_name, last_name, email, avatar_url)
         `)
+        .eq('company_id', companyId)
         .order('effective_from', { ascending: false });
 
       if (error) throw error;
@@ -193,6 +203,7 @@ Deno.serve(async (req) => {
         .from('salary_structures')
         .select('*')
         .eq('employee_id', employeeId)
+        .eq('company_id', companyId)
         .order('effective_from', { ascending: false })
         .maybeSingle();
 
@@ -205,7 +216,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { data, error } = await supabase
         .from('salary_structures')
-        .insert(body)
+        .insert(withCompanyId(body, companyId))
         .select()
         .single();
 
@@ -221,6 +232,7 @@ Deno.serve(async (req) => {
         .from('salary_structures')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -234,7 +246,8 @@ Deno.serve(async (req) => {
       const { error } = await supabase
         .from('salary_structures')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('company_id', companyId);
 
       if (error) throw error;
       return jsonResponse({ success: true });

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = await getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET / or /?q=term - Global search
@@ -47,6 +48,7 @@ serve(async (req) => {
             avatar_url,
             department:departments(name)
           `)
+          .eq('company_id', companyId)
           .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,employee_id.ilike.%${query}%`)
           .eq('status', 'active')
           .limit(limit);
@@ -66,6 +68,7 @@ serve(async (req) => {
             status,
             category:asset_categories(name)
           `)
+          .eq('company_id', companyId)
           .or(`name.ilike.%${query}%,asset_tag.ilike.%${query}%,serial_number.ilike.%${query}%`)
           .limit(limit);
 
@@ -85,6 +88,7 @@ serve(async (req) => {
             created_at,
             employee:employees(first_name, last_name)
           `)
+          .eq('company_id', companyId)
           .or(`subject.ilike.%${query}%,description.ilike.%${query}%`)
           .limit(limit);
 
@@ -94,6 +98,7 @@ serve(async (req) => {
             .from('employees')
             .select('id')
             .eq('user_id', auth.userId)
+            .eq('company_id', companyId)
             .single();
           
           if (emp) {
@@ -117,6 +122,7 @@ serve(async (req) => {
             created_at,
             is_company_document
           `)
+          .eq('company_id', companyId)
           .ilike('name', `%${query}%`)
           .limit(limit);
 
@@ -126,6 +132,7 @@ serve(async (req) => {
             .from('employees')
             .select('id')
             .eq('user_id', auth.userId)
+            .eq('company_id', companyId)
             .single();
           
           if (emp) {
@@ -149,6 +156,7 @@ serve(async (req) => {
             type,
             published_at
           `)
+          .eq('company_id', companyId)
           .eq('is_active', true)
           .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
           .limit(limit);
@@ -189,6 +197,7 @@ serve(async (req) => {
           department:departments(id, name, code),
           designation:designations(id, name, code)
         `)
+        .eq('company_id', companyId)
         .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,employee_id.ilike.%${query}%,phone.ilike.%${query}%`)
         .limit(limit);
 
