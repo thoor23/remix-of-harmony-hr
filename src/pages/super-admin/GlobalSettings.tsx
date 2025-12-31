@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -7,10 +7,11 @@ import { Settings, Database, Shield, Bell } from "lucide-react";
 
 export default function GlobalSettings() {
   return (
-    <PageContainer
-      title="Global Settings"
-      description="Configure platform-wide settings"
-    >
+    <PageContainer>
+      <PageHeader
+        title="Global Settings"
+        description="Configure platform-wide settings"
+      />
       <div className="grid gap-6 max-w-3xl">
         {/* General Settings */}
         <Card>

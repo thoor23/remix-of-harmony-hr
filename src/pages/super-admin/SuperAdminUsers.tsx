@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -78,10 +78,11 @@ export default function SuperAdminUsers() {
   };
 
   return (
-    <PageContainer
-      title="Super Admins"
-      description="Manage platform super administrators"
-      actions={
+    <PageContainer>
+      <PageHeader
+        title="Super Admins"
+        description="Manage platform super administrators"
+      >
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -151,8 +152,7 @@ export default function SuperAdminUsers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      }
-    >
+      </PageHeader>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
