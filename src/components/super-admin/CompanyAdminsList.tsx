@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -13,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
 import { Shield, Mail } from "lucide-react";
 import { format } from "date-fns";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 interface Admin {
   id: string;
@@ -30,6 +32,9 @@ interface CompanyAdminsListProps {
 }
 
 export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const { data: admins, isLoading } = useQuery({
     queryKey: ["super-admin", "company-admins", companyId],
     queryFn: async () => {
@@ -40,6 +45,14 @@ export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
     },
     enabled: !!companyId,
   });
+
+  // Pagination
+  const totalItems = admins?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedAdmins = admins?.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  ) || [];
 
   if (isLoading) {
     return (
@@ -74,7 +87,7 @@ export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {admins.map((admin) => (
+          {paginatedAdmins.map((admin) => (
             <TableRow key={admin.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -111,6 +124,17 @@ export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
           ))}
         </TableBody>
       </Table>
+      
+      {totalItems > 0 && (
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+        />
+      )}
     </div>
   );
 }

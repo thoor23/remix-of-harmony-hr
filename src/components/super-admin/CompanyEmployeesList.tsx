@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
 import { Users, Mail, Phone } from "lucide-react";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 interface Employee {
   id: string;
@@ -32,6 +34,9 @@ interface CompanyEmployeesListProps {
 }
 
 export function CompanyEmployeesList({ companyId }: CompanyEmployeesListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const { data: employees, isLoading } = useQuery({
     queryKey: ["super-admin", "company-employees", companyId],
     queryFn: async () => {
@@ -42,6 +47,14 @@ export function CompanyEmployeesList({ companyId }: CompanyEmployeesListProps) {
     },
     enabled: !!companyId,
   });
+
+  // Pagination
+  const totalItems = employees?.length || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedEmployees = employees?.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  ) || [];
 
   if (isLoading) {
     return (
@@ -74,7 +87,7 @@ export function CompanyEmployeesList({ companyId }: CompanyEmployeesListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.slice(0, 10).map((employee) => (
+          {paginatedEmployees.map((employee) => (
             <TableRow key={employee.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -131,13 +144,15 @@ export function CompanyEmployeesList({ companyId }: CompanyEmployeesListProps) {
           ))}
         </TableBody>
       </Table>
-      {employees.length > 10 && (
-        <div className="p-3 text-center border-t">
-          <p className="text-sm text-muted-foreground">
-            Showing 10 of {employees.length} employees
-          </p>
-        </div>
-      )}
+      
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+      />
     </div>
   );
 }
