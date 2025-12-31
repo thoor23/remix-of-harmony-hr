@@ -27,7 +27,7 @@ serve(async (req) => {
         .from('offboarding_processes')
         .select(`
           *,
-          employee:employees(id, employee_id, first_name, last_name, avatar_url),
+          employee:employees!offboarding_processes_employee_id_fkey(id, employee_id, first_name, last_name, avatar_url),
           handover_employee:employees!offboarding_processes_handover_to_fkey(id, first_name, last_name),
           tasks:offboarding_tasks(*)
         `)
@@ -46,7 +46,7 @@ serve(async (req) => {
         .from('offboarding_processes')
         .select(`
           *,
-          employee:employees(id, employee_id, first_name, last_name, avatar_url, email, phone, department:departments(name)),
+          employee:employees!offboarding_processes_employee_id_fkey(id, employee_id, first_name, last_name, avatar_url, email, phone, department:departments(name)),
           handover_employee:employees!offboarding_processes_handover_to_fkey(id, first_name, last_name),
           tasks:offboarding_tasks(*)
         `)
