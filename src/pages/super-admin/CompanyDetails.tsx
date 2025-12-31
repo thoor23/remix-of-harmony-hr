@@ -50,7 +50,7 @@ export default function CompanyDetails() {
   const { data: company, isLoading } = useQuery({
     queryKey: ["super-admin", "company", id],
     queryFn: async () => {
-      const response = await api.get<Company>(`/api-super-admin/companies/${id}`);
+      const response = await api.get<Company>(`/super-admin/companies/${id}`);
       return response;
     },
     enabled: !!id,
