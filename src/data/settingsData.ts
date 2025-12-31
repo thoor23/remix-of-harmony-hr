@@ -187,6 +187,7 @@ export const adminModules = [
   'Audit Logs',
   'Settings',
   'Templates',
+  'Recruitment',
 ];
 
 // Employee Panel modules
