@@ -177,6 +177,7 @@ export const adminModules = [
   'Shifts',
   'Payroll',
   'Expenses',
+  'Internal Billing',
   'Documents',
   'Assets',
   'Locations',
