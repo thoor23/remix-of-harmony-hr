@@ -114,6 +114,7 @@ import AppearancePage from "./pages/admin/settings/AppearancePage";
 import EmailSettingsPage from "./pages/admin/settings/EmailSettingsPage";
 import EmailTemplatesPage from "./pages/admin/settings/EmailTemplatesPage";
 import DataSeederPage from "./pages/admin/settings/DataSeederPage";
+import ServerStatusPage from "./pages/admin/settings/ServerStatusPage";
 import PersonalSettingsPage from "./pages/admin/settings/PersonalSettingsPage";
 
 // Employee Pages
@@ -425,6 +426,7 @@ const App = () => (
                 <Route path="settings/system" element={<SystemSettingsPage />} />
                 <Route path="settings/appearance" element={<AppearancePage />} />
                 <Route path="settings/seeder" element={<DataSeederPage />} />
+                <Route path="settings/server-status" element={<ServerStatusPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
