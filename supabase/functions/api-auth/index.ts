@@ -23,6 +23,15 @@ serve(async (req) => {
   console.log(`[api-auth] ${method} ${path}`);
 
   try {
+    // GET / or /health - Health check endpoint
+    if (method === 'GET' && (path === '' || path === '/' || path === '/health')) {
+      return jsonResponse({
+        status: 'healthy',
+        service: 'api-auth',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const supabase = getSupabaseClient();
 
     // POST /login
