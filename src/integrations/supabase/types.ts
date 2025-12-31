@@ -3203,6 +3203,7 @@ export type Database = {
           checked_at: string
           created_at: string
           id: string
+          previous_status: string | null
           response_time_ms: number | null
           service_group: string
           service_name: string
@@ -3212,6 +3213,7 @@ export type Database = {
           checked_at?: string
           created_at?: string
           id?: string
+          previous_status?: string | null
           response_time_ms?: number | null
           service_group: string
           service_name: string
@@ -3221,6 +3223,7 @@ export type Database = {
           checked_at?: string
           created_at?: string
           id?: string
+          previous_status?: string | null
           response_time_ms?: number | null
           service_group?: string
           service_name?: string
@@ -3264,6 +3267,63 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      status_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_verified: boolean
+          subscribed_at: string
+          unsubscribed_at: string | null
+          verification_token: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_verified?: boolean
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          verification_token?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_verified?: boolean
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          verification_token?: string | null
+        }
+        Relationships: []
+      }
+      status_subscriptions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          subscribed_at: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          subscribed_at?: string
+          unsubscribed_at?: string | null
         }
         Relationships: []
       }
