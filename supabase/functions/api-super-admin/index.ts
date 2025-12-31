@@ -422,6 +422,39 @@ serve(async (req) => {
       return jsonResponse({ data });
     }
 
+    // GET /audit-logs - Platform audit logs
+    if (method === 'GET' && path === '/audit-logs') {
+      const module = url.searchParams.get('module');
+      const action = url.searchParams.get('action');
+      
+      let query = supabase
+        .from('audit_logs')
+        .select('*, company:companies(name)')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      
+      if (module && module !== 'all') {
+        query = query.eq('module', module);
+      }
+      if (action && action !== 'all') {
+        query = query.eq('action', action);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('[api-super-admin] Error fetching audit logs:', error);
+        return errorResponse('Failed to fetch audit logs', 500);
+      }
+      
+      return jsonResponse({ 
+        data: data?.map(log => ({
+          ...log,
+          company_name: log.company?.name
+        })) 
+      });
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-super-admin] Error:', error);

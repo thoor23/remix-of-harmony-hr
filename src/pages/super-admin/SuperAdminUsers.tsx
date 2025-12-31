@@ -58,7 +58,7 @@ export default function SuperAdminUsers() {
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["super-admin", "users", search],
     queryFn: async () => {
-      const response = await api.get<{ data: User[] }>(`/api-super-admin/users?search=${search}`);
+      const response = await api.get<{ data: User[] }>(`/super-admin/users?search=${search}`);
       return response.data;
     },
     enabled: dialogOpen,
