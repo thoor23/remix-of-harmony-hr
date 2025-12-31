@@ -459,6 +459,274 @@ serve(async (req) => {
       });
     }
 
+    // GET /companies/:id/employees - List company employees
+    const employeesMatch = path.match(/^\/companies\/([^/]+)\/employees$/);
+    if (method === 'GET' && employeesMatch) {
+      const companyId = employeesMatch[1];
+
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select(`
+          id, employee_id, first_name, last_name, email, phone, 
+          status, employment_type, avatar_url,
+          department:departments(name),
+          designation:designations(name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[api-super-admin] Error fetching employees:', error);
+        return errorResponse('Failed to fetch employees', 500);
+      }
+
+      return jsonResponse({ data: employees });
+    }
+
+    // GET /companies/:id/admins - List company admins
+    const adminsMatch = path.match(/^\/companies\/([^/]+)\/admins$/);
+    if (method === 'GET' && adminsMatch) {
+      const companyId = adminsMatch[1];
+
+      const { data: admins, error } = await supabase
+        .from('user_roles')
+        .select(`
+          id, user_id, role, created_at,
+          role_info:roles(name)
+        `)
+        .in('role', ['admin', 'hr']);
+
+      if (error) {
+        console.error('[api-super-admin] Error fetching admins:', error);
+        return errorResponse('Failed to fetch admins', 500);
+      }
+
+      // Get users for these admins that belong to this company
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email, company_id')
+        .eq('company_id', companyId);
+
+      const userMap = new Map(users?.map(u => [u.id, u]) || []);
+
+      // Get profiles for names
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name');
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      const companyAdmins = admins?.filter(a => userMap.has(a.user_id)).map(a => {
+        const roleInfoArr = a.role_info as Array<{ name: string }> | null;
+        const roleName = roleInfoArr && roleInfoArr.length > 0 ? roleInfoArr[0].name : a.role;
+        return {
+          id: a.id,
+          user_id: a.user_id,
+          role: a.role,
+          role_name: roleName,
+          email: userMap.get(a.user_id)?.email || '',
+          first_name: profileMap.get(a.user_id)?.first_name || null,
+          last_name: profileMap.get(a.user_id)?.last_name || null,
+          created_at: a.created_at,
+        };
+      }) || [];
+
+      return jsonResponse({ data: companyAdmins });
+    }
+
+    // GET /companies/:id/stats - Company statistics
+    const statsMatch = path.match(/^\/companies\/([^/]+)\/stats$/);
+    if (method === 'GET' && statsMatch) {
+      const companyId = statsMatch[1];
+
+      // Employee count
+      const { count: employeeCount } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId);
+
+      // Active employees
+      const { count: activeEmployees } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+
+      // Today's attendance
+      const today = new Date().toISOString().split('T')[0];
+      const { count: todayAttendance } = await supabase
+        .from('attendance_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('date', today);
+
+      // Pending leaves
+      const { count: pendingLeaves } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'pending');
+
+      // Open tickets
+      const { count: openTickets } = await supabase
+        .from('helpdesk_tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'open');
+
+      // Total assets
+      const { count: totalAssets } = await supabase
+        .from('assets')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId);
+
+      return jsonResponse({
+        employee_count: employeeCount || 0,
+        active_employees: activeEmployees || 0,
+        today_attendance: todayAttendance || 0,
+        pending_leaves: pendingLeaves || 0,
+        open_tickets: openTickets || 0,
+        total_assets: totalAssets || 0,
+      });
+    }
+
+    // POST /companies/:id/impersonate - Generate impersonation token
+    const impersonateMatch = path.match(/^\/companies\/([^/]+)\/impersonate$/);
+    if (method === 'POST' && impersonateMatch) {
+      const companyId = impersonateMatch[1];
+
+      // Find an admin user for this company
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('company_id', companyId)
+        .limit(1);
+
+      if (!users || users.length === 0) {
+        return errorResponse('No users found for this company', 404);
+      }
+
+      const targetUserId = users[0].id;
+
+      // Generate a secure token
+      const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store the token
+      const { error: insertError } = await supabase
+        .from('impersonation_tokens')
+        .insert({
+          super_admin_id: auth.userId,
+          target_user_id: targetUserId,
+          company_id: companyId,
+          token,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (insertError) {
+        console.error('[api-super-admin] Error creating impersonation token:', insertError);
+        return errorResponse('Failed to create impersonation token', 500);
+      }
+
+      // Log the impersonation
+      await supabase.from('audit_logs').insert({
+        module: 'super_admin',
+        action: 'impersonate',
+        description: `Super admin impersonated company user`,
+        performed_by: auth.userId,
+        metadata: { company_id: companyId, target_user_id: targetUserId },
+      });
+
+      return jsonResponse({
+        token,
+        redirect_url: `/app/dashboard?impersonate=${token}`,
+      });
+    }
+
+    // GET /platform-settings - Get all platform settings
+    if (method === 'GET' && path === '/platform-settings') {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('*')
+        .order('category');
+
+      if (error) {
+        console.error('[api-super-admin] Error fetching platform settings:', error);
+        return errorResponse('Failed to fetch platform settings', 500);
+      }
+
+      return jsonResponse({ data });
+    }
+
+    // PUT /platform-settings/:key - Update a platform setting
+    const settingsMatch = path.match(/^\/platform-settings\/([^/]+)$/);
+    if (method === 'PUT' && settingsMatch) {
+      const key = settingsMatch[1];
+      const body = await req.json();
+
+      const { error } = await supabase
+        .from('platform_settings')
+        .update({ value: body.value, updated_at: new Date().toISOString() })
+        .eq('key', key);
+
+      if (error) {
+        console.error('[api-super-admin] Error updating platform setting:', error);
+        return errorResponse('Failed to update platform setting', 500);
+      }
+
+      // Log the change
+      await supabase.from('audit_logs').insert({
+        module: 'super_admin',
+        action: 'update_setting',
+        description: `Updated platform setting: ${key}`,
+        performed_by: auth.userId,
+        metadata: { key, value: body.value },
+      });
+
+      return jsonResponse({ success: true });
+    }
+
+    // GET /platform-announcements - Get platform announcements
+    if (method === 'GET' && path === '/platform-announcements') {
+      const { data, error } = await supabase
+        .from('platform_announcements')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[api-super-admin] Error fetching announcements:', error);
+        return errorResponse('Failed to fetch announcements', 500);
+      }
+
+      return jsonResponse({ data });
+    }
+
+    // POST /platform-announcements - Create platform announcement
+    if (method === 'POST' && path === '/platform-announcements') {
+      const body = await req.json();
+
+      const { data, error } = await supabase
+        .from('platform_announcements')
+        .insert({
+          title: body.title,
+          content: body.content,
+          priority: body.priority || 'normal',
+          is_active: body.is_active ?? true,
+          starts_at: body.starts_at || new Date().toISOString(),
+          expires_at: body.expires_at || null,
+          created_by: auth.userId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[api-super-admin] Error creating announcement:', error);
+        return errorResponse('Failed to create announcement', 500);
+      }
+
+      return jsonResponse(data, 201);
+    }
+
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
     console.error('[api-super-admin] Error:', error);
