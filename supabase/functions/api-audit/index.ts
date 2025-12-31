@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -25,6 +25,8 @@ Deno.serve(async (req) => {
       return errorResponse('Forbidden', 403);
     }
 
+    const companyId = await getRequestCompanyId(url, auth);
+
     // GET / - List audit logs with filters
     if (req.method === 'GET' && subPath.length === 0) {
       const action = url.searchParams.get('action');
@@ -37,6 +39,7 @@ Deno.serve(async (req) => {
       let query = supabase
         .from('audit_logs')
         .select('*')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('audit_logs')
-        .insert({
+        .insert(withCompanyId({
           action: body.action,
           module: body.module,
           description: body.description,
@@ -76,7 +79,7 @@ Deno.serve(async (req) => {
           performed_by: auth.userId,
           performer_name: performerName,
           ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -89,6 +92,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('action')
+        .eq('company_id', companyId)
         .order('action');
 
       if (error) throw error;
@@ -102,6 +106,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('module')
+        .eq('company_id', companyId)
         .order('module');
 
       if (error) throw error;

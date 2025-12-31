@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getSupabaseClient, authenticateRequest, checkPermission } from '../_shared/auth.ts';
+import { getSupabaseClient, authenticateRequest, getRequestCompanyId, withCompanyId } from '../_shared/auth.ts';
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
@@ -19,6 +19,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const companyId = await getRequestCompanyId(url, auth);
     const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // GET / - List all offboarding processes
@@ -31,6 +32,7 @@ serve(async (req) => {
           handover_employee:employees!offboarding_processes_handover_to_fkey(id, first_name, last_name),
           tasks:offboarding_tasks(*)
         `)
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -51,6 +53,7 @@ serve(async (req) => {
           tasks:offboarding_tasks(*)
         `)
         .eq('id', id)
+        .eq('company_id', companyId)
         .single();
 
       if (error) throw error;
@@ -60,6 +63,7 @@ serve(async (req) => {
         .from('exit_interviews')
         .select('*')
         .eq('offboarding_id', id)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       // Get F&F settlement if exists
@@ -67,6 +71,7 @@ serve(async (req) => {
         .from('fnf_settlements')
         .select('*')
         .eq('offboarding_id', id)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       return jsonResponse({
@@ -87,7 +92,7 @@ serve(async (req) => {
       // Create process
       const { data: process, error: processError } = await supabase
         .from('offboarding_processes')
-        .insert({
+        .insert(withCompanyId({
           employee_id: body.employee_id,
           exit_type: body.exit_type,
           resignation_date: body.resignation_date,
@@ -97,7 +102,7 @@ serve(async (req) => {
           handover_to: body.handover_to || null,
           notes: body.notes,
           status: body.status || 'initiated',
-        })
+        }, companyId))
         .select()
         .single();
 
@@ -121,6 +126,7 @@ serve(async (req) => {
 
       const tasks = defaultTasks.map(task => ({
         ...task,
+        company_id: companyId,
         offboarding_id: process.id,
         status: 'pending',
       }));
@@ -128,10 +134,10 @@ serve(async (req) => {
       await supabase.from('offboarding_tasks').insert(tasks);
 
       // Create F&F settlement record
-      await supabase.from('fnf_settlements').insert({
+      await supabase.from('fnf_settlements').insert(withCompanyId({
         offboarding_id: process.id,
         status: 'pending',
-      });
+      }, companyId));
 
       return jsonResponse(process, 201);
     }
@@ -149,6 +155,7 @@ serve(async (req) => {
         .from('offboarding_processes')
         .update(body)
         .eq('id', id)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -169,6 +176,7 @@ serve(async (req) => {
           completed_at: body.status === 'completed' ? new Date().toISOString() : null,
         })
         .eq('id', taskId)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -178,19 +186,22 @@ serve(async (req) => {
       const { data: allTasks } = await supabase
         .from('offboarding_tasks')
         .select('status')
-        .eq('offboarding_id', processId);
+        .eq('offboarding_id', processId)
+        .eq('company_id', companyId);
 
       const allCompleted = allTasks?.every(t => t.status === 'completed');
       if (allCompleted) {
         await supabase
           .from('offboarding_processes')
           .update({ status: 'pending_fnf' })
-          .eq('id', processId);
+          .eq('id', processId)
+          .eq('company_id', companyId);
       } else {
         await supabase
           .from('offboarding_processes')
           .update({ status: 'in_progress' })
-          .eq('id', processId);
+          .eq('id', processId)
+          .eq('company_id', companyId);
       }
 
       return jsonResponse(data);
@@ -211,15 +222,15 @@ serve(async (req) => {
         .from('exit_interviews')
         .select('id')
         .eq('offboarding_id', processId)
+        .eq('company_id', companyId)
         .maybeSingle();
 
       if (existing) {
         const { data, error } = await supabase
           .from('exit_interviews')
-          .update({
-            ...body,
-          })
+          .update(body)
           .eq('id', existing.id)
+          .eq('company_id', companyId)
           .select()
           .single();
 
@@ -228,10 +239,10 @@ serve(async (req) => {
       } else {
         const { data, error } = await supabase
           .from('exit_interviews')
-          .insert({
+          .insert(withCompanyId({
             ...body,
             offboarding_id: processId,
-          })
+          }, companyId))
           .select()
           .single();
 
@@ -257,6 +268,7 @@ serve(async (req) => {
           processed_at: body.status === 'processed' ? new Date().toISOString() : null,
         })
         .eq('offboarding_id', processId)
+        .eq('company_id', companyId)
         .select()
         .single();
 
@@ -270,20 +282,23 @@ serve(async (req) => {
             status: 'completed',
             completed_date: new Date().toISOString().split('T')[0]
           })
-          .eq('id', processId);
+          .eq('id', processId)
+          .eq('company_id', companyId);
 
         // Update employee status to inactive
         const { data: process } = await supabase
           .from('offboarding_processes')
           .select('employee_id')
           .eq('id', processId)
+          .eq('company_id', companyId)
           .single();
 
         if (process?.employee_id) {
           await supabase
             .from('employees')
             .update({ status: 'inactive' })
-            .eq('id', process.employee_id);
+            .eq('id', process.employee_id)
+            .eq('company_id', companyId);
         }
       }
 
