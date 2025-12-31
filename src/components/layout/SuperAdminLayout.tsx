@@ -87,6 +87,18 @@ export function SuperAdminLayout() {
         return;
       }
 
+      // Check if previous segment is "companies" - this is a company code
+      const prevSegment = pathSegments[index - 1];
+      if (prevSegment === "companies" && !labels[segment]) {
+        // This is a company code, show it directly
+        if (index < pathSegments.length - 1) {
+          breadcrumbs.push({ label: segment.toUpperCase(), href: currentPath });
+        } else {
+          breadcrumbs.push({ label: segment.toUpperCase() });
+        }
+        return;
+      }
+
       const label = labels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
       
       if (index < pathSegments.length - 1) {

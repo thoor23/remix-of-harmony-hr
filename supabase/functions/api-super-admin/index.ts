@@ -105,15 +105,19 @@ serve(async (req) => {
       return jsonResponse({ data: companiesWithCounts });
     }
 
-    // GET /companies/:id - Get single company
+    // GET /companies/:identifier - Get single company (supports id or code)
     const companyMatch = path.match(/^\/companies\/([^\/]+)$/);
     if (method === 'GET' && companyMatch) {
-      const companyId = companyMatch[1];
+      const identifier = companyMatch[1];
+      
+      // Check if identifier is UUID or code
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isUuid = uuidPattern.test(identifier);
       
       const { data: company, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', companyId)
+        .eq(isUuid ? 'id' : 'code', isUuid ? identifier : identifier.toUpperCase())
         .single();
 
       if (error || !company) {
@@ -124,7 +128,7 @@ serve(async (req) => {
       const { count } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId);
+        .eq('company_id', company.id);
 
       return jsonResponse({ ...company, employee_count: count || 0 });
     }
