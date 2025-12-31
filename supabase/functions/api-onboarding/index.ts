@@ -88,6 +88,24 @@ serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // GET /stats - Get onboarding statistics
+    if (method === 'GET' && path === '/stats') {
+      const { data: processes, error } = await supabase
+        .from('onboarding_processes')
+        .select('status');
+
+      if (error) throw error;
+
+      const stats = {
+        total: processes?.length || 0,
+        pending: processes?.filter(p => p.status === 'pending').length || 0,
+        in_progress: processes?.filter(p => p.status === 'in_progress').length || 0,
+        completed: processes?.filter(p => p.status === 'completed').length || 0,
+      };
+
+      return jsonResponse(stats);
+    }
+
     // GET / - List all onboarding processes
     if (method === 'GET' && path === '') {
       const { data, error } = await supabase
