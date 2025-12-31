@@ -2,12 +2,14 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, MoreHorizontal } from "lucide-react";
+import { Plus, Eye, Edit, MoreHorizontal, Briefcase } from "lucide-react";
 import { useJobOpenings, useUpdateJobStatus } from "@/hooks/useRecruitment";
 import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { TableRowsSkeleton } from "@/components/shared/LoadingSkeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -47,9 +49,18 @@ export default function JobOpenings() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRowsSkeleton rows={5} cols={7} />
               ) : jobs?.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No job openings yet</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <EmptyState
+                      icon={<Briefcase className="h-8 w-8 text-muted-foreground" />}
+                      title="No job openings yet"
+                      description="Create your first job opening to start recruiting"
+                      action={{ label: "Post New Job", onClick: () => {} }}
+                    />
+                  </TableCell>
+                </TableRow>
               ) : (
                 jobs?.map((job) => (
                   <TableRow key={job.id}>
