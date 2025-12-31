@@ -126,7 +126,7 @@ export function SuperAdminLayout() {
       {/* Sidebar - Fixed */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 md:relative md:translate-x-0 flex-shrink-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 md:relative md:translate-x-0 flex-shrink-0 overflow-hidden flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -147,7 +147,7 @@ export function SuperAdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto flex-1">
           {sidebarItems.map((item) => {
             const isActive = location.pathname.startsWith(item.href);
             return (
