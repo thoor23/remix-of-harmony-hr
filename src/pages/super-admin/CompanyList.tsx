@@ -427,13 +427,13 @@ export default function CompanyList() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link to={`/super-admin/companies/${company.id}`}>
+                              <Link to={`/super-admin/companies/${company.code}`}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link to={`/super-admin/companies/${company.id}/edit`}>
+                              <Link to={`/super-admin/companies/${company.code}/edit`}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </Link>

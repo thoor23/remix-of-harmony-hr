@@ -241,7 +241,7 @@ const App = () => (
                   <Route path="dashboard" element={<SuperAdminDashboard />} />
                   <Route path="companies" element={<CompanyList />} />
                   <Route path="companies/new" element={<AddCompany />} />
-                  <Route path="companies/:id" element={<CompanyDetails />} />
+                  <Route path="companies/:code" element={<CompanyDetails />} />
                   <Route path="users" element={<SuperAdminUsers />} />
                   <Route path="audit" element={<PlatformAuditLogs />} />
                   <Route path="analytics" element={<PlatformAnalytics />} />

@@ -43,17 +43,17 @@ interface Company {
 }
 
 export default function CompanyDetails() {
-  const { id } = useParams<{ id: string }>();
+  const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { toggleCompanyStatus } = useSuperAdmin();
 
   const { data: company, isLoading } = useQuery({
-    queryKey: ["super-admin", "company", id],
+    queryKey: ["super-admin", "company", code],
     queryFn: async () => {
-      const response = await api.get<Company>(`/super-admin/companies/${id}`);
+      const response = await api.get<Company>(`/super-admin/companies/${code}`);
       return response;
     },
-    enabled: !!id,
+    enabled: !!code,
   });
 
   if (isLoading) {
@@ -102,7 +102,7 @@ export default function CompanyDetails() {
             <Power className="h-4 w-4 mr-2" />
             {company.is_active ? "Deactivate" : "Activate"}
           </Button>
-          <Link to={`/super-admin/companies/${company.id}/edit`}>
+          <Link to={`/super-admin/companies/${company.code}/edit`}>
             <Button>
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -258,7 +258,7 @@ export default function CompanyDetails() {
             <div className="flex flex-wrap gap-3">
               <Button
                 variant="outline"
-                onClick={() => navigate(`/super-admin/companies/${company.id}/add-admin`)}
+                onClick={() => navigate(`/super-admin/companies/${company.code}/add-admin`)}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Create Admin User
