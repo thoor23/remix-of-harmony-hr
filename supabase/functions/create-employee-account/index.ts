@@ -1,4 +1,4 @@
-import { authenticateRequest, hashPassword, getSupabaseClient } from "../_shared/auth.ts";
+import { authenticateRequest, hashPassword, getSupabaseClient, getRequestCompanyId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +53,16 @@ Deno.serve(async (req) => {
     }
 
     console.log("Authenticated user:", auth.userId, "role:", auth.role);
+
+    // Get company ID for this request
+    const url = new URL(req.url);
+    const companyId = getRequestCompanyId(url, auth);
+    if (!companyId) {
+      return new Response(
+        JSON.stringify({ error: "Company context required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check if requesting user has admin, hr, or manager role
     const { data: roleData, error: roleError } = await supabase
@@ -111,6 +121,7 @@ Deno.serve(async (req) => {
         password_hash: passwordHash,
         is_active: true,
         email_confirmed_at: new Date().toISOString(),
+        company_id: companyId,
       })
       .select()
       .single();
@@ -153,6 +164,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: userId,
         employee_id: employee_data.employee_id,
+        company_id: companyId,
         date_of_birth: employee_data.date_of_birth || null,
         date_of_joining: employee_data.date_of_joining,
         department_id: employee_data.department_id || null,
