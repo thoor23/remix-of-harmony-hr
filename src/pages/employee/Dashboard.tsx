@@ -1,12 +1,13 @@
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
-import { StatCard } from "@/components/shared/StatCard";
+import { EnhancedStatCard } from "@/components/dashboard/EnhancedStatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
-import { 
+import { EmptyState } from "@/components/shared/EmptyState";
+import {
   CalendarCheck, 
   Clock, 
   FileText, 
@@ -133,11 +134,11 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatCard title="Days Present" value={presentCount} subtitle="This month" icon={CalendarCheck} />
-        <StatCard title="Days Late" value={lateCount} subtitle="This month" icon={Clock} />
-        <StatCard title="Leave Balance" value={totalLeaveBalance} subtitle="Days available" icon={Calendar} />
-        <StatCard title="Pending Requests" value={pendingLeaveCount} subtitle="Awaiting approval" icon={FileText} />
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+        <EnhancedStatCard title="Days Present" value={presentCount} subtitle="This month" icon={CalendarCheck} variant="success" />
+        <EnhancedStatCard title="Days Late" value={lateCount} subtitle="This month" icon={Clock} variant={lateCount > 0 ? "warning" : "default"} />
+        <EnhancedStatCard title="Leave Balance" value={totalLeaveBalance} subtitle="Days available" icon={Calendar} variant="primary" />
+        <EnhancedStatCard title="Pending Requests" value={pendingLeaveCount} subtitle="Awaiting approval" icon={FileText} variant={pendingLeaveCount > 0 ? "warning" : "default"} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
