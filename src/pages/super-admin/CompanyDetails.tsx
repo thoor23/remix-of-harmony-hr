@@ -5,8 +5,14 @@ import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { CreateAdminDialog } from "@/components/super-admin/CreateAdminDialog";
+import { CompanyEmployeesList } from "@/components/super-admin/CompanyEmployeesList";
+import { CompanyAdminsList } from "@/components/super-admin/CompanyAdminsList";
+import { CompanyStatsCards } from "@/components/super-admin/CompanyStatsCards";
+import { ImpersonateButton } from "@/components/super-admin/ImpersonateButton";
 import {
   Building2,
   Edit,
@@ -18,7 +24,7 @@ import {
   MapPin,
   Calendar,
   CreditCard,
-  UserPlus,
+  Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -90,6 +96,7 @@ export default function CompanyDetails() {
         description={`Company Code: ${company.code}`}
       >
         <div className="flex gap-2">
+          <ImpersonateButton companyId={company.id} companyName={company.name} />
           <Button
             variant="outline"
             onClick={() =>
@@ -110,7 +117,13 @@ export default function CompanyDetails() {
           </Link>
         </div>
       </PageHeader>
-      <div className="grid gap-6 lg:grid-cols-3">
+
+      {/* Stats Cards */}
+      <div className="mb-6">
+        <CompanyStatsCards companyId={company.id} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3 mb-6">
         {/* Main Info */}
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -248,34 +261,48 @@ export default function CompanyDetails() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Quick Actions */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/super-admin/companies/${company.code}/add-admin`)}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Create Admin User
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  navigate(`/app/dashboard?company_id=${company.id}`)
-                }
-              >
-                <Building2 className="h-4 w-4 mr-2" />
-                View as Company
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Tabs for Employees and Admins */}
+      <Tabs defaultValue="admins" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="admins" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Admins
+          </TabsTrigger>
+          <TabsTrigger value="employees" className="gap-2">
+            <Users className="h-4 w-4" />
+            Employees
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="admins">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Admin Users</CardTitle>
+              <CreateAdminDialog
+                companyId={company.id}
+                companyName={company.name}
+                companyCode={company.code}
+              />
+            </CardHeader>
+            <CardContent>
+              <CompanyAdminsList companyId={company.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="employees">
+          <Card>
+            <CardHeader>
+              <CardTitle>Employees</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CompanyEmployeesList companyId={company.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 }
