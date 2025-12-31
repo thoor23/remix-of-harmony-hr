@@ -33,7 +33,11 @@ export default function Applications() {
 
   return (
     <PageContainer>
-      <PageHeader title="Applications" description="Track and manage all candidate applications" />
+      <PageHeader title="Applications" description="Track and manage all candidate applications">
+        <Button asChild>
+          <Link to="/app/recruitment/applications/add">Add Application</Link>
+        </Button>
+      </PageHeader>
       <Card>
         <CardContent className="p-0">
           <Table>
