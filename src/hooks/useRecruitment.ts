@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import api from "@/lib/api";
 import type {
   JobOpening,
   JobApplication,
@@ -15,41 +15,18 @@ import type {
   ApplicationStage,
 } from "@/types/recruitment";
 
-const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-recruitment`;
-
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
-  const response = await fetch(`${FUNCTION_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "API request failed");
-  }
-
-  return response.json();
-}
-
 // === STATS ===
 export function useRecruitmentStats() {
   return useQuery<RecruitmentStats>({
     queryKey: ["recruitment", "stats"],
-    queryFn: () => apiRequest("/stats"),
+    queryFn: () => api.get("/recruitment/stats"),
   });
 }
 
 export function usePipelineStats() {
   return useQuery<PipelineStats>({
     queryKey: ["recruitment", "pipeline"],
-    queryFn: () => apiRequest("/pipeline"),
+    queryFn: () => api.get("/recruitment/pipeline"),
   });
 }
 
@@ -62,14 +39,14 @@ export function useJobOpenings(filters?: { status?: string; department_id?: stri
 
   return useQuery<JobOpening[]>({
     queryKey: ["recruitment", "jobs", filters],
-    queryFn: () => apiRequest(`/jobs${query}`),
+    queryFn: () => api.get(`/recruitment/jobs${query}`),
   });
 }
 
 export function useJobOpening(id: string) {
   return useQuery<JobOpening>({
     queryKey: ["recruitment", "jobs", id],
-    queryFn: () => apiRequest(`/jobs/${id}`),
+    queryFn: () => api.get(`/recruitment/jobs/${id}`),
     enabled: !!id,
   });
 }
@@ -78,7 +55,7 @@ export function useCreateJobOpening() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateJobOpeningInput) =>
-      apiRequest<JobOpening>("/jobs", { method: "POST", body: JSON.stringify(input) }),
+      api.post<JobOpening>("/recruitment/jobs", input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "stats"] });
@@ -92,7 +69,7 @@ export function useUpdateJobOpening() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<JobOpening> }) =>
-      apiRequest<JobOpening>(`/jobs/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      api.put<JobOpening>(`/recruitment/jobs/${id}`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs", id] });
@@ -105,7 +82,7 @@ export function useUpdateJobOpening() {
 export function useDeleteJobOpening() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiRequest(`/jobs/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => api.delete(`/recruitment/jobs/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "stats"] });
@@ -119,7 +96,7 @@ export function useUpdateJobStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiRequest<JobOpening>(`/jobs/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+      api.patch<JobOpening>(`/recruitment/jobs/${id}/status`, { status }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "jobs", id] });
@@ -140,14 +117,14 @@ export function useApplications(filters?: { job_id?: string; stage?: string; sta
 
   return useQuery<JobApplication[]>({
     queryKey: ["recruitment", "applications", filters],
-    queryFn: () => apiRequest(`/applications${query}`),
+    queryFn: () => api.get(`/recruitment/applications${query}`),
   });
 }
 
 export function useApplication(id: string) {
   return useQuery<JobApplication>({
     queryKey: ["recruitment", "applications", id],
-    queryFn: () => apiRequest(`/applications/${id}`),
+    queryFn: () => api.get(`/recruitment/applications/${id}`),
     enabled: !!id,
   });
 }
@@ -156,7 +133,7 @@ export function useCreateApplication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateApplicationInput) =>
-      apiRequest<JobApplication>("/applications", { method: "POST", body: JSON.stringify(input) }),
+      api.post<JobApplication>("/recruitment/applications", input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "stats"] });
@@ -171,7 +148,7 @@ export function useUpdateApplication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<JobApplication> }) =>
-      apiRequest<JobApplication>(`/applications/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      api.put<JobApplication>(`/recruitment/applications/${id}`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications", id] });
@@ -185,10 +162,7 @@ export function useUpdateApplicationStage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, stage, notes }: { id: string; stage: ApplicationStage; notes?: string }) =>
-      apiRequest<JobApplication>(`/applications/${id}/stage`, {
-        method: "PATCH",
-        body: JSON.stringify({ stage, notes }),
-      }),
+      api.patch<JobApplication>(`/recruitment/applications/${id}/stage`, { stage, notes }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications", id] });
@@ -203,10 +177,7 @@ export function useRejectApplication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason, notes }: { id: string; reason: string; notes?: string }) =>
-      apiRequest<JobApplication>(`/applications/${id}/reject`, {
-        method: "PATCH",
-        body: JSON.stringify({ reason, notes }),
-      }),
+      api.patch<JobApplication>(`/recruitment/applications/${id}/reject`, { reason, notes }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications", id] });
@@ -222,10 +193,7 @@ export function useConvertToEmployee() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ applicationId, data }: { applicationId: string; data: ConvertToEmployeeInput }) =>
-      apiRequest(`/applications/${applicationId}/convert`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      api.post(`/recruitment/applications/${applicationId}/convert`, data),
     onSuccess: (_, { applicationId }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "applications", applicationId] });
@@ -248,21 +216,21 @@ export function useInterviews(filters?: { application_id?: string; interviewer_i
 
   return useQuery<InterviewSchedule[]>({
     queryKey: ["recruitment", "interviews", filters],
-    queryFn: () => apiRequest(`/interviews${query}`),
+    queryFn: () => api.get(`/recruitment/interviews${query}`),
   });
 }
 
 export function useMyInterviews() {
   return useQuery<InterviewSchedule[]>({
     queryKey: ["recruitment", "interviews", "my"],
-    queryFn: () => apiRequest("/interviews/my"),
+    queryFn: () => api.get("/recruitment/interviews/my"),
   });
 }
 
 export function useInterview(id: string) {
   return useQuery<InterviewSchedule>({
     queryKey: ["recruitment", "interviews", id],
-    queryFn: () => apiRequest(`/interviews/${id}`),
+    queryFn: () => api.get(`/recruitment/interviews/${id}`),
     enabled: !!id,
   });
 }
@@ -271,7 +239,7 @@ export function useScheduleInterview() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ScheduleInterviewInput) =>
-      apiRequest<InterviewSchedule>("/interviews", { method: "POST", body: JSON.stringify(input) }),
+      api.post<InterviewSchedule>("/recruitment/interviews", input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "stats"] });
@@ -285,7 +253,7 @@ export function useUpdateInterview() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InterviewSchedule> }) =>
-      apiRequest<InterviewSchedule>(`/interviews/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+      api.put<InterviewSchedule>(`/recruitment/interviews/${id}`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews", id] });
@@ -298,7 +266,7 @@ export function useUpdateInterview() {
 export function useDeleteInterview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => apiRequest(`/interviews/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => api.delete(`/recruitment/interviews/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "stats"] });
@@ -312,10 +280,7 @@ export function useSubmitInterviewFeedback() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: SubmitFeedbackInput }) =>
-      apiRequest<InterviewSchedule>(`/interviews/${id}/feedback`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
+      api.patch<InterviewSchedule>(`/recruitment/interviews/${id}/feedback`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews"] });
       queryClient.invalidateQueries({ queryKey: ["recruitment", "interviews", id] });
