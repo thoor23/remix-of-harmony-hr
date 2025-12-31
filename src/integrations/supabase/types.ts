@@ -2016,6 +2016,47 @@ export type Database = {
           },
         ]
       }
+      impersonation_tokens: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          super_admin_id: string
+          target_user_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          super_admin_id: string
+          target_user_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          super_admin_id?: string
+          target_user_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impersonation_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_invoice_categories: {
         Row: {
           code: string
@@ -3368,6 +3409,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_announcements: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          priority: string
+          starts_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string
+          starts_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string
+          starts_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
       }
       profile_change_requests: {
         Row: {
