@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { getSupabaseClient, authenticateRequest } from '../_shared/auth.ts';
+import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts';
 
 interface InvoiceItem {
   category_id?: string;
@@ -15,50 +11,23 @@ interface InvoiceItem {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return errorResponse('Unauthorized', 401);
     }
 
-    // Verify user
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    const isAdminOrHR = roleData?.role === 'admin' || roleData?.role === 'hr';
+    const supabase = getSupabaseClient();
+    const isAdminOrHR = ['admin', 'hr'].includes(auth.role);
 
     // Get employee record
     const { data: employeeData } = await supabase
       .from('employees')
       .select('id, first_name, last_name')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .single();
 
     const url = new URL(req.url);
@@ -79,18 +48,13 @@ serve(async (req) => {
           .order('name');
 
         if (error) throw error;
-        return new Response(JSON.stringify(data), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return jsonResponse(data);
       }
 
       // POST /categories - Create category (admin/hr only)
       if (method === 'POST' && !categoryId) {
         if (!isAdminOrHR) {
-          return new Response(
-            JSON.stringify({ error: 'Admin or HR access required' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return errorResponse('Admin or HR access required', 403);
         }
 
         const body = await req.json();
@@ -101,19 +65,13 @@ serve(async (req) => {
           .single();
 
         if (error) throw error;
-        return new Response(JSON.stringify(data), {
-          status: 201,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return jsonResponse(data, 201);
       }
 
       // PUT /categories/:id - Update category
       if (method === 'PUT' && categoryId) {
         if (!isAdminOrHR) {
-          return new Response(
-            JSON.stringify({ error: 'Admin or HR access required' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return errorResponse('Admin or HR access required', 403);
         }
 
         const body = await req.json();
@@ -125,18 +83,13 @@ serve(async (req) => {
           .single();
 
         if (error) throw error;
-        return new Response(JSON.stringify(data), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return jsonResponse(data);
       }
 
       // DELETE /categories/:id - Delete category
       if (method === 'DELETE' && categoryId) {
         if (!isAdminOrHR) {
-          return new Response(
-            JSON.stringify({ error: 'Admin or HR access required' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return errorResponse('Admin or HR access required', 403);
         }
 
         const { error } = await supabase
@@ -145,19 +98,14 @@ serve(async (req) => {
           .eq('id', categoryId);
 
         if (error) throw error;
-        return new Response(JSON.stringify({ success: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ success: true });
       }
     }
 
     // STATS ENDPOINT
     if (pathname === '/stats' && method === 'GET') {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       // Get all invoices for stats
@@ -179,18 +127,13 @@ serve(async (req) => {
         sent_count: invoices?.filter(i => i.status === 'sent').length || 0,
       };
 
-      return new Response(JSON.stringify(stats), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(stats);
     }
 
     // PROCESS RECURRING ENDPOINT
     if (pathname === '/recurring/process' && method === 'POST') {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       const today = new Date().toISOString().split('T')[0];
@@ -282,9 +225,7 @@ serve(async (req) => {
         processedCount++;
       }
 
-      return new Response(JSON.stringify({ processed: processedCount }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ processed: processedCount });
     }
 
     // INVOICES CRUD
@@ -293,10 +234,7 @@ serve(async (req) => {
     // GET / - List invoices
     if (method === 'GET' && !invoiceId) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       let query = supabase
@@ -323,13 +261,11 @@ serve(async (req) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(data);
     }
 
     // GET /:id - Get single invoice with items
-    if (method === 'GET' && invoiceId && !pathname.includes('/')) {
+    if (method === 'GET' && invoiceId && !pathname.includes('/send') && !pathname.includes('/pay') && !pathname.includes('/cancel')) {
       const { data: invoice, error } = await supabase
         .from('internal_invoices')
         .select(`
@@ -343,18 +279,13 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
-      return new Response(JSON.stringify(invoice), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(invoice);
     }
 
     // POST / - Create invoice
     if (method === 'POST' && !invoiceId) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       const body = await req.json();
@@ -436,19 +367,13 @@ serve(async (req) => {
 
       if (fetchError) throw fetchError;
 
-      return new Response(JSON.stringify(completeInvoice), {
-        status: 201,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(completeInvoice, 201);
     }
 
     // PUT /:id - Update invoice (only drafts)
     if (method === 'PUT' && invoiceId) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       // Check if invoice is draft
@@ -459,10 +384,7 @@ serve(async (req) => {
         .single();
 
       if (existingInvoice?.status !== 'draft') {
-        return new Response(
-          JSON.stringify({ error: 'Only draft invoices can be edited' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Only draft invoices can be edited', 400);
       }
 
       const body = await req.json();
@@ -518,18 +440,13 @@ serve(async (req) => {
 
       if (fetchError) throw fetchError;
 
-      return new Response(JSON.stringify(updatedInvoice), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(updatedInvoice);
     }
 
     // DELETE /:id - Delete invoice (only drafts)
     if (method === 'DELETE' && invoiceId) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       // Check if invoice is draft
@@ -540,10 +457,7 @@ serve(async (req) => {
         .single();
 
       if (existingInvoice?.status !== 'draft') {
-        return new Response(
-          JSON.stringify({ error: 'Only draft invoices can be deleted' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Only draft invoices can be deleted', 400);
       }
 
       const { error } = await supabase
@@ -553,18 +467,13 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ success: true });
     }
 
     // PATCH /:id/send - Mark as sent
     if (method === 'PATCH' && pathname.endsWith('/send')) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       const id = pathname.split('/')[1];
@@ -577,18 +486,13 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(data);
     }
 
     // PATCH /:id/pay - Mark as paid
     if (method === 'PATCH' && pathname.endsWith('/pay')) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       const id = pathname.split('/')[1];
@@ -608,18 +512,13 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(data);
     }
 
     // PATCH /:id/cancel - Cancel invoice
     if (method === 'PATCH' && pathname.endsWith('/cancel')) {
       if (!isAdminOrHR) {
-        return new Response(
-          JSON.stringify({ error: 'Admin or HR access required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return errorResponse('Admin or HR access required', 403);
       }
 
       const id = pathname.split('/')[1];
@@ -632,22 +531,14 @@ serve(async (req) => {
 
       if (error) throw error;
 
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse(data);
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Not found' }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse('Not found', 404);
 
   } catch (error) {
     console.error('[api-internal-invoices] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return errorResponse(errorMessage, 500);
   }
 });
