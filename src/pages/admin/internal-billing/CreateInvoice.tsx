@@ -232,13 +232,14 @@ export default function CreateInvoice() {
                 <div className="space-y-2">
                   <Label>Frequency</Label>
                   <Select
-                    value={formData.recurring_frequency}
-                    onValueChange={(v: any) => setFormData({ ...formData, recurring_frequency: v })}
+                    value={formData.recurring_frequency || "none"}
+                    onValueChange={(v: any) => setFormData({ ...formData, recurring_frequency: v === "none" ? "" : v })}
                   >
                     <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="Select frequency" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Select frequency</SelectItem>
                       <SelectItem value="weekly">Weekly</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="quarterly">Quarterly</SelectItem>
@@ -280,13 +281,14 @@ export default function CreateInvoice() {
                   <TableRow key={index}>
                     <TableCell>
                       <Select
-                        value={item.category_id || ""}
-                        onValueChange={(v) => updateItem(index, "category_id", v)}
+                        value={item.category_id || "none"}
+                        onValueChange={(v) => updateItem(index, "category_id", v === "none" ? "" : v)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">Select category</SelectItem>
                           {categories?.filter(c => c.is_active).map((cat) => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.name}

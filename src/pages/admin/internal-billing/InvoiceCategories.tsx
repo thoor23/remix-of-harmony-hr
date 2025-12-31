@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,18 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { TableSkeleton } from "@/components/shared/LoadingSkeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Plus, Pencil, Trash2, Search, FolderOpen, Download, RefreshCw } from "lucide-react";
 import { useInvoiceCategories, useCreateInvoiceCategory, useUpdateInvoiceCategory, useDeleteInvoiceCategory } from "@/hooks/useInternalInvoices";
+import { usePagination } from "@/hooks/usePagination";
+import { exportToCSV, ColumnDef } from "@/lib/csvExport";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import type { InternalInvoiceCategory } from "@/types/invoice";
 
 export default function InvoiceCategories() {
-  const { data: categories, isLoading } = useInvoiceCategories();
+  const { data: categories, isLoading, refetch, isRefetching } = useInvoiceCategories();
   const createCategory = useCreateInvoiceCategory();
   const updateCategory = useUpdateInvoiceCategory();
   const deleteCategory = useDeleteInvoiceCategory();
@@ -24,6 +29,7 @@ export default function InvoiceCategories() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<InternalInvoiceCategory | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<InternalInvoiceCategory | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,6 +37,29 @@ export default function InvoiceCategories() {
     description: "",
     is_active: true,
   });
+
+  // Filter categories
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    if (!searchQuery) return categories;
+    const query = searchQuery.toLowerCase();
+    return categories.filter(
+      (cat) =>
+        cat.name.toLowerCase().includes(query) ||
+        cat.code.toLowerCase().includes(query) ||
+        (cat.description && cat.description.toLowerCase().includes(query))
+    );
+  }, [categories, searchQuery]);
+
+  // Pagination
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    paginatedData,
+    setCurrentPage,
+    setPageSize,
+  } = usePagination({ data: filteredCategories, defaultPageSize: 10 });
 
   const handleOpenDialog = (category?: InternalInvoiceCategory) => {
     if (category) {
@@ -73,6 +102,16 @@ export default function InvoiceCategories() {
     }
   };
 
+  const handleExport = () => {
+    const columns: ColumnDef[] = [
+      { id: "name", header: "Name", accessor: "name" },
+      { id: "code", header: "Code", accessor: "code" },
+      { id: "description", header: "Description", accessor: (row) => row.description || "" },
+      { id: "status", header: "Status", accessor: (row) => row.is_active ? "Active" : "Inactive" },
+    ];
+    exportToCSV(filteredCategories, columns, "invoice-categories");
+  };
+
   return (
     <PageContainer>
       <PageHeader title="Invoice Categories" description="Manage billing categories for internal invoices">
@@ -84,61 +123,103 @@ export default function InvoiceCategories() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Categories</CardTitle>
-          <CardDescription>Define categories for invoice line items</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Categories</CardTitle>
+              <CardDescription>Define categories for invoice line items</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isRefetching}>
+                <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading categories...</div>
-          ) : categories?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No categories found. Create one to get started.
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search categories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
+          </div>
+
+          {isLoading ? (
+            <TableSkeleton rows={5} />
+          ) : filteredCategories.length === 0 ? (
+            <EmptyState
+              icon={<FolderOpen className="h-8 w-8 text-muted-foreground" />}
+              title="No categories found"
+              description={searchQuery ? "Try adjusting your search." : "Create a category to get started."}
+              action={!searchQuery ? { label: "Add Category", onClick: () => handleOpenDialog() } : undefined}
+            />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories?.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{category.code}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {category.description || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={category.is_active ? "default" : "secondary"}>
-                        {category.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDeletingCategory(category);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{category.code}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {category.description || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={category.is_active ? "default" : "secondary"}>
+                            {category.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDeletingCategory(category);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredCategories.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
           )}
         </CardContent>
       </Card>
