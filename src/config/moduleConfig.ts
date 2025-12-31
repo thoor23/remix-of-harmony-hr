@@ -26,6 +26,7 @@ import {
   Wallet,
   CalendarCheck,
   CalendarDays,
+  Briefcase,
 } from "lucide-react";
 
 export interface ModuleConfig {
@@ -156,6 +157,13 @@ export const adminModuleConfig: Record<string, ModuleConfig> = {
     icon: LayoutTemplate,
     category: 'admin',
     description: 'All template management',
+  },
+  'Recruitment': {
+    name: 'Recruitment',
+    routes: ['/app/recruitment'],
+    icon: Briefcase,
+    category: 'admin',
+    description: 'Job openings and candidate management',
   },
 };
 
