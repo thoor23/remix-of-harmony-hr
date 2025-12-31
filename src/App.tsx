@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionProvider } from "@/contexts/PermissionContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { SuperAdminRoute } from "@/components/auth/SuperAdminRoute";
 import { DynamicFavicon } from "@/components/DynamicFavicon";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -190,6 +191,15 @@ import StatusPage from "./pages/public/StatusPage";
 import StatusHistoryPage from "./pages/public/StatusHistoryPage";
 import UnsubscribePage from "./pages/public/UnsubscribePage";
 
+// Super Admin Pages
+import { SuperAdminLayout } from "./components/layout/SuperAdminLayout";
+import SuperAdminDashboard from "./pages/super-admin/Dashboard";
+import CompanyList from "./pages/super-admin/CompanyList";
+import AddCompany from "./pages/super-admin/AddCompany";
+import CompanyDetails from "./pages/super-admin/CompanyDetails";
+import SuperAdminUsers from "./pages/super-admin/SuperAdminUsers";
+import GlobalSettings from "./pages/super-admin/GlobalSettings";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -215,6 +225,24 @@ const App = () => (
                 {/* Public Status Pages */}
                 <Route path="/status" element={<StatusPage />} />
                 <Route path="/status/history" element={<StatusHistoryPage />} />
+                <Route path="/status/unsubscribe" element={<UnsubscribePage />} />
+                
+                {/* Super Admin Routes */}
+                <Route
+                  path="/super-admin"
+                  element={
+                    <SuperAdminRoute>
+                      <SuperAdminLayout />
+                    </SuperAdminRoute>
+                  }
+                >
+                  <Route path="dashboard" element={<SuperAdminDashboard />} />
+                  <Route path="companies" element={<CompanyList />} />
+                  <Route path="companies/new" element={<AddCompany />} />
+                  <Route path="companies/:id" element={<CompanyDetails />} />
+                  <Route path="users" element={<SuperAdminUsers />} />
+                  <Route path="settings" element={<GlobalSettings />} />
+                </Route>
                 <Route path="/status/unsubscribe" element={<UnsubscribePage />} />
               
               {/* Unified App Routes - Protected */}

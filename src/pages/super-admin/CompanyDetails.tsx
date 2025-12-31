@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,7 +58,8 @@ export default function CompanyDetails() {
 
   if (isLoading) {
     return (
-      <PageContainer title="Company Details">
+      <PageContainer>
+        <PageHeader title="Company Details" />
         <div className="space-y-6">
           <Skeleton className="h-32" />
           <Skeleton className="h-64" />
@@ -69,7 +70,8 @@ export default function CompanyDetails() {
 
   if (!company) {
     return (
-      <PageContainer title="Company Not Found">
+      <PageContainer>
+        <PageHeader title="Company Not Found" />
         <div className="text-center py-12">
           <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">Company not found</h3>
@@ -82,10 +84,11 @@ export default function CompanyDetails() {
   }
 
   return (
-    <PageContainer
-      title={company.name}
-      description={`Company Code: ${company.code}`}
-      actions={
+    <PageContainer>
+      <PageHeader
+        title={company.name}
+        description={`Company Code: ${company.code}`}
+      >
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -106,8 +109,7 @@ export default function CompanyDetails() {
             </Button>
           </Link>
         </div>
-      }
-    >
+      </PageHeader>
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Info */}
         <Card className="lg:col-span-2">

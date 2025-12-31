@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,10 +40,11 @@ export default function AddCompany() {
   };
 
   return (
-    <PageContainer
-      title="Add Company"
-      description="Create a new company on the platform"
-    >
+    <PageContainer>
+      <PageHeader
+        title="Add Company"
+        description="Create a new company on the platform"
+      />
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

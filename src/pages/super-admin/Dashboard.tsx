@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { Building2, Users, UserCheck, TrendingUp, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,10 +22,11 @@ export default function SuperAdminDashboard() {
   const { stats, statsLoading, companies, companiesLoading } = useSuperAdmin();
 
   return (
-    <PageContainer
-      title="Platform Dashboard"
-      description="Overview of all companies and platform metrics"
-    >
+    <PageContainer>
+      <PageHeader
+        title="Platform Dashboard"
+        description="Overview of all companies and platform metrics"
+      />
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
