@@ -77,7 +77,7 @@ export function SuperAdminLayout() {
       currentPath += `/${segment}`;
       if (segment === "super-admin") return;
 
-      // Skip UUID segments but show "Details" instead
+      // Skip UUID segments - show "Details" instead
       if (uuidPattern.test(segment)) {
         if (index < pathSegments.length - 1) {
           breadcrumbs.push({ label: "Details", href: currentPath });
