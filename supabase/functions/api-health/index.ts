@@ -40,7 +40,8 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // Increased timeout to 10s to handle cold starts
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -56,9 +57,10 @@ async function checkService(baseUrl: string, service: { name: string; endpoint: 
     const responseTime = Date.now() - startTime;
     
     if (response.ok || response.status === 401 || response.status === 403) {
+      // Mark as degraded if response time exceeds 5s (accounting for cold starts)
       return {
         name: service.name,
-        status: responseTime > 2000 ? 'degraded' : 'operational',
+        status: responseTime > 5000 ? 'degraded' : 'operational',
         responseTime,
       };
     } else if (response.status === 404) {

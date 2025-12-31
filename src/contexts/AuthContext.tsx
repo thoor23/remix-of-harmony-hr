@@ -23,6 +23,7 @@ interface AuthContextType {
   role: AppRole | null;
   profile: Profile | null;
   employeeId: string | null;
+  companyId: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: Error | null }>;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check for existing session on mount
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(data.user.role as AppRole);
         setProfile(data.profile);
         setEmployeeId(data.employee?.id || null);
+        setCompanyId(data.user.companyId || null);
         setSession({ access_token: token });
       } catch (error) {
         // Token invalid, clear it
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setProfile(null);
         setEmployeeId(null);
+        setCompanyId(null);
       } finally {
         setLoading(false);
       }
@@ -79,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(data.user.role as AppRole);
       setProfile(data.user.profile);
       setEmployeeId(data.user.employeeId || null);
+      setCompanyId(data.user.companyId || null);
       setSession({ access_token: data.session.access_token });
       return { error: null };
     } catch (error) {
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     setProfile(null);
     setEmployeeId(null);
+    setCompanyId(null);
   };
 
   return (
@@ -117,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         profile,
         employeeId,
+        companyId,
         loading,
         signIn,
         signUp,
