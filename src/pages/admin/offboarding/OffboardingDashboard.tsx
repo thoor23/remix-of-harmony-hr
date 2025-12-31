@@ -22,8 +22,8 @@ export default function OffboardingDashboard() {
 
   const stats = {
     active: processes?.filter(p => p.status === 'in_progress').length || 0,
-    pendingClearance: processes?.filter(p => p.status === 'pending_clearance').length || 0,
-    pendingFnF: processes?.filter(p => p.status === 'pending_fnf').length || 0,
+    pendingClearance: processes?.filter(p => p.status === 'clearance_pending').length || 0,
+    pendingFnF: processes?.filter(p => p.status === 'fnf_pending').length || 0,
     completed: processes?.filter(p => p.status === 'completed').length || 0,
   };
 
@@ -31,8 +31,8 @@ export default function OffboardingDashboard() {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       initiated: { variant: "outline", label: "Initiated" },
       in_progress: { variant: "default", label: "In Progress" },
-      pending_clearance: { variant: "secondary", label: "Pending Clearance" },
-      pending_fnf: { variant: "destructive", label: "Pending F&F" },
+      clearance_pending: { variant: "secondary", label: "Pending Clearance" },
+      fnf_pending: { variant: "destructive", label: "Pending F&F" },
       completed: { variant: "default", label: "Completed" },
     };
     const config = variants[status] || { variant: "outline", label: status };

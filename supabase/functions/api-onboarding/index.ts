@@ -43,7 +43,6 @@ serve(async (req) => {
         .from('onboarding_templates')
         .insert({
           ...body,
-          created_by: auth.employeeId,
         })
         .select()
         .single();
@@ -142,7 +141,6 @@ serve(async (req) => {
           start_date: body.start_date,
           expected_completion_date: body.expected_completion_date,
           status: 'pending',
-          created_by: auth.employeeId,
         })
         .select()
         .single();
@@ -205,7 +203,6 @@ serve(async (req) => {
         .update({
           ...body,
           completed_at: body.status === 'completed' ? new Date().toISOString() : null,
-          completed_by: body.status === 'completed' ? auth.employeeId : null,
         })
         .eq('id', taskId)
         .select()

@@ -16,7 +16,7 @@ import {
 import { useInitiateOffboarding } from "@/hooks/useOffboarding";
 import { useEmployees } from "@/hooks/useEmployees";
 import { toast } from "sonner";
-import { addDays, format } from "date-fns";
+import { addDays, format, parse } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ArrowLeft } from "lucide-react";
 
@@ -28,7 +28,7 @@ export default function InitiateExit() {
   const [formData, setFormData] = useState({
     employee_id: "",
     exit_type: "resignation",
-    resignation_date: new Date(),
+    resignation_date: format(new Date(), 'yyyy-MM-dd'),
     notice_period_days: 30,
     exit_reason: "",
     handover_to: "",
@@ -36,7 +36,8 @@ export default function InitiateExit() {
   });
 
   const activeEmployees = employees?.filter(e => e.status === 'active') || [];
-  const lastWorkingDay = addDays(formData.resignation_date, formData.notice_period_days);
+  const resignationDate = parse(formData.resignation_date, 'yyyy-MM-dd', new Date());
+  const lastWorkingDay = addDays(resignationDate, formData.notice_period_days);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,10 +49,14 @@ export default function InitiateExit() {
 
     try {
       await createProcess({
-        ...formData,
-        resignation_date: format(formData.resignation_date, 'yyyy-MM-dd'),
+        employee_id: formData.employee_id,
+        exit_type: formData.exit_type,
+        resignation_date: formData.resignation_date,
         last_working_day: format(lastWorkingDay, 'yyyy-MM-dd'),
-        status: 'initiated',
+        notice_period_days: formData.notice_period_days,
+        exit_reason: formData.exit_reason,
+        handover_to: formData.handover_to || undefined,
+        notes: formData.notes || undefined,
       });
       toast.success("Offboarding process initiated");
       navigate('/app/offboarding');
@@ -134,8 +139,8 @@ export default function InitiateExit() {
               <div>
                 <Label>Resignation/Exit Date *</Label>
                 <DatePicker
-                  date={formData.resignation_date}
-                  setDate={(date) => date && setFormData({ ...formData, resignation_date: date })}
+                  value={formData.resignation_date}
+                  onChange={(value) => value && setFormData({ ...formData, resignation_date: value })}
                 />
               </div>
 
