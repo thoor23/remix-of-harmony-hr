@@ -12,7 +12,7 @@ function getDefaultPermissionsForRole(role: string): Array<{
 }> {
   const allModules = [
     'Dashboard', 'Employees', 'Departments', 'Designations', 'Attendance',
-    'Leaves', 'Payroll', 'Shifts', 'Documents', 'Assets', 'Helpdesk',
+    'Leaves', 'Payroll', 'Expenses', 'Shifts', 'Documents', 'Assets', 'Helpdesk',
     'Announcements', 'Reports', 'Settings', 'Audit Logs', 'Holidays',
     'Locations', 'Templates', 'Letters', 'Notifications'
   ];
@@ -48,7 +48,7 @@ function getDefaultPermissionsForRole(role: string): Array<{
       // Employee-specific modules with "My" prefix to match sidebar navigation
       const employeeModules = [
         'Employee Dashboard', 'Dashboard', 'My Attendance', 'My Shifts', 
-        'My Leaves', 'My Payslips', 'My Documents', 'My Assets', 
+        'My Leaves', 'My Payslips', 'My Expenses', 'My Documents', 'My Assets', 
         'My Helpdesk', 'My Profile', 'My Settings', 'My Reports', 'Holidays'
       ];
       return employeeModules.map(m => ({
