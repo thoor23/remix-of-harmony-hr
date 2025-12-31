@@ -152,6 +152,13 @@ import ExpensePolicies from "./pages/admin/expenses/ExpensePolicies";
 import ExpenseReports from "./pages/admin/reports/ExpenseReports";
 import EmployeeExpenses from "./pages/employee/Expenses";
 
+// Internal Billing Pages
+import InvoiceList from "./pages/admin/internal-billing/InvoiceList";
+import CreateInvoice from "./pages/admin/internal-billing/CreateInvoice";
+import InvoiceDetails from "./pages/admin/internal-billing/InvoiceDetails";
+import InvoiceCategories from "./pages/admin/internal-billing/InvoiceCategories";
+import BillingReports from "./pages/admin/internal-billing/BillingReports";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -286,6 +293,13 @@ const App = () => (
                 {/* My Expenses */}
                 <Route path="my-expenses" element={<EmployeeExpenses />} />
                 <Route path="my-expenses/report" element={<EmployeeExpensesReport />} />
+                
+                {/* Internal Billing */}
+                <Route path="internal-billing/invoices" element={<InvoiceList />} />
+                <Route path="internal-billing/invoices/create" element={<CreateInvoice />} />
+                <Route path="internal-billing/invoices/:id" element={<InvoiceDetails />} />
+                <Route path="internal-billing/categories" element={<InvoiceCategories />} />
+                <Route path="internal-billing/reports" element={<BillingReports />} />
                 
                 {/* Shifts */}
                 <Route path="shifts" element={<ShiftList />} />

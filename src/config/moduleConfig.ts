@@ -87,6 +87,13 @@ export const adminModuleConfig: Record<string, ModuleConfig> = {
     category: 'admin',
     description: 'Expense claims and reimbursements',
   },
+  'Internal Billing': {
+    name: 'Internal Billing',
+    routes: ['/app/internal-billing'],
+    icon: Receipt,
+    category: 'admin',
+    description: 'Internal invoices between locations',
+  },
   'Documents': {
     name: 'Documents',
     routes: ['/app/file-manager', '/app/letters'],

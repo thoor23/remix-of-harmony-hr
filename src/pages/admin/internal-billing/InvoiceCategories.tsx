@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageContainer } from "@/components/layout/PageContainer";
+import { PageContainer, PageHeader } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useInvoiceCategories, useCreateInvoiceCategory, useUpdateInvoiceCategory, useDeleteInvoiceCategory } from "@/hooks/useInternalInvoices";
 import { DeleteConfirmDialog } from "@/components/settings/DeleteConfirmDialog";
 import type { InternalInvoiceCategory } from "@/types/invoice";
@@ -74,21 +74,18 @@ export default function InvoiceCategories() {
   };
 
   return (
-    <PageContainer
-      title="Invoice Categories"
-      subtitle="Manage billing categories for internal invoices"
-      icon={Tag}
-    >
+    <PageContainer>
+      <PageHeader title="Invoice Categories" description="Manage billing categories for internal invoices">
+        <Button onClick={() => handleOpenDialog()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Category
+        </Button>
+      </PageHeader>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Categories</CardTitle>
-            <CardDescription>Define categories for invoice line items</CardDescription>
-          </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
+        <CardHeader>
+          <CardTitle>Categories</CardTitle>
+          <CardDescription>Define categories for invoice line items</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
