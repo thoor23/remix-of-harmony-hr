@@ -1445,6 +1445,208 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_invoice_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      internal_invoice_items: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string
+          expense_claim_id: string | null
+          id: string
+          invoice_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description: string
+          expense_claim_id?: string | null
+          id?: string
+          invoice_id: string
+          quantity?: number
+          unit_price?: number
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          expense_claim_id?: string | null
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_invoice_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "internal_invoice_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoice_items_expense_claim_id_fkey"
+            columns: ["expense_claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "internal_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_invoices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string
+          from_location_id: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          is_recurring: boolean | null
+          next_recurring_date: string | null
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          parent_invoice_id: string | null
+          payment_reference: string | null
+          recurring_frequency: string | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          to_location_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          from_location_id: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          invoice_type?: string
+          is_recurring?: boolean | null
+          next_recurring_date?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          parent_invoice_id?: string | null
+          payment_reference?: string | null
+          recurring_frequency?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          to_location_id: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          from_location_id?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          invoice_type?: string
+          is_recurring?: boolean | null
+          next_recurring_date?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          parent_invoice_id?: string | null
+          payment_reference?: string | null
+          recurring_frequency?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          to_location_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoices_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoices_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoices_parent_invoice_id_fkey"
+            columns: ["parent_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "internal_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_invoices_to_location_id_fkey"
+            columns: ["to_location_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_balances: {
         Row: {
           created_at: string
@@ -2431,6 +2633,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invoice_number: { Args: never; Returns: string }
       get_admin_user_ids: {
         Args: never
         Returns: {
