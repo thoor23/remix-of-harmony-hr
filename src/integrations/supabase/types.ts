@@ -1198,6 +1198,69 @@ export type Database = {
           },
         ]
       }
+      exit_interviews: {
+        Row: {
+          conducted_by: string | null
+          created_at: string
+          feedback: Json | null
+          id: string
+          interview_date: string | null
+          offboarding_id: string
+          overall_rating: number | null
+          reason_for_leaving: string | null
+          status: string
+          suggestions: string | null
+          updated_at: string
+          would_recommend: boolean | null
+          would_rejoin: boolean | null
+        }
+        Insert: {
+          conducted_by?: string | null
+          created_at?: string
+          feedback?: Json | null
+          id?: string
+          interview_date?: string | null
+          offboarding_id: string
+          overall_rating?: number | null
+          reason_for_leaving?: string | null
+          status?: string
+          suggestions?: string | null
+          updated_at?: string
+          would_recommend?: boolean | null
+          would_rejoin?: boolean | null
+        }
+        Update: {
+          conducted_by?: string | null
+          created_at?: string
+          feedback?: Json | null
+          id?: string
+          interview_date?: string | null
+          offboarding_id?: string
+          overall_rating?: number | null
+          reason_for_leaving?: string | null
+          status?: string
+          suggestions?: string | null
+          updated_at?: string
+          would_recommend?: boolean | null
+          would_rejoin?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exit_interviews_conducted_by_fkey"
+            columns: ["conducted_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exit_interviews_offboarding_id_fkey"
+            columns: ["offboarding_id"]
+            isOneToOne: false
+            referencedRelation: "offboarding_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_categories: {
         Row: {
           code: string
@@ -1345,6 +1408,108 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      fnf_settlements: {
+        Row: {
+          advance_deduction: number | null
+          bonus_amount: number | null
+          created_at: string
+          final_amount: number | null
+          gratuity_amount: number | null
+          id: string
+          leave_encashment_amount: number | null
+          leave_encashment_days: number | null
+          loan_deduction: number | null
+          notes: string | null
+          notice_period_deduction: number | null
+          offboarding_id: string
+          other_deductions: number | null
+          other_deductions_notes: string | null
+          other_earnings: number | null
+          other_earnings_notes: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          pending_salary_amount: number | null
+          pending_salary_days: number | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          total_deductions: number | null
+          total_earnings: number | null
+          updated_at: string
+        }
+        Insert: {
+          advance_deduction?: number | null
+          bonus_amount?: number | null
+          created_at?: string
+          final_amount?: number | null
+          gratuity_amount?: number | null
+          id?: string
+          leave_encashment_amount?: number | null
+          leave_encashment_days?: number | null
+          loan_deduction?: number | null
+          notes?: string | null
+          notice_period_deduction?: number | null
+          offboarding_id: string
+          other_deductions?: number | null
+          other_deductions_notes?: string | null
+          other_earnings?: number | null
+          other_earnings_notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          pending_salary_amount?: number | null
+          pending_salary_days?: number | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          total_deductions?: number | null
+          total_earnings?: number | null
+          updated_at?: string
+        }
+        Update: {
+          advance_deduction?: number | null
+          bonus_amount?: number | null
+          created_at?: string
+          final_amount?: number | null
+          gratuity_amount?: number | null
+          id?: string
+          leave_encashment_amount?: number | null
+          leave_encashment_days?: number | null
+          loan_deduction?: number | null
+          notes?: string | null
+          notice_period_deduction?: number | null
+          offboarding_id?: string
+          other_deductions?: number | null
+          other_deductions_notes?: string | null
+          other_earnings?: number | null
+          other_earnings_notes?: string | null
+          payment_date?: string | null
+          payment_reference?: string | null
+          pending_salary_amount?: number | null
+          pending_salary_days?: number | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          total_deductions?: number | null
+          total_earnings?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fnf_settlements_offboarding_id_fkey"
+            columns: ["offboarding_id"]
+            isOneToOne: false
+            referencedRelation: "offboarding_processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fnf_settlements_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_letters: {
         Row: {
@@ -2222,6 +2387,336 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      offboarding_processes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          exit_reason: string | null
+          exit_type: string
+          handover_to: string | null
+          id: string
+          last_working_day: string
+          notes: string | null
+          notice_period_days: number | null
+          resignation_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          exit_reason?: string | null
+          exit_type?: string
+          handover_to?: string | null
+          id?: string
+          last_working_day: string
+          notes?: string | null
+          notice_period_days?: number | null
+          resignation_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          exit_reason?: string | null
+          exit_type?: string
+          handover_to?: string | null
+          id?: string
+          last_working_day?: string
+          notes?: string | null
+          notice_period_days?: number | null
+          resignation_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offboarding_processes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offboarding_processes_handover_to_fkey"
+            columns: ["handover_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offboarding_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          department_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          offboarding_id: string
+          order_index: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          offboarding_id: string
+          order_index?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          offboarding_id?: string
+          order_index?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offboarding_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offboarding_tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offboarding_tasks_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offboarding_tasks_offboarding_id_fkey"
+            columns: ["offboarding_id"]
+            isOneToOne: false
+            referencedRelation: "offboarding_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_processes: {
+        Row: {
+          completed_date: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          expected_completion_date: string | null
+          id: string
+          notes: string | null
+          start_date: string
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          expected_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          expected_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_processes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_processes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          onboarding_id: string
+          order_index: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          onboarding_id: string
+          order_index?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          onboarding_id?: string
+          order_index?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_tasks_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          designation_id: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          tasks: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          designation_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          tasks?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          designation_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          tasks?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_templates_designation_id_fkey"
+            columns: ["designation_id"]
+            isOneToOne: false
+            referencedRelation: "designations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payslip_templates: {
         Row: {
