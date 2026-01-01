@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 export interface PayslipTemplate {
   id: string;
@@ -47,7 +48,16 @@ export function usePayslipTemplates() {
   return useQuery({
     queryKey: ["payslip-templates"],
     queryFn: async () => {
-      return api.get<PayslipTemplate[]>("/templates/payslips");
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('payslip_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []) as unknown as PayslipTemplate[];
     },
   });
 }
@@ -56,7 +66,14 @@ export function usePayslipTemplate(id: string) {
   return useQuery({
     queryKey: ["payslip-template", id],
     queryFn: async () => {
-      return api.get<PayslipTemplate>(`/templates/payslips/${id}`);
+      const { data, error } = await supabase
+        .from('payslip_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data as unknown as PayslipTemplate;
     },
     enabled: !!id,
   });
@@ -66,7 +83,17 @@ export function useDefaultPayslipTemplate() {
   return useQuery({
     queryKey: ["payslip-template-default"],
     queryFn: async () => {
-      return api.get<PayslipTemplate>("/templates/payslips/default");
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('payslip_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_default', true)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data as unknown as PayslipTemplate | null;
     },
   });
 }
@@ -76,7 +103,19 @@ export function useCreatePayslipTemplate() {
 
   return useMutation({
     mutationFn: async (template: Omit<PayslipTemplate, "id" | "created_at" | "updated_at">) => {
-      return api.post<PayslipTemplate>("/templates/payslips", template);
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('payslip_templates')
+        .insert({
+          ...template,
+          company_id: companyId,
+        } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as unknown as PayslipTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
@@ -93,7 +132,15 @@ export function useUpdatePayslipTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, ...template }: Partial<PayslipTemplate> & { id: string }) => {
-      return api.patch<PayslipTemplate>(`/templates/payslips/${id}`, template);
+      const { data, error } = await supabase
+        .from('payslip_templates')
+        .update(template as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as unknown as PayslipTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
@@ -111,7 +158,12 @@ export function useDeletePayslipTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/templates/payslips/${id}`);
+      const { error } = await supabase
+        .from('payslip_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });
@@ -128,7 +180,22 @@ export function useSetDefaultPayslipTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.post(`/templates/payslips/${id}/set-default`);
+      const companyId = await getCurrentCompanyId();
+      
+      // First unset current default
+      await supabase
+        .from('payslip_templates')
+        .update({ is_default: false })
+        .eq('company_id', companyId)
+        .eq('is_default', true);
+      
+      // Then set new default
+      const { error } = await supabase
+        .from('payslip_templates')
+        .update({ is_default: true })
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslip-templates"] });

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { RolePermission } from "@/types/settings";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -39,17 +39,47 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
     try {
       setLoading(true);
-      const data = await api.get<{ 
-        roleId: string | null; 
-        roleName: string | null;
-        roleType: 'admin' | 'employee' | null;
-        permissions: RolePermission[] 
-      }>("/settings/user-permissions");
       
-      setRoleId(data.roleId);
-      setRoleName(data.roleName);
-      setRoleType(data.roleType || 'admin');
-      setPermissions(Array.isArray(data.permissions) ? data.permissions : []);
+      // Get user role from user_roles table
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role, role_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!userRole?.role_id) {
+        // No role assigned, default to employee with no permissions
+        setRoleId(null);
+        setRoleName(userRole?.role || 'employee');
+        setRoleType((userRole?.role as 'admin' | 'employee') || 'employee');
+        setPermissions([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Get role details and permissions
+      const { data: role } = await supabase
+        .from('roles')
+        .select('id, name, permissions')
+        .eq('id', userRole.role_id)
+        .single();
+      
+      if (role) {
+        setRoleId(role.id);
+        setRoleName(role.name);
+        setRoleType(userRole.role as 'admin' | 'employee' || 'admin');
+        
+        // Parse permissions
+        const perms = Array.isArray(role.permissions) 
+          ? role.permissions as unknown as RolePermission[]
+          : [];
+        setPermissions(perms);
+      } else {
+        setPermissions([]);
+        setRoleId(null);
+        setRoleName(null);
+        setRoleType(null);
+      }
     } catch (error) {
       console.error("Failed to fetch permissions:", error);
       setPermissions([]);

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 interface Employee {
   id: string;
@@ -9,8 +10,9 @@ interface Employee {
   date_of_joining: string;
   department?: { name: string };
   designation?: { name: string };
-  user?: { email: string };
-  profile?: { first_name: string; last_name: string };
+  email?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 interface AttendanceRecord {
@@ -51,28 +53,88 @@ interface Payslip {
 export function useEmployeeReportData() {
   return useQuery({
     queryKey: ["report-employees"],
-    queryFn: () => api.get<Employee[]>("/employees"),
+    queryFn: async () => {
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          department:departments(name),
+          designation:designations(name)
+        `)
+        .eq('company_id', companyId);
+      
+      if (error) throw error;
+      return (data || []) as unknown as Employee[];
+    },
   });
 }
 
 export function useAttendanceReportData(month?: string) {
   return useQuery({
     queryKey: ["report-attendance", month],
-    queryFn: () => api.get<AttendanceRecord[]>(`/attendance${month ? `?month=${month}` : ""}`),
+    queryFn: async () => {
+      const companyId = await getCurrentCompanyId();
+      
+      let query = supabase
+        .from('attendance_records')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name)
+        `)
+        .eq('company_id', companyId);
+      
+      if (month) {
+        query = query.gte('date', `${month}-01`).lte('date', `${month}-31`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return (data || []) as unknown as AttendanceRecord[];
+    },
   });
 }
 
 export function useLeaveReportData() {
   return useQuery({
     queryKey: ["report-leaves"],
-    queryFn: () => api.get<LeaveRequest[]>("/leaves"),
+    queryFn: async () => {
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          leave_type:leave_types(name, code),
+          employee:employees(id, employee_id, first_name, last_name)
+        `)
+        .eq('company_id', companyId);
+      
+      if (error) throw error;
+      return (data || []) as unknown as LeaveRequest[];
+    },
   });
 }
 
 export function usePayrollReportData() {
   return useQuery({
     queryKey: ["report-payroll"],
-    queryFn: () => api.get<Payslip[]>("/payroll/payslips"),
+    queryFn: async () => {
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('payslips')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name)
+        `)
+        .eq('company_id', companyId);
+      
+      if (error) throw error;
+      return (data || []) as unknown as Payslip[];
+    },
   });
 }
 
