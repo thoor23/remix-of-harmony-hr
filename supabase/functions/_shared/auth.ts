@@ -192,15 +192,15 @@ export async function checkIsSuperAdmin(userId: string): Promise<boolean> {
 export async function getUserCompanyId(userId: string): Promise<string> {
   const supabase = getSupabaseClient();
   
-  // First check users table
-  const { data: user } = await supabase
-    .from('users')
+  // First check profiles table (new Supabase Auth structure)
+  const { data: profile } = await supabase
+    .from('profiles')
     .select('company_id')
     .eq('id', userId)
     .maybeSingle();
   
-  if (user?.company_id) {
-    return user.company_id;
+  if (profile?.company_id) {
+    return profile.company_id;
   }
   
   // Fallback to employees table
@@ -213,7 +213,20 @@ export async function getUserCompanyId(userId: string): Promise<string> {
   return employee?.company_id || DEFAULT_COMPANY_ID;
 }
 
-// Extract and verify token from request - now includes company context
+// Get user role from user_roles table
+export async function getUserRole(userId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  
+  const { data: roleData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  return roleData?.role || 'employee';
+}
+
+// Extract and verify token from request using Supabase Auth
 export async function authenticateRequest(req: Request): Promise<AuthContext | null> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -221,24 +234,29 @@ export async function authenticateRequest(req: Request): Promise<AuthContext | n
   }
 
   const token = authHeader.substring(7);
-  const payload = await verifyToken(token);
   
-  if (!payload || payload.type !== 'access') {
+  // Use Supabase Auth to verify the JWT
+  const supabase = getSupabaseClient();
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    console.log('Auth error:', error?.message);
     return null;
   }
 
-  const userId = payload.userId as string;
+  const userId = user.id;
   
-  // Get company context
-  const [companyId, isSuperAdmin] = await Promise.all([
+  // Get company context, role, and super admin status
+  const [companyId, isSuperAdmin, role] = await Promise.all([
     getUserCompanyId(userId),
-    checkIsSuperAdmin(userId)
+    checkIsSuperAdmin(userId),
+    getUserRole(userId)
   ]);
 
   return {
     userId,
-    email: payload.email as string,
-    role: payload.role as string,
+    email: user.email || '',
+    role,
     companyId,
     isSuperAdmin,
   };
@@ -248,14 +266,14 @@ export async function authenticateRequest(req: Request): Promise<AuthContext | n
 export async function getUserInfo(userId: string) {
   const supabase = getSupabaseClient();
   
-  // Get user
-  const { data: user, error: userError } = await supabase
-    .from('users')
+  // Get profile (replaces old users table)
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
     .select('*')
     .eq('id', userId)
     .single();
   
-  if (userError || !user) return null;
+  if (profileError || !profile) return null;
   
   // Get role
   const { data: roleData } = await supabase
@@ -264,7 +282,7 @@ export async function getUserInfo(userId: string) {
     .eq('user_id', userId)
     .single();
   
-  // Get employee (which now has profile data merged)
+  // Get employee
   const { data: employee } = await supabase
     .from('employees')
     .select('*')
@@ -275,7 +293,7 @@ export async function getUserInfo(userId: string) {
   const isSuperAdmin = await checkIsSuperAdmin(userId);
   
   // Get company info
-  const companyId = user.company_id || employee?.company_id || DEFAULT_COMPANY_ID;
+  const companyId = profile.company_id || employee?.company_id || DEFAULT_COMPANY_ID;
   const { data: company } = await supabase
     .from('companies')
     .select('*')
@@ -283,7 +301,7 @@ export async function getUserInfo(userId: string) {
     .single();
   
   return {
-    user,
+    user: profile,
     role: roleData?.role || 'employee',
     employee,
     company,
