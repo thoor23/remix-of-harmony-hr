@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export interface OnboardingTemplate {
   id: string;
@@ -73,8 +75,20 @@ export function useOnboardingTemplates() {
   return useQuery({
     queryKey: ["onboarding-templates"],
     queryFn: async () => {
-      const response = await api.get<OnboardingTemplate[]>("/onboarding/templates");
-      return response;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('onboarding_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as unknown as OnboardingTemplate[];
     },
   });
 }
@@ -83,8 +97,14 @@ export function useOnboardingTemplate(id: string) {
   return useQuery({
     queryKey: ["onboarding-template", id],
     queryFn: async () => {
-      const response = await api.get<OnboardingTemplate>(`/onboarding/templates/${id}`);
-      return response;
+      const { data, error } = await supabase
+        .from('onboarding_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as OnboardingTemplate;
     },
     enabled: !!id,
   });
@@ -94,10 +114,27 @@ export function useCreateOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Partial<OnboardingTemplate>) => {
-      return api.post("/onboarding/templates", data);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data: result, error } = await supabase
+        .from('onboarding_templates')
+        .insert([{ ...data, company_id: companyId } as any])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
+      toast.success('Template created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -106,10 +143,22 @@ export function useUpdateOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<OnboardingTemplate> & { id: string }) => {
-      return api.put(`/onboarding/templates/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('onboarding_templates')
+        .update(data as any)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
+      toast.success('Template updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -118,10 +167,19 @@ export function useDeleteOnboardingTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/onboarding/templates/${id}`);
+      const { error } = await supabase
+        .from('onboarding_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
+      toast.success('Template deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -131,9 +189,29 @@ export function useOnboardingProcesses(status?: string) {
   return useQuery({
     queryKey: ["onboarding-processes", status],
     queryFn: async () => {
-      const url = status ? `/onboarding?status=${status}` : "/onboarding";
-      const response = await api.get<OnboardingProcess[]>(url);
-      return response;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      let query = supabase
+        .from('onboarding_processes')
+        .select(`
+          *,
+          employee:employees(id, first_name, last_name, email, employee_id, avatar_url, department:departments(name), designation:designations(name)),
+          template:onboarding_templates(*)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as unknown as OnboardingProcess[];
     },
   });
 }
@@ -142,8 +220,19 @@ export function useOnboardingProcess(id: string) {
   return useQuery({
     queryKey: ["onboarding-process", id],
     queryFn: async () => {
-      const response = await api.get<OnboardingProcess>(`/onboarding/${id}`);
-      return response;
+      const { data, error } = await supabase
+        .from('onboarding_processes')
+        .select(`
+          *,
+          employee:employees(id, first_name, last_name, email, employee_id, avatar_url, department:departments(name), designation:designations(name)),
+          template:onboarding_templates(*),
+          tasks:onboarding_tasks(*, assignee:employees!onboarding_tasks_assigned_to_fkey(first_name, last_name))
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as OnboardingProcess;
     },
     enabled: !!id,
   });
@@ -159,10 +248,33 @@ export function useStartOnboarding() {
       expected_completion_date?: string;
       notes?: string;
     }) => {
-      return api.post("/onboarding", data);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      const employeeId = await getEmployeeId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data: result, error } = await supabase
+        .from('onboarding_processes')
+        .insert([{
+          ...data,
+          company_id: companyId,
+          created_by: employeeId,
+          status: 'pending',
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-processes"] });
+      toast.success('Onboarding started successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -171,11 +283,23 @@ export function useUpdateOnboardingProcess() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; status?: string; notes?: string }) => {
-      return api.put(`/onboarding/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('onboarding_processes')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-processes"] });
       queryClient.invalidateQueries({ queryKey: ["onboarding-process", variables.id] });
+      toast.success('Onboarding updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -194,11 +318,23 @@ export function useUpdateOnboardingTask() {
       status?: string;
       completed_at?: string | null;
     }) => {
-      return api.put(`/onboarding/${onboardingId}/tasks/${taskId}`, data);
+      const { data: result, error } = await supabase
+        .from('onboarding_tasks')
+        .update(data)
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-process", variables.onboardingId] });
       queryClient.invalidateQueries({ queryKey: ["onboarding-processes"] });
+      toast.success('Task updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }
@@ -208,13 +344,25 @@ export function useOnboardingStats() {
   return useQuery({
     queryKey: ["onboarding-stats"],
     queryFn: async () => {
-      const response = await api.get<{
-        active: number;
-        pending: number;
-        completed_this_month: number;
-        overdue_tasks: number;
-      }>("/onboarding/stats");
-      return response;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('onboarding_processes')
+        .select('status')
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+
+      return {
+        active: data.filter(p => p.status === 'in_progress').length,
+        pending: data.filter(p => p.status === 'pending').length,
+        completed_this_month: data.filter(p => p.status === 'completed').length,
+        overdue_tasks: 0,
+      };
     },
   });
 }

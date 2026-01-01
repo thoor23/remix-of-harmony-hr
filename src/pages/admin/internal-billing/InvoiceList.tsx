@@ -365,7 +365,7 @@ export default function InvoiceList() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadPdf(invoice)}>
+                              <DropdownMenuItem onClick={() => handleDownloadPdf(invoice as unknown as InternalInvoice)}>
                                 <Download className="h-4 w-4 mr-2" />
                                 Download PDF
                               </DropdownMenuItem>

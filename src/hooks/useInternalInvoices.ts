@@ -160,7 +160,8 @@ export function useInternalInvoice(id: string | undefined) {
           *,
           from_location:stores!internal_invoices_from_location_id_fkey(id, name, code, type),
           to_location:stores!internal_invoices_to_location_id_fkey(id, name, code, type),
-          items:internal_invoice_items(*)
+          items:internal_invoice_items(*, category:internal_invoice_categories(id, name, code)),
+          created_by_employee:employees!internal_invoices_created_by_fkey(id, first_name, last_name, employee_id)
         `)
         .eq('id', id)
         .single();
