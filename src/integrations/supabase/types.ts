@@ -4276,15 +4276,7 @@ export type Database = {
           name?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "super_admins_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       system_settings: {
         Row: {
