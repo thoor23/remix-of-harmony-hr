@@ -62,7 +62,7 @@ export function useBannerTemplates() {
   return useQuery({
     queryKey: ["banner-templates"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const { data, error } = await supabase
         .from('announcement_banner_templates')
         .select('*')
@@ -80,7 +80,7 @@ export function useDefaultBannerTemplate(priority?: string) {
   return useQuery({
     queryKey: ["default-banner-template", priority],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       let query = supabase
         .from('announcement_banner_templates')
         .select('*')
@@ -105,7 +105,7 @@ export function useCreateBannerTemplate() {
 
   return useMutation({
     mutationFn: async (templateData: CreateBannerTemplateData) => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const { data, error } = await supabase
         .from('announcement_banner_templates')
         .insert({
@@ -186,7 +186,7 @@ export function useSetDefaultBannerTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, priorityType }: { id: string; priorityType: string }) => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       // First, unset other defaults for this priority type
       await supabase
