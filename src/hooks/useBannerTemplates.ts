@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 // Banner placeholder constants
 export const BANNER_PLACEHOLDERS = [
@@ -61,7 +62,15 @@ export function useBannerTemplates() {
   return useQuery({
     queryKey: ["banner-templates"],
     queryFn: async () => {
-      return api.get<BannerTemplate[]>("/templates/banners");
+      const companyId = await getCompanyId();
+      const { data, error } = await supabase
+        .from('announcement_banner_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []) as BannerTemplate[];
     },
   });
 }
@@ -71,10 +80,21 @@ export function useDefaultBannerTemplate(priority?: string) {
   return useQuery({
     queryKey: ["default-banner-template", priority],
     queryFn: async () => {
-      const url = priority 
-        ? `/templates/banners/default?priority=${priority}` 
-        : "/templates/banners/default";
-      return api.get<BannerTemplate | null>(url);
+      const companyId = await getCompanyId();
+      let query = supabase
+        .from('announcement_banner_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_default', true);
+      
+      if (priority) {
+        query = query.or(`priority_type.eq.${priority},priority_type.eq.all`);
+      }
+      
+      const { data, error } = await query.limit(1).maybeSingle();
+      
+      if (error) throw error;
+      return data as BannerTemplate | null;
     },
   });
 }
@@ -85,7 +105,18 @@ export function useCreateBannerTemplate() {
 
   return useMutation({
     mutationFn: async (templateData: CreateBannerTemplateData) => {
-      return api.post<BannerTemplate>("/templates/banners", templateData);
+      const companyId = await getCompanyId();
+      const { data, error } = await supabase
+        .from('announcement_banner_templates')
+        .insert({
+          ...templateData,
+          company_id: companyId,
+        } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as BannerTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -104,7 +135,15 @@ export function useUpdateBannerTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, ...templateData }: { id: string } & Partial<CreateBannerTemplateData>) => {
-      return api.patch<BannerTemplate>(`/templates/banners/${id}`, templateData);
+      const { data, error } = await supabase
+        .from('announcement_banner_templates')
+        .update(templateData as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as BannerTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -123,7 +162,12 @@ export function useDeleteBannerTemplate() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/templates/banners/${id}`);
+      const { error } = await supabase
+        .from('announcement_banner_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });
@@ -142,7 +186,22 @@ export function useSetDefaultBannerTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, priorityType }: { id: string; priorityType: string }) => {
-      await api.post(`/templates/banners/${id}/set-default`, { priorityType });
+      const companyId = await getCompanyId();
+      
+      // First, unset other defaults for this priority type
+      await supabase
+        .from('announcement_banner_templates')
+        .update({ is_default: false })
+        .eq('company_id', companyId)
+        .eq('priority_type', priorityType);
+      
+      // Then set this one as default
+      const { error } = await supabase
+        .from('announcement_banner_templates')
+        .update({ is_default: true })
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banner-templates"] });

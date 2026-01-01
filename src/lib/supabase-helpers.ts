@@ -139,6 +139,24 @@ export function clearCompanyIdCache() {
 }
 
 /**
+ * Get current user's company ID (convenience function for hooks)
+ * This fetches the session and returns the company ID
+ */
+export async function getCurrentCompanyId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) {
+    throw new Error('No authenticated user');
+  }
+  
+  const companyId = await getCompanyId(session.user.id);
+  if (!companyId) {
+    throw new Error('No company found for user');
+  }
+  
+  return companyId;
+}
+
+/**
  * Helper to add company_id filter to queries
  */
 export function withCompanyFilter<T extends { company_id?: string }>(

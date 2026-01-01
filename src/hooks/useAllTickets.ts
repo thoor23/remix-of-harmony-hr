@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 export interface TicketWithEmployee {
   id: string;
@@ -32,7 +33,19 @@ export function useAllTickets() {
   return useQuery({
     queryKey: ["all-tickets"],
     queryFn: async () => {
-      return api.get<TicketWithEmployee[]>('/helpdesk');
+      const companyId = await getCurrentCompanyId();
+      const { data, error } = await supabase
+        .from('helpdesk_tickets')
+        .select(`
+          *,
+          employee:employees!helpdesk_tickets_employee_id_fkey(id, first_name, last_name, email, employee_id),
+          assignee:employees!helpdesk_tickets_assigned_to_fkey(id, first_name, last_name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []) as unknown as TicketWithEmployee[];
     },
   });
 }
@@ -48,7 +61,12 @@ export function useAssignTicket() {
       ticketId: string;
       assignedTo: string | null;
     }) => {
-      await api.patch(`/helpdesk/${ticketId}`, { assigned_to: assignedTo });
+      const { error } = await supabase
+        .from('helpdesk_tickets')
+        .update({ assigned_to: assignedTo })
+        .eq('id', ticketId);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-tickets"] });
@@ -71,7 +89,17 @@ export function useUpdateTicketStatus() {
       ticketId: string;
       status: string;
     }) => {
-      await api.patch(`/helpdesk/${ticketId}`, { status });
+      const updateData: any = { status };
+      if (status === 'resolved') {
+        updateData.resolved_at = new Date().toISOString();
+      }
+      
+      const { error } = await supabase
+        .from('helpdesk_tickets')
+        .update(updateData)
+        .eq('id', ticketId);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-tickets"] });
@@ -88,7 +116,12 @@ export function useDeleteTicket() {
 
   return useMutation({
     mutationFn: async (ticketId: string) => {
-      await api.delete(`/helpdesk/${ticketId}`);
+      const { error } = await supabase
+        .from('helpdesk_tickets')
+        .delete()
+        .eq('id', ticketId);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-tickets"] });
