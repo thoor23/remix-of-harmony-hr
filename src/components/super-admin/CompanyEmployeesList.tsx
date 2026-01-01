@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Users, Mail, Phone, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
@@ -60,10 +60,19 @@ export function CompanyEmployeesList({ companyId }: CompanyEmployeesListProps) {
   const { data: employees, isLoading, refetch } = useQuery({
     queryKey: ["super-admin", "company-employees", companyId],
     queryFn: async () => {
-      const response = await api.get<{ data: Employee[] }>(
-        `/super-admin/companies/${companyId}/employees`
-      );
-      return response.data || [];
+      const { data, error } = await supabase
+        .from('employees')
+        .select(`
+          id, employee_id, first_name, last_name, email, phone,
+          status, employment_type, avatar_url,
+          department:departments(name),
+          designation:designations(name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []) as unknown as Employee[];
     },
     enabled: !!companyId,
   });

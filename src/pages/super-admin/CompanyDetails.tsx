@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { CreateAdminDialog } from "@/components/super-admin/CreateAdminDialog";
 import { CompanyEmployeesList } from "@/components/super-admin/CompanyEmployeesList";
@@ -56,8 +56,21 @@ export default function CompanyDetails() {
   const { data: company, isLoading } = useQuery({
     queryKey: ["super-admin", "company", code],
     queryFn: async () => {
-      const response = await api.get<Company>(`/super-admin/companies/${code}`);
-      return response;
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('code', code)
+        .single();
+      
+      if (error) throw error;
+      
+      // Get employee count
+      const { count } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', data.id);
+      
+      return { ...data, employee_count: count || 0 } as Company;
     },
     enabled: !!code,
   });
