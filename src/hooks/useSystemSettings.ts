@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { getCompanyId } from "@/lib/supabase-helpers";
 import type { Json } from "@/integrations/supabase/types";
 
 export interface SystemSetting {
@@ -17,7 +18,19 @@ export function useSystemSettings() {
   return useQuery({
     queryKey: ["system-settings"],
     queryFn: async () => {
-      return api.get<SystemSetting[]>("/settings");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+      return (data || []) as SystemSetting[];
     },
   });
 }
@@ -26,11 +39,24 @@ export function useSystemSetting(key: string) {
   return useQuery({
     queryKey: ["system-setting", key],
     queryFn: async () => {
-      try {
-        return await api.get<SystemSetting>(`/settings/${key}`);
-      } catch {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) return null;
+
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('key', key)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching setting:', error);
         return null;
       }
+      return data as SystemSetting | null;
     },
   });
 }
@@ -40,7 +66,39 @@ export function useUpdateSystemSetting() {
 
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: Record<string, unknown> | Json }) => {
-      return api.put(`/settings/${key}`, { value });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      // Check if setting exists
+      const { data: existing } = await supabase
+        .from('system_settings')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('key', key)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('system_settings')
+          .update({ value: value as any })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('system_settings')
+          .insert([{
+            key,
+            value: value as any,
+            company_id: companyId,
+            category: 'general',
+          }]);
+
+        if (error) throw error;
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["system-settings"] });

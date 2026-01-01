@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useCurrentEmployee } from "./useCurrentEmployee";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { getCompanyId } from "@/lib/supabase-helpers";
 
 interface Document {
   id: string;
@@ -36,8 +35,15 @@ export function useMyDocuments() {
     queryKey: ["my-documents", employee?.id],
     queryFn: async () => {
       if (!employee?.id) return [];
-      // Use query param filter instead of dedicated endpoint
-      return api.get<Document[]>(`/documents?employee_id=${employee.id}`);
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Document[];
     },
     enabled: !!employee?.id,
   });
@@ -47,7 +53,23 @@ export function useAllDocuments() {
   return useQuery({
     queryKey: ["all-documents"],
     queryFn: async () => {
-      return api.get<Document[]>("/documents");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select(`
+          *,
+          employee:employees(id, employee_id, user_id)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Document[];
     },
   });
 }
@@ -56,8 +78,21 @@ export function useCompanyDocuments() {
   return useQuery({
     queryKey: ["company-documents"],
     queryFn: async () => {
-      // Use query param filter for company documents
-      return api.get<Document[]>("/documents?is_company_document=true");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_company_document', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Document[];
     },
   });
 }
@@ -79,29 +114,45 @@ export function useUploadFile() {
       employee_id?: string;
       is_company_document?: boolean;
     }) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("name", name);
-      formData.append("type", type);
-      if (employee_id) formData.append("employee_id", employee_id);
-      formData.append("is_company_document", String(is_company_document));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-      const token = localStorage.getItem("access_token");
-      // Backend expects POST to /documents (not /documents/upload)
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/api-documents`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${companyId}/${Date.now()}_${name}.${fileExt}`;
 
-      const data = await response.json();
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      // Create document record
+      const { data, error } = await supabase
+        .from('documents')
+        .insert([{
+          name,
+          type,
+          employee_id,
+          file_url: filePath,
+          file_size: file.size,
+          is_company_document,
+          uploaded_by: user.id,
+          company_id: companyId,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
       await logAuditEvent("CREATE", "Documents", `Uploaded document: ${name}`, { document_id: data.id });
       return data;
     },
@@ -121,8 +172,19 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string; file_url?: string }) => {
-      await api.delete(`/documents/${id}`);
+    mutationFn: async ({ id, name, file_url }: { id: string; name: string; file_url?: string }) => {
+      // Delete from storage if file_url exists
+      if (file_url) {
+        await supabase.storage.from('documents').remove([file_url]);
+      }
+
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
       await logAuditEvent("DELETE", "Documents", `Deleted document: ${name}`, { document_id: id });
     },
     onSuccess: () => {
@@ -138,23 +200,30 @@ export function useDeleteDocument() {
 }
 
 export function getDocumentDownloadUrl(documentId: string): string {
-  return `${SUPABASE_URL}/functions/v1/api-documents/download/${documentId}`;
+  return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-documents/download/${documentId}`;
 }
 
 export async function downloadDocument(documentId: string, fileName: string) {
   try {
-    const token = localStorage.getItem("access_token");
-    // Backend expects document ID, not file path
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/api-documents/download/${documentId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // First get the document to find the file path
+    const { data: doc, error: docError } = await supabase
+      .from('documents')
+      .select('file_url')
+      .eq('id', documentId)
+      .single();
 
-    if (!response.ok) throw new Error("Download failed");
+    if (docError || !doc?.file_url) {
+      throw new Error('Document not found');
+    }
 
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
+    // Download from storage
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .download(doc.file_url);
+
+    if (error) throw error;
+
+    const url = URL.createObjectURL(data);
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;

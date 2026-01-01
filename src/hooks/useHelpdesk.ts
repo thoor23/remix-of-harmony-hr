@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useCurrentEmployee } from "./useCurrentEmployee";
 import { toast } from "sonner";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export function useMyTickets() {
   const { data: employee } = useCurrentEmployee();
@@ -10,7 +11,15 @@ export function useMyTickets() {
     queryKey: ["my-tickets", employee?.id],
     queryFn: async () => {
       if (!employee?.id) return [];
-      return api.get<any[]>(`/helpdesk/employee/${employee.id}`);
+
+      const { data, error } = await supabase
+        .from('helpdesk_tickets')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!employee?.id,
   });
@@ -34,14 +43,25 @@ export function useCreateTicket() {
     }) => {
       if (!employee?.id) throw new Error("Employee not found");
 
-      await api.post('/helpdesk', {
-        employee_id: employee.id,
-        subject,
-        description,
-        category,
-        priority,
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('helpdesk_tickets')
+        .insert([{
+          employee_id: employee.id,
+          subject,
+          description,
+          category,
+          priority,
+          company_id: companyId,
+          status: 'open',
+        }]);
       
+      if (error) throw error;
       return { subject, category, priority };
     },
     onSuccess: async () => {
@@ -65,7 +85,17 @@ export function useUpdateTicket() {
       id: string;
       status: string;
     }) => {
-      await api.patch(`/helpdesk/${id}`, { status });
+      const updateData: any = { status };
+      if (status === 'resolved') {
+        updateData.resolved_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('helpdesk_tickets')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-tickets"] });

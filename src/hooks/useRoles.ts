@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { getCompanyId } from "@/lib/supabase-helpers";
 import { RolePermission } from "@/types/settings";
 
 export interface Role {
@@ -27,8 +28,20 @@ export function useRoles() {
   return useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const data = await api.get<Role[]>("/settings/roles");
-      return Array.isArray(data) ? data : [];
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as unknown as Role[];
     },
   });
 }
@@ -37,7 +50,14 @@ export function useRole(id: string) {
   return useQuery({
     queryKey: ["role", id],
     queryFn: async () => {
-      return api.get<Role>(`/settings/roles/${id}`);
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as Role;
     },
     enabled: !!id,
   });
@@ -48,7 +68,24 @@ export function useCreateRole() {
 
   return useMutation({
     mutationFn: async (input: CreateRoleInput) => {
-      return api.post<Role>("/settings/roles", input);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('roles')
+        .insert([{
+          ...input,
+          permissions: input.permissions as any,
+          company_id: companyId,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as Role;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -65,7 +102,20 @@ export function useUpdateRole() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Role> & { id: string }) => {
-      return api.put<Role>(`/settings/roles/${id}`, data);
+      const updateData: any = { ...data };
+      if (data.permissions) {
+        updateData.permissions = data.permissions as any;
+      }
+
+      const { data: result, error } = await supabase
+        .from('roles')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result as unknown as Role;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -82,7 +132,12 @@ export function useDeleteRole() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/settings/roles/${id}`);
+      const { error } = await supabase
+        .from('roles')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export interface LeaveRequestWithDetails {
   id: string;
@@ -39,22 +40,76 @@ export interface LeaveRequestWithDetails {
 export function useLeaveRequests() {
   return useQuery({
     queryKey: ["leave-requests"],
-    queryFn: () => api.get<LeaveRequestWithDetails[]>("/leaves"),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          leave_type:leave_types(*),
+          employee:employees!leave_requests_employee_id_fkey(
+            id, employee_id, user_id, first_name, last_name, avatar_url,
+            department:departments(id, name)
+          )
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as LeaveRequestWithDetails[];
+    },
   });
 }
 
 export function useLeaveTypes() {
   return useQuery({
     queryKey: ["leave-types"],
-    queryFn: () => api.get<any[]>("/leaves/types"),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('leave_types')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 }
 
-// For employees - current user's leave requests
 export function useMyLeaveRequests() {
   return useQuery({
     queryKey: ["my-leave-requests"],
-    queryFn: async () => api.get<any[]>(`/leaves/my`),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const employeeId = await getEmployeeId(user.id);
+      if (!employeeId) throw new Error('Employee not found');
+
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select(`
+          *,
+          leave_type:leave_types(*)
+        `)
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 }
 
@@ -70,8 +125,21 @@ export function useCreateLeaveRequest() {
       days: number;
       reason?: string;
     }) => {
-      // backend infers employee_id from auth; keeping employee_id in payload is harmless but not required
-      await api.post("/leaves", request);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('leave_requests')
+        .insert([{
+          ...request,
+          company_id: companyId,
+          status: 'pending',
+        }]);
+
+      if (error) throw error;
       return request;
     },
     onSuccess: async () => {
@@ -91,7 +159,12 @@ export function useCancelLeaveRequest() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/leaves/${id}`);
+      const { error } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
@@ -114,7 +187,6 @@ export function useUpdateLeaveRequest() {
       status,
       comments,
       approved_by,
-      employee_id,
     }: {
       id: string;
       status: string;
@@ -122,12 +194,20 @@ export function useUpdateLeaveRequest() {
       approved_by?: string;
       employee_id?: string;
     }) => {
-      await api.patch(`/leaves/requests/${id}`, {
-        status,
-        comments,
-        approved_by,
-      });
-      return { id, status, employee_id };
+      const updateData: any = { status };
+      if (comments !== undefined) updateData.comments = comments;
+      if (approved_by) {
+        updateData.approved_by = approved_by;
+        updateData.approved_on = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('leave_requests')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
+      return { id, status };
     },
     onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
@@ -153,7 +233,20 @@ export function useCreateLeaveType() {
       carry_forward?: boolean;
       encashable?: boolean;
     }) => {
-      await api.post('/leaves/types', leaveType);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('leave_types')
+        .insert([{
+          ...leaveType,
+          company_id: companyId,
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-types"] });
@@ -183,7 +276,12 @@ export function useUpdateLeaveType() {
         encashable?: boolean;
       };
     }) => {
-      await api.put(`/leaves/types/${id}`, data);
+      const { error } = await supabase
+        .from('leave_types')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-types"] });
@@ -200,7 +298,12 @@ export function useDeleteLeaveType() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/leaves/types/${id}`);
+      const { error } = await supabase
+        .from('leave_types')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-types"] });
