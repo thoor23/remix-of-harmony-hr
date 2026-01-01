@@ -132,8 +132,9 @@ export function useShiftAssignments() {
         .from('shift_assignments')
         .select(`
           *,
-          employee:employees(id, employee_id, first_name, last_name),
-          shift:shifts(*)
+          employee:employees(id, employee_id, first_name, last_name, avatar_url, department:departments(id, name)),
+          shift:shifts(*),
+          store:stores(id, name)
         `)
         .eq('company_id', companyId)
         .order('start_date', { ascending: false });

@@ -44,7 +44,7 @@ export default function ShiftCalendar() {
 
   const isLoading = shiftsLoading || assignmentsLoading;
 
-  const filteredAssignments = assignments.filter(a => 
+  const filteredAssignments = assignments.filter((a: any) => 
     !departmentFilter || a.employee?.department?.id === departmentFilter
   );
 
@@ -121,10 +121,11 @@ export default function ShiftCalendar() {
     return groups;
   }, [selectedDayAssignments]);
 
-  const getEmployeeName = (assignment: typeof assignments[0]) => {
-    const profile = assignment.employee?.profile;
-    if (!profile) return assignment.employee?.employee_id || "Unknown";
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+  const getEmployeeName = (assignment: any) => {
+    const employee = assignment.employee;
+    if (!employee) return "Unknown";
+    if (!employee.first_name && !employee.last_name) return employee.employee_id || "Unknown";
+    return `${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "Unknown";
   };
 
   if (isLoading) {
@@ -371,11 +372,11 @@ export default function ShiftCalendar() {
                               className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50"
                             >
                               <div>
-                                <p className="font-medium text-sm">{getEmployeeName(assignment)}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {assignment.employee?.department?.name || "—"}
-                                </p>
-                              </div>
+                              <p className="font-medium text-sm">{getEmployeeName(assignment)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(assignment as any).employee?.department?.name || "—"}
+                              </p>
+                            </div>
                               <span className="text-xs border rounded px-2 py-0.5">
                                 {assignment.employee?.employee_id}
                               </span>

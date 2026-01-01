@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId } from "@/lib/supabase-helpers";
 
 export interface ShiftExchangeRequest {
   id: string;
@@ -15,34 +16,17 @@ export interface ShiftExchangeRequest {
   responded_at: string | null;
   created_at: string;
   updated_at: string;
-  // Flattened backend fields
-  requester_emp_code?: string;
-  requester_first_name?: string;
-  requester_last_name?: string;
-  target_emp_code?: string;
-  target_first_name?: string;
-  target_last_name?: string;
-  requester_shift_name?: string;
-  requester_shift_color?: string;
-  target_shift_name?: string;
-  target_shift_color?: string;
   requester?: {
     id: string;
     employee_id: string;
-    user_id: string | null;
-    profile?: {
-      first_name: string | null;
-      last_name: string | null;
-    } | null;
+    first_name: string | null;
+    last_name: string | null;
   } | null;
   target_employee?: {
     id: string;
     employee_id: string;
-    user_id: string | null;
-    profile?: {
-      first_name: string | null;
-      last_name: string | null;
-    } | null;
+    first_name: string | null;
+    last_name: string | null;
   } | null;
   requester_shift?: {
     id: string;
@@ -66,7 +50,26 @@ export function useShiftExchangeRequests() {
   return useQuery({
     queryKey: ["shift-exchange-requests"],
     queryFn: async () => {
-      return api.get<ShiftExchangeRequest[]>("/shifts/exchange-requests");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('shift_exchange_requests')
+        .select(`
+          *,
+          requester:employees!shift_exchange_requests_requester_id_fkey(id, employee_id, first_name, last_name),
+          target_employee:employees!shift_exchange_requests_target_employee_id_fkey(id, employee_id, first_name, last_name),
+          requester_shift:shifts!shift_exchange_requests_requester_shift_id_fkey(id, name, code, color, start_time, end_time),
+          target_shift:shifts!shift_exchange_requests_target_shift_id_fkey(id, name, code, color, start_time, end_time)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as ShiftExchangeRequest[];
     },
   });
 }
@@ -76,8 +79,21 @@ export function useMyShiftExchangeRequests(employeeId?: string) {
     queryKey: ["my-shift-exchange-requests", employeeId],
     queryFn: async () => {
       if (!employeeId) return [];
-      // Use /my endpoint which uses auth context
-      return api.get<ShiftExchangeRequest[]>('/shifts/exchange-requests/my');
+
+      const { data, error } = await supabase
+        .from('shift_exchange_requests')
+        .select(`
+          *,
+          requester:employees!shift_exchange_requests_requester_id_fkey(id, employee_id, first_name, last_name),
+          target_employee:employees!shift_exchange_requests_target_employee_id_fkey(id, employee_id, first_name, last_name),
+          requester_shift:shifts!shift_exchange_requests_requester_shift_id_fkey(id, name, code, color, start_time, end_time),
+          target_shift:shifts!shift_exchange_requests_target_shift_id_fkey(id, name, code, color, start_time, end_time)
+        `)
+        .or(`requester_id.eq.${employeeId},target_employee_id.eq.${employeeId}`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as ShiftExchangeRequest[];
     },
     enabled: !!employeeId,
   });
@@ -95,7 +111,21 @@ export function useCreateShiftExchangeRequest() {
       request_date: string;
       reason?: string;
     }) => {
-      return api.post<ShiftExchangeRequest>("/shifts/exchange-requests", request);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('shift_exchange_requests')
+        .insert([{
+          ...request,
+          company_id: companyId,
+          status: 'pending',
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });
@@ -122,11 +152,16 @@ export function useUpdateShiftExchangeRequest() {
       response_note?: string;
       requester_id?: string;
     }) => {
-      // Backend uses PUT, not PATCH
-      return api.put<ShiftExchangeRequest>(`/shifts/exchange-requests/${id}`, {
-        status,
-        response_note,
-      });
+      const { error } = await supabase
+        .from('shift_exchange_requests')
+        .update({
+          status,
+          response_note,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });
@@ -144,8 +179,12 @@ export function useCancelShiftExchangeRequest() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Backend uses PUT, not PATCH
-      return api.put(`/shifts/exchange-requests/${id}`, { status: "cancelled" });
+      const { error } = await supabase
+        .from('shift_exchange_requests')
+        .update({ status: "cancelled" })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-exchange-requests"] });

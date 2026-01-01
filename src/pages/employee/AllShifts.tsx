@@ -95,10 +95,10 @@ export default function EmployeeAllShifts() {
 
   const currentShift = myShiftAssignment ? {
     id: myShiftAssignment.shift_id,
-    name: myShiftAssignment.shift_name || '',
-    color: myShiftAssignment.shift_color || myShiftAssignment.color || '#3B82F6',
-    start_time: myShiftAssignment.start_time || '',
-    end_time: myShiftAssignment.end_time || '',
+    name: (myShiftAssignment as any).shift?.name || '',
+    color: (myShiftAssignment as any).shift?.color || '#3B82F6',
+    start_time: (myShiftAssignment as any).shift?.start_time || '',
+    end_time: (myShiftAssignment as any).shift?.end_time || '',
   } : null;
 
   const getEmployeeAssignment = (employeeId: string) => {
