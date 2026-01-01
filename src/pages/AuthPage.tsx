@@ -78,7 +78,7 @@ const GeometricPattern = () => (
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user, isSuperAdmin } = useAuth();
+  const { signIn, user, isSuperAdmin, role } = useAuth();
   const { data: branding } = useCompanyBranding();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -104,8 +104,13 @@ export default function AuthPage() {
   }
 
   if (user && !isPasswordReset) {
-    // Redirect super admins to super admin portal, others to app dashboard
-    const defaultPath = isSuperAdmin ? "/super-admin" : "/app/dashboard";
+    // Use role from AuthContext to determine correct landing page
+    let defaultPath = "/app/my-dashboard"; // Default to employee
+    if (isSuperAdmin) {
+      defaultPath = "/super-admin";
+    } else if (role === "admin" || role === "hr" || role === "manager") {
+      defaultPath = "/app/dashboard";
+    }
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname || defaultPath;
     navigate(from, { replace: true });
     return null;

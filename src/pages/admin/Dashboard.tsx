@@ -29,9 +29,10 @@ export default function AdminDashboard() {
   const { data: announcements = [], isLoading: loadingAnnouncements } = useRecentAnnouncements();
   const { data: attendanceTrend = [] } = useAttendanceTrend(7);
 
-  // Redirect employees to their dashboard
+  // Redirect employees to their dashboard - only if roleType is explicitly 'employee'
   useEffect(() => {
-    if (!permLoading && roleType === "employee") {
+    // Wait for loading to complete AND roleType to be set
+    if (!permLoading && roleType !== null && roleType === "employee") {
       navigate("/app/my-dashboard", { replace: true });
     }
   }, [roleType, permLoading, navigate]);

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { supabase } from "@/integrations/supabase/client";
 import { RolePermission } from "@/types/settings";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAdminRole } from "@/lib/navigation";
 
 interface PermissionContextType {
   permissions: RolePermission[];
@@ -20,7 +21,7 @@ interface PermissionContextType {
 const PermissionContext = createContext<PermissionContextType | undefined>(undefined);
 
 export function PermissionProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, role: authRole } = useAuth();
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [roleId, setRoleId] = useState<string | null>(null);
   const [roleName, setRoleName] = useState<string | null>(null);
@@ -41,51 +42,66 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       
       // Get user role from user_roles table
-      const { data: userRole } = await supabase
+      const { data: userRole, error: userRoleError } = await supabase
         .from('user_roles')
         .select('role, role_id')
         .eq('user_id', user.id)
         .maybeSingle();
       
-      const currentRoleType = (userRole?.role as 'admin' | 'employee') || 'employee';
+      if (userRoleError) {
+        console.error("Error fetching user_roles:", userRoleError);
+      }
+      
+      // Determine roleType from user_roles.role OR fallback to authRole
+      let currentRoleType: 'admin' | 'employee' = 'employee';
+      
+      if (userRole?.role) {
+        currentRoleType = isAdminRole(userRole.role as any) ? 'admin' : 'employee';
+      } else if (authRole) {
+        currentRoleType = isAdminRole(authRole) ? 'admin' : 'employee';
+      }
+      
       setRoleType(currentRoleType);
       
       if (!userRole?.role_id) {
         // No role_id assigned - try to find default role for this role type
-        if (currentRoleType === 'admin') {
-          // For admin users without role_id, find the default Admin role
-          const { data: defaultRole } = await supabase
-            .from('roles')
-            .select('id, name, permissions')
-            .eq('name', 'Admin')
-            .maybeSingle();
-          
-          if (defaultRole) {
-            setRoleId(defaultRole.id);
-            setRoleName(defaultRole.name);
-            const perms = Array.isArray(defaultRole.permissions) 
-              ? defaultRole.permissions as unknown as RolePermission[]
-              : [];
-            setPermissions(perms);
-            setLoading(false);
-            return;
-          }
+        const defaultRoleName = currentRoleType === 'admin' ? 'Admin' : 'Employee';
+        
+        const { data: defaultRole } = await supabase
+          .from('roles')
+          .select('id, name, permissions')
+          .eq('name', defaultRoleName)
+          .maybeSingle();
+        
+        if (defaultRole) {
+          setRoleId(defaultRole.id);
+          setRoleName(defaultRole.name);
+          const perms = Array.isArray(defaultRole.permissions) 
+            ? defaultRole.permissions as unknown as RolePermission[]
+            : [];
+          setPermissions(perms);
+          setLoading(false);
+          return;
         }
         
         // Fallback: no permissions
         setRoleId(null);
-        setRoleName(userRole?.role || 'employee');
+        setRoleName(userRole?.role || authRole || 'employee');
         setPermissions([]);
         setLoading(false);
         return;
       }
       
       // Get role details and permissions
-      const { data: role } = await supabase
+      const { data: role, error: roleError } = await supabase
         .from('roles')
         .select('id, name, permissions')
         .eq('id', userRole.role_id)
         .single();
+      
+      if (roleError) {
+        console.error("Error fetching role:", roleError);
+      }
       
       if (role) {
         setRoleId(role.id);
@@ -106,11 +122,16 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       setPermissions([]);
       setRoleId(null);
       setRoleName(null);
-      setRoleType(null);
+      // Keep roleType based on authRole fallback
+      if (authRole) {
+        setRoleType(isAdminRole(authRole) ? 'admin' : 'employee');
+      } else {
+        setRoleType(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authRole]);
 
   useEffect(() => {
     fetchPermissions();
