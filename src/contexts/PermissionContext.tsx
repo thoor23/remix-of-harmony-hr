@@ -47,11 +47,34 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id)
         .maybeSingle();
       
+      const currentRoleType = (userRole?.role as 'admin' | 'employee') || 'employee';
+      setRoleType(currentRoleType);
+      
       if (!userRole?.role_id) {
-        // No role assigned, default to employee with no permissions
+        // No role_id assigned - try to find default role for this role type
+        if (currentRoleType === 'admin') {
+          // For admin users without role_id, find the default Admin role
+          const { data: defaultRole } = await supabase
+            .from('roles')
+            .select('id, name, permissions')
+            .eq('name', 'Admin')
+            .maybeSingle();
+          
+          if (defaultRole) {
+            setRoleId(defaultRole.id);
+            setRoleName(defaultRole.name);
+            const perms = Array.isArray(defaultRole.permissions) 
+              ? defaultRole.permissions as unknown as RolePermission[]
+              : [];
+            setPermissions(perms);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback: no permissions
         setRoleId(null);
         setRoleName(userRole?.role || 'employee');
-        setRoleType((userRole?.role as 'admin' | 'employee') || 'employee');
         setPermissions([]);
         setLoading(false);
         return;
@@ -67,7 +90,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       if (role) {
         setRoleId(role.id);
         setRoleName(role.name);
-        setRoleType(userRole.role as 'admin' | 'employee' || 'admin');
         
         // Parse permissions
         const perms = Array.isArray(role.permissions) 
@@ -78,7 +100,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         setPermissions([]);
         setRoleId(null);
         setRoleName(null);
-        setRoleType(null);
       }
     } catch (error) {
       console.error("Failed to fetch permissions:", error);

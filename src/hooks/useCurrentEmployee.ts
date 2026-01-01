@@ -16,7 +16,7 @@ export function useCurrentEmployee() {
           *,
           department:departments(*),
           designation:designations(*),
-          primary_store:stores(*)
+          primary_store:stores!employees_primary_store_id_fkey(*)
         `)
         .eq('user_id', user.id)
         .eq('status', 'active')
