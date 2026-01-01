@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 export type LetterType = "offer" | "experience" | "relieving" | "increment" | "custom";
 
@@ -65,8 +66,28 @@ export function useLetterTemplates(type?: LetterType) {
   return useQuery({
     queryKey: ["letter-templates", type],
     queryFn: async () => {
-      const url = type ? `/templates/letters?type=${type}` : "/templates/letters";
-      return api.get<LetterTemplate[]>(url);
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) return [];
+
+      let query = supabase
+        .from('letter_templates')
+        .select('*')
+        .eq('company_id', companyId);
+
+      if (type) {
+        query = query.eq('type', type);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map(t => ({
+        ...t,
+        placeholders: Array.isArray(t.placeholders) ? t.placeholders : [],
+        is_default: t.is_default ?? false,
+        is_active: t.is_active ?? true,
+        version: t.version ?? 1,
+      })) as LetterTemplate[];
     },
   });
 }
@@ -75,7 +96,20 @@ export function useLetterTemplate(id: string) {
   return useQuery({
     queryKey: ["letter-template", id],
     queryFn: async () => {
-      return api.get<LetterTemplate>(`/templates/letters/${id}`);
+      const { data, error } = await supabase
+        .from('letter_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return {
+        ...data,
+        placeholders: Array.isArray(data.placeholders) ? data.placeholders : [],
+        is_default: data.is_default ?? false,
+        is_active: data.is_active ?? true,
+        version: data.version ?? 1,
+      } as LetterTemplate;
     },
     enabled: !!id,
   });
@@ -98,17 +132,32 @@ export function useCreateLetterTemplate() {
       placeholders?: string[];
       is_default?: boolean;
     }) => {
-      const data = await api.post<LetterTemplate>("/templates/letters", {
-        name,
-        type,
-        content,
-        placeholders,
-        is_default,
-      });
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) throw new Error("Company not found");
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from('letter_templates')
+        .insert({
+          company_id: companyId,
+          name,
+          type,
+          content,
+          placeholders,
+          is_default,
+          is_active: true,
+          version: 1,
+          created_by: user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
 
       await logAuditEvent("CREATE", "Letter Templates", `Created template: ${name}`, { template_id: data.id });
 
-      return data;
+      return data as LetterTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["letter-templates"] });
@@ -141,18 +190,26 @@ export function useUpdateLetterTemplate() {
       is_default?: boolean;
       is_active?: boolean;
     }) => {
-      const data = await api.patch<LetterTemplate>(`/templates/letters/${id}`, {
-        name,
-        type,
-        content,
-        placeholders,
-        is_default,
-        is_active,
-      });
+      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (name !== undefined) updateData.name = name;
+      if (type !== undefined) updateData.type = type;
+      if (content !== undefined) updateData.content = content;
+      if (placeholders !== undefined) updateData.placeholders = placeholders;
+      if (is_default !== undefined) updateData.is_default = is_default;
+      if (is_active !== undefined) updateData.is_active = is_active;
+
+      const { data, error } = await supabase
+        .from('letter_templates')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
 
       await logAuditEvent("UPDATE", "Letter Templates", `Updated template: ${data.name}`, { template_id: id });
 
-      return data;
+      return data as LetterTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["letter-templates"] });
@@ -170,7 +227,12 @@ export function useDeleteLetterTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      await api.delete(`/templates/letters/${id}`);
+      const { error } = await supabase
+        .from('letter_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
       await logAuditEvent("DELETE", "Letter Templates", `Deleted template: ${name}`, { template_id: id });
     },
     onSuccess: () => {

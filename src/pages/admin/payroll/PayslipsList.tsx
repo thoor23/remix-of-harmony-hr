@@ -42,7 +42,8 @@ import { usePayslipTemplates, useDefaultPayslipTemplate } from "@/hooks/usePaysl
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { downloadPayslipPDF, downloadPayslipFromTemplate } from "@/lib/pdfGenerator";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 import { useQueryClient } from "@tanstack/react-query";
 import { EmployeeCell } from "@/components/shared/EmployeeCell";
 
@@ -174,12 +175,51 @@ export default function PayslipsList() {
     
     setIsGenerating(true);
     try {
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) throw new Error("Company not found");
+
       const payPeriod = format(new Date(selectedMonth + "-01"), "MMMM yyyy");
-      const result = await api.post<{ generated: number; skipped: number; message: string }>(
-        '/payroll/payslips/generate-all',
-        { pay_period: payPeriod, pay_date: new Date().toISOString().split('T')[0] }
-      );
-      toast.success(result.message);
+      const payDate = new Date().toISOString().split('T')[0];
+      
+      // Generate payslips for employees who don't have one yet
+      let generated = 0;
+      let skipped = 0;
+      
+      for (const emp of employees) {
+        const existingPayslip = payslips.find(p => p.employee_id === emp.id);
+        if (existingPayslip) {
+          skipped++;
+          continue;
+        }
+        
+        const salaryStructure = salaryStructures.find(s => s.employee_id === emp.id);
+        if (!salaryStructure) continue;
+        
+        const grossEarnings = (salaryStructure.basic_salary || 0) + (salaryStructure.hra || 0) + 
+          (salaryStructure.medical_allowance || 0) + (salaryStructure.transport_allowance || 0) + 
+          (salaryStructure.other_allowances || 0);
+        const totalDeductions = (salaryStructure.pf_deduction || 0) + (salaryStructure.tax_deduction || 0) + 
+          (salaryStructure.other_deductions || 0);
+        const netPay = grossEarnings - totalDeductions;
+        
+        const { error } = await supabase
+          .from('payslips')
+          .insert({
+            company_id: companyId,
+            employee_id: emp.id,
+            pay_period: payPeriod,
+            pay_date: payDate,
+            basic_salary: salaryStructure.basic_salary || 0,
+            gross_earnings: grossEarnings,
+            total_deductions: totalDeductions,
+            net_pay: netPay,
+            status: 'draft',
+          });
+          
+        if (!error) generated++;
+      }
+      
+      toast.success(`Generated ${generated} payslips, ${skipped} skipped`);
       refetchPayslips();
     } catch (error: any) {
       toast.error(error.message || "Failed to generate payslips");

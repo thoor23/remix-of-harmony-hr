@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 export interface ReportActivity {
   id: string;
@@ -14,8 +15,19 @@ export function useReportActivity() {
   return useQuery({
     queryKey: ["report-activity"],
     queryFn: async () => {
-      const data = await api.get<ReportActivity[]>("/audit?module=reports&limit=10");
-      return Array.isArray(data) ? data : [];
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) return [];
+
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('module', 'reports')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return (data || []) as ReportActivity[];
     },
   });
 }
@@ -24,9 +36,25 @@ export function useReportStats() {
   return useQuery({
     queryKey: ["report-stats"],
     queryFn: async () => {
-      // Get count of report-related audit logs
-      const data = await api.get<ReportActivity[]>("/audit?module=reports");
-      const logs = Array.isArray(data) ? data : [];
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) {
+        return {
+          reportsGenerated: 0,
+          scheduledReports: 0,
+          totalDownloads: 0,
+          monthlyGrowth: '0',
+        };
+      }
+
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('module', 'reports');
+
+      if (error) throw error;
+      
+      const logs = data || [];
       
       // Calculate stats from audit logs
       const totalExports = logs.filter(l => l.action.includes('export')).length;
@@ -34,7 +62,7 @@ export function useReportStats() {
       thisMonth.setDate(1);
       const monthlyExports = logs.filter(l => 
         l.action.includes('export') && 
-        new Date(l.created_at) >= thisMonth
+        new Date(l.created_at || '') >= thisMonth
       ).length;
 
       return {

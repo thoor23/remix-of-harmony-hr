@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Users, Clock, Calendar, Ticket, FileText, Package } from "lucide-react";
+import { format } from "date-fns";
 
 interface CompanyStats {
   employee_count: number;
@@ -21,10 +22,54 @@ export function CompanyStatsCards({ companyId }: CompanyStatsCardsProps) {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["super-admin", "company-stats", companyId],
     queryFn: async () => {
-      const response = await api.get<CompanyStats>(
-        `/super-admin/companies/${companyId}/stats`
-      );
-      return response;
+      // Fetch employee counts
+      const { count: employeeCount } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId);
+
+      const { count: activeEmployees } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+
+      // Fetch today's attendance
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { count: todayAttendance } = await supabase
+        .from('attendance_records')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('date', today);
+
+      // Fetch pending leaves
+      const { count: pendingLeaves } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'pending');
+
+      // Fetch open tickets
+      const { count: openTickets } = await supabase
+        .from('helpdesk_tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .in('status', ['open', 'in_progress']);
+
+      // Fetch total assets
+      const { count: totalAssets } = await supabase
+        .from('assets')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId);
+
+      return {
+        employee_count: employeeCount || 0,
+        active_employees: activeEmployees || 0,
+        today_attendance: todayAttendance || 0,
+        pending_leaves: pendingLeaves || 0,
+        open_tickets: openTickets || 0,
+        total_assets: totalAssets || 0,
+      } as CompanyStats;
     },
     enabled: !!companyId,
   });

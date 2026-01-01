@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Building2,
@@ -196,8 +196,13 @@ export default function EditCompany() {
   const { data: company, isLoading } = useQuery({
     queryKey: ["super-admin", "company", code],
     queryFn: async () => {
-      const response = await api.get<Company>(`/super-admin/companies/${code}`);
-      return response;
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('code', code)
+        .single();
+      if (error) throw error;
+      return data as Company;
     },
     enabled: !!code,
   });
@@ -292,7 +297,8 @@ export default function EditCompany() {
         },
       };
       
-      return api.put(`/super-admin/companies/${company.id}`, payload);
+      const { error } = await supabase.from('companies').update(payload).eq('id', company.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Company updated successfully");
