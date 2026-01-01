@@ -15,7 +15,7 @@ export async function getCurrentEmployee(userId: string) {
       *,
       department:departments(*),
       designation:designations(*),
-      store:stores(*)
+      store:stores!employees_primary_store_id_fkey(*)
     `)
     .eq('user_id', userId)
     .eq('status', 'active')

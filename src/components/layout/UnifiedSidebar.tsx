@@ -504,9 +504,21 @@ export function UnifiedSidebar({ collapsed, onCollapsedChange }: UnifiedSidebarP
 
   // Filter navigation based on permissions and roleType
   const filteredNavSections = useMemo(() => {
-    // Return empty array while loading to prevent flash of all items
-    if (permLoading || permissions.length === 0) {
+    // Return empty array while loading
+    if (permLoading) {
       return [];
+    }
+
+    // If no permissions but user is authenticated, show at least Dashboard
+    if (permissions.length === 0) {
+      return [{
+        label: "Dashboard",
+        items: [{ 
+          title: "Dashboard", 
+          href: roleType === "employee" ? "/app/my-dashboard" : "/app/dashboard", 
+          icon: LayoutDashboard 
+        }],
+      }];
     }
 
     return unifiedNavSections
