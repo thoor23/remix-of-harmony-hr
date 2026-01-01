@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Shield, Mail, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -45,7 +45,6 @@ const getInitialColumns = (): ColumnDef[] => [
 ];
 
 export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
-  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -58,10 +57,42 @@ export function CompanyAdminsList({ companyId }: CompanyAdminsListProps) {
   const { data: admins, isLoading, refetch } = useQuery({
     queryKey: ["super-admin", "company-admins", companyId],
     queryFn: async () => {
-      const response = await api.get<{ data: Admin[] }>(
-        `/super-admin/companies/${companyId}/admins`
-      );
-      return response.data || [];
+      // Get user_roles for this company's employees who are admins/hr
+      const { data: employees, error: empError } = await supabase
+        .from('employees')
+        .select('id, user_id, first_name, last_name, email')
+        .eq('company_id', companyId)
+        .not('user_id', 'is', null);
+      
+      if (empError) throw empError;
+      if (!employees || employees.length === 0) return [];
+      
+      const userIds = employees.map(e => e.user_id).filter(Boolean);
+      
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('id, user_id, role, role_id, created_at, roles(name)')
+        .in('user_id', userIds)
+        .in('role', ['admin', 'hr']);
+      
+      if (rolesError) throw rolesError;
+      
+      // Combine employee data with role data
+      const adminData = (roles || []).map(role => {
+        const emp = employees.find(e => e.user_id === role.user_id);
+        return {
+          id: role.id,
+          user_id: role.user_id,
+          role: role.role,
+          role_name: (role.roles as any)?.name || role.role,
+          email: emp?.email || '',
+          first_name: emp?.first_name,
+          last_name: emp?.last_name,
+          created_at: role.created_at,
+        };
+      });
+      
+      return adminData as Admin[];
     },
     enabled: !!companyId,
   });

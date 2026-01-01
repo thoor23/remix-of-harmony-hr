@@ -45,7 +45,7 @@ import {
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -104,11 +104,30 @@ export default function PlatformAuditLogs() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["platform-audit-logs", moduleFilter, actionFilter],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (moduleFilter !== "all") params.append("module", moduleFilter);
-      if (actionFilter !== "all") params.append("action", actionFilter);
-      const response = await api.get<{ data: AuditLog[] }>(`/super-admin/audit-logs?${params.toString()}`);
-      return response.data;
+      let query = supabase
+        .from('audit_logs')
+        .select(`
+          id, action, module, description, performer_name,
+          company_id, metadata, ip_address, created_at,
+          companies(name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      
+      if (moduleFilter !== "all") {
+        query = query.eq('module', moduleFilter);
+      }
+      if (actionFilter !== "all") {
+        query = query.eq('action', actionFilter);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      return (data || []).map(log => ({
+        ...log,
+        company_name: (log.companies as any)?.name || null,
+      })) as unknown as AuditLog[];
     },
   });
 

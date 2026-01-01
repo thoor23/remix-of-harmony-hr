@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -73,7 +73,34 @@ export function CreateAdminDialog({
 
   const createAdminMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      return api.post(`/super-admin/companies/${companyId}/admin`, data);
+      // Call the edge function to create the employee account
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/create-employee-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          company_id: companyId,
+          role: data.role,
+        }),
+      });
+      
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create admin');
+      }
+      
+      return result;
     },
     onSuccess: () => {
       toast.success("Admin user created successfully");

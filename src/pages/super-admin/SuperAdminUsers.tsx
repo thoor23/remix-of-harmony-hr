@@ -35,7 +35,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Shield, Plus, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -78,8 +78,24 @@ export default function SuperAdminUsers() {
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["super-admin", "users", search],
     queryFn: async () => {
-      const response = await api.get<{ data: User[] }>(`/super-admin/users?search=${search}`);
-      return response.data;
+      let query = supabase
+        .from('profiles')
+        .select('id, email, created_at')
+        .order('created_at', { ascending: false });
+      
+      if (search) {
+        query = query.ilike('email', `%${search}%`);
+      }
+      
+      const { data, error } = await query.limit(20);
+      if (error) throw error;
+      return (data || []).map(p => ({
+        id: p.id,
+        email: p.email,
+        is_active: true,
+        company_id: null,
+        created_at: p.created_at,
+      })) as User[];
     },
     enabled: dialogOpen,
   });

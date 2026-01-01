@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LogIn, Loader2, ExternalLink } from "lucide-react";
 
@@ -31,16 +31,44 @@ export function ImpersonateButton({
 
   const impersonateMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post<{ token: string; redirect_url: string }>(
-        `/super-admin/companies/${companyId}/impersonate`
-      );
-      return response;
+      // Generate a temporary impersonation token
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+      
+      // Get the first admin user of the target company
+      const { data: companyAdmin } = await supabase
+        .from('user_roles')
+        .select('user_id, employees!inner(company_id)')
+        .eq('role', 'admin')
+        .eq('employees.company_id', companyId)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!companyAdmin?.user_id) {
+        throw new Error("No admin user found for this company");
+      }
+      
+      // Store the impersonation token
+      const { error } = await supabase
+        .from('impersonation_tokens')
+        .insert({
+          token,
+          super_admin_id: user.id,
+          target_user_id: companyAdmin.user_id,
+          company_id: companyId,
+          expires_at: expiresAt,
+        } as any);
+      
+      if (error) throw error;
+      
+      return { token, redirect_url: `/app/dashboard?impersonate=${token}` };
     },
     onSuccess: (data) => {
       toast.success("Impersonation token generated");
-      // Open the company's dashboard in a new tab with the impersonation token
-      const url = data.redirect_url || `/app/dashboard?impersonate=${data.token}`;
-      window.open(url, "_blank");
+      window.open(data.redirect_url, "_blank");
       setOpen(false);
     },
     onError: (error: Error) => {

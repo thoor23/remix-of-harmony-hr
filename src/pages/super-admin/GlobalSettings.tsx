@@ -28,7 +28,7 @@ import {
   RefreshCw,
   CheckCircle,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 
@@ -99,8 +99,13 @@ export default function GlobalSettings() {
   const { data: settings, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["super-admin", "platform-settings"],
     queryFn: async () => {
-      const response = await api.get<{ data: PlatformSetting[] }>("/super-admin/platform-settings");
-      return response.data || [];
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('*')
+        .order('category');
+      
+      if (error) throw error;
+      return (data || []) as unknown as PlatformSetting[];
     },
   });
 
@@ -117,7 +122,12 @@ export default function GlobalSettings() {
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: PlatformSetting["value"] }) => {
-      return api.put(`/super-admin/platform-settings/${key}`, { value });
+      const { error } = await supabase
+        .from('platform_settings')
+        .update({ value })
+        .eq('key', key);
+      
+      if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "platform-settings"] });
