@@ -1,4 +1,4 @@
-import { authenticateRequest, hashPassword, getSupabaseClient, getRequestCompanyId } from "../_shared/auth.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface UpdateEmployeeRequest {
   employee_id: string; // The UUID of the employee record
@@ -27,24 +27,42 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = getSupabaseClient();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-    // Verify the requesting user using custom auth
-    const auth = await authenticateRequest(req);
-    if (!auth) {
+    // Verify the requesting user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: requestingUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !requestingUser) {
       return new Response(
         JSON.stringify({ error: "Invalid authentication token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Authenticated user:", auth.userId, "role:", auth.role);
+    console.log("Authenticated user:", requestingUser.id);
 
     // Check if requesting user has admin or hr role
     const { data: userRoles, error: rolesError } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", auth.userId);
+      .eq("user_id", requestingUser.id);
 
     if (rolesError) {
       console.error("Roles error:", rolesError);
@@ -64,10 +82,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get company ID for this request
-    const url = new URL(req.url);
-    const companyId = getRequestCompanyId(url, auth);
-
     // Parse request body
     const body: UpdateEmployeeRequest = await req.json();
     console.log("Request body:", { ...body, password: body.password ? "[REDACTED]" : undefined });
@@ -81,14 +95,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update password in users table if provided
+    // Update password using Supabase Auth Admin API if provided
     if (password && password.length >= 6) {
       console.log("Updating password for user:", user_id);
-      const passwordHash = await hashPassword(password);
-      const { error: passwordError } = await supabase
-        .from("users")
-        .update({ password_hash: passwordHash })
-        .eq("id", user_id);
+      const { error: passwordError } = await supabase.auth.admin.updateUserById(user_id, {
+        password: password,
+      });
 
       if (passwordError) {
         console.error("Password update error:", passwordError);
@@ -97,7 +109,7 @@ Deno.serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.log("Password updated successfully in users table");
+      console.log("Password updated successfully");
     }
 
     // Update profile if provided
@@ -111,7 +123,7 @@ Deno.serve(async (req) => {
           email: profile.email,
           phone: profile.phone,
         })
-        .eq("user_id", user_id);
+        .eq("id", user_id);
 
       if (profileError) {
         console.error("Profile update error:", profileError);
@@ -122,36 +134,43 @@ Deno.serve(async (req) => {
       }
       console.log("Profile updated successfully");
 
-      // Also update email in users table if it changed
+      // Also update email in auth.users if it changed
       if (profile.email) {
-        const { error: emailError } = await supabase
-          .from("users")
-          .update({ email: profile.email.toLowerCase() })
-          .eq("id", user_id);
+        const { error: emailError } = await supabase.auth.admin.updateUserById(user_id, {
+          email: profile.email.toLowerCase(),
+        });
 
         if (emailError) {
-          console.error("Email update error in users table:", emailError);
+          console.error("Email update error in auth.users:", emailError);
           // Don't fail the request, just log the error
         } else {
-          console.log("Email updated in users table");
+          console.log("Email updated in auth.users");
         }
+      }
+
+      // Update employees table as well
+      const { error: employeeUpdateError } = await supabase
+        .from("employees")
+        .update({
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email,
+          phone: profile.phone,
+        })
+        .eq("id", employee_id);
+
+      if (employeeUpdateError) {
+        console.error("Employee update error:", employeeUpdateError);
       }
     }
 
     // Update employee status if provided
     if (status) {
       console.log("Updating employee status:", status);
-      let query = supabase
+      const { error: statusError } = await supabase
         .from("employees")
         .update({ status })
         .eq("id", employee_id);
-      
-      // Add company filter if available
-      if (companyId) {
-        query = query.eq("company_id", companyId);
-      }
-
-      const { error: statusError } = await query;
 
       if (statusError) {
         console.error("Status update error:", statusError);
@@ -162,17 +181,15 @@ Deno.serve(async (req) => {
       }
       console.log("Status updated successfully");
 
-      // Also update is_active in users table based on status
-      const isActive = status === "active";
-      const { error: activeError } = await supabase
-        .from("users")
-        .update({ is_active: isActive })
-        .eq("id", user_id);
+      // Also update user's active status in auth
+      const { error: banError } = await supabase.auth.admin.updateUserById(user_id, {
+        ban_duration: status === "inactive" ? "876000h" : "none", // 100 years ban or unban
+      });
 
-      if (activeError) {
-        console.error("is_active update error in users table:", activeError);
+      if (banError) {
+        console.error("User ban/unban error:", banError);
       } else {
-        console.log("is_active updated in users table:", isActive);
+        console.log("User active status updated:", status === "active" ? "unbanned" : "banned");
       }
     }
 
@@ -180,53 +197,24 @@ Deno.serve(async (req) => {
     if (role || role_id) {
       console.log("Updating role for user:", user_id, "role_type:", role, "role_id:", role_id);
       
-      // Check if user already has a role
-      const { data: existingRole, error: checkError } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user_id)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error("Role check error:", checkError);
-        return new Response(
-          JSON.stringify({ error: `Failed to check existing role: ${checkError.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
       // Build update object with both role (enum) and role_id (UUID)
       const roleUpdate: { role?: string; role_id?: string } = {};
       if (role) roleUpdate.role = role;
       if (role_id) roleUpdate.role_id = role_id;
 
-      if (existingRole) {
-        // Update existing role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .update(roleUpdate)
-          .eq("user_id", user_id);
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .upsert({
+          user_id,
+          ...roleUpdate,
+        }, { onConflict: 'user_id' });
 
-        if (roleError) {
-          console.error("Role update error:", roleError);
-          return new Response(
-            JSON.stringify({ error: `Failed to update role: ${roleError.message}` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Insert new role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id, ...roleUpdate });
-
-        if (roleError) {
-          console.error("Role insert error:", roleError);
-          return new Response(
-            JSON.stringify({ error: `Failed to assign role: ${roleError.message}` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (roleError) {
+        console.error("Role update error:", roleError);
+        return new Response(
+          JSON.stringify({ error: `Failed to update role: ${roleError.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       console.log("Role updated successfully with role_type:", role, "role_id:", role_id);
     }

@@ -8,7 +8,7 @@ interface SuperAdminRouteProps {
 }
 
 export function SuperAdminRoute({ children }: SuperAdminRouteProps) {
-  const { isSuperAdmin, loading, user } = useAuth();
+  const { isSuperAdmin, loading, user, session } = useAuth();
 
   if (loading) {
     return (
@@ -18,7 +18,7 @@ export function SuperAdminRoute({ children }: SuperAdminRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!user || !session) {
     return <Navigate to="/auth" replace />;
   }
 

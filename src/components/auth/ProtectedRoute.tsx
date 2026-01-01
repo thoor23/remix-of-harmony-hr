@@ -19,7 +19,7 @@ export function ProtectedRoute({
   action = 'read',
   redirectTo = "/auth",
 }: ProtectedRouteProps) {
-  const { user, role, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading, session } = useAuth();
   const { canCreate, canRead, canUpdate, canDelete, loading: permLoading } = usePermissions();
   const location = useLocation();
 
@@ -32,8 +32,8 @@ export function ProtectedRoute({
     );
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
+  // Redirect to auth if not logged in (check both user and session)
+  if (!user || !session) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
