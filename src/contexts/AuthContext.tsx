@@ -40,14 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile, role, and employee data
-  const fetchUserData = async (userId: string) => {
+  // Returns the fetched role for immediate use
+  const fetchUserData = async (userId: string): Promise<AppRole | null> => {
+    let fetchedRole: AppRole | null = null;
     try {
       // Fetch profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (profileData) {
         setProfile({
@@ -60,15 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCompanyId(profileData.company_id);
       }
 
-      // Fetch role
-      const { data: roleData } = await supabase
+      // Fetch role - use maybeSingle to avoid errors
+      const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
+
+      if (roleError) {
+        console.error("Error fetching user role:", roleError);
+      }
 
       if (roleData) {
-        setRole(roleData.role as AppRole);
+        fetchedRole = roleData.role as AppRole;
+        setRole(fetchedRole);
       }
 
       // Fetch employee
@@ -76,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from("employees")
         .select("id, company_id")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (employeeData) {
         setEmployeeId(employeeData.id);
@@ -96,19 +103,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
+    return fetchedRole;
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer data fetch with setTimeout to avoid deadlock
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
+          // Keep loading true until fetchUserData completes
+          setLoading(true);
+          // Defer data fetch with setTimeout to avoid deadlock
+          setTimeout(async () => {
+            if (!isMounted) return;
+            await fetchUserData(session.user.id);
+            if (isMounted) {
+              setLoading(false);
+            }
           }, 0);
         } else {
           // Clear all state on logout
@@ -117,25 +135,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setEmployeeId(null);
           setCompanyId(null);
           setIsSuperAdmin(false);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserData(session.user.id);
+        await fetchUserData(session.user.id);
       }
       
-      setLoading(false);
-    });
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

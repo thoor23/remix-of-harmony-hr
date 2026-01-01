@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionContext";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getLandingPath } from "@/lib/navigation";
 import { 
   Users, 
   Clock, 
@@ -23,17 +25,15 @@ import {
 } from "lucide-react";
 
 const Index = () => {
-  const { user, role } = useAuth();
+  const { user, role, isSuperAdmin } = useAuth();
+  const { roleType } = usePermissions();
   const { data: branding } = useCompanyBranding();
   
   const companyName = branding?.companyName || "HRMS";
 
   const getDashboardLink = () => {
     if (!user) return "/auth";
-    if (role === "admin" || role === "hr" || role === "manager") {
-      return "/app/dashboard";
-    }
-    return "/app/my-dashboard";
+    return getLandingPath({ isSuperAdmin, role, roleType });
   };
 
   const features = [

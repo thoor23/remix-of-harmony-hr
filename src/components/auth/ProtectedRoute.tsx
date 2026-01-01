@@ -40,12 +40,12 @@ export function ProtectedRoute({
   // Check role-based access (legacy support)
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     const roleRedirects: Record<string, string> = {
-      admin: "/admin",
-      hr: "/admin",
-      manager: "/admin",
-      employee: "/employee",
+      admin: "/app/dashboard",
+      hr: "/app/dashboard",
+      manager: "/app/dashboard",
+      employee: "/app/my-dashboard",
     };
-    return <Navigate to={roleRedirects[role] || "/employee"} replace />;
+    return <Navigate to={roleRedirects[role] || "/app/my-dashboard"} replace />;
   }
 
   // Wait for permissions to load before checking module access

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { z } from "zod";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useCompanyBranding } from "@/hooks/useCompanyBranding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getLandingPath } from "@/lib/navigation";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -78,7 +80,8 @@ const GeometricPattern = () => (
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user, isSuperAdmin, role } = useAuth();
+  const { signIn, user, isSuperAdmin, role, loading: authLoading } = useAuth();
+  const { roleType, loading: permLoading } = usePermissions();
   const { data: branding } = useCompanyBranding();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -103,16 +106,40 @@ export default function AuthPage() {
     setView("reset-password");
   }
 
+  // Wait for auth and permissions to be fully loaded before redirecting
   if (user && !isPasswordReset) {
-    // Use role from AuthContext to determine correct landing page
-    let defaultPath = "/app/my-dashboard"; // Default to employee
-    if (isSuperAdmin) {
-      defaultPath = "/super-admin";
-    } else if (role === "admin" || role === "hr" || role === "manager") {
-      defaultPath = "/app/dashboard";
+    // Still loading - show spinner
+    if (authLoading || permLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-muted/50">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </div>
+      );
     }
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || defaultPath;
-    navigate(from, { replace: true });
+
+    // Get the correct landing path using centralized helper
+    const landingPath = getLandingPath({ isSuperAdmin, role, roleType });
+    
+    // Get the "from" route if any
+    const fromPath = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    
+    // Sanitize "from" route - don't redirect admin to employee routes or vice versa
+    let finalPath = landingPath;
+    if (fromPath) {
+      const isAdminRoute = fromPath.startsWith('/app/dashboard') || fromPath.startsWith('/app/employees') || fromPath.startsWith('/app/attendance') || fromPath.startsWith('/app/leaves') || fromPath.startsWith('/app/payroll');
+      const isEmployeeRoute = fromPath.startsWith('/app/my-');
+      const userIsAdmin = roleType === 'admin' || role === 'admin' || role === 'hr' || role === 'manager';
+      
+      // Only use "from" if it matches user's role type
+      if ((userIsAdmin && !isEmployeeRoute) || (!userIsAdmin && !isAdminRoute)) {
+        finalPath = fromPath;
+      }
+    }
+    
+    navigate(finalPath, { replace: true });
     return null;
   }
 
