@@ -49,7 +49,7 @@ import { DataTableToolbar } from "@/components/shared/DataTableToolbar";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { exportToCSV, ColumnDef } from "@/lib/csvExport";
-import { MaintenanceRequestStatus } from "@/types/asset";
+import { MaintenanceRequestStatus, AssetMaintenanceRequest } from "@/types/asset";
 
 const statusColors: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
@@ -151,7 +151,7 @@ export default function AssetMaintenance() {
   const { currentPage, pageSize, totalPages, paginatedData, setCurrentPage, setPageSize } = usePagination({ data: sortedRecords, defaultPageSize: 10 });
 
   // Pagination for requests
-  const requestPagination = usePagination({ data: employeeRequests, defaultPageSize: 10 });
+  const requestPagination = usePagination({ data: employeeRequests as AssetMaintenanceRequest[], defaultPageSize: 10 });
 
   const resetForm = () => setFormData({ asset_id: "", type: "service", description: "", cost: "", vendor: "", scheduled_date: "", notes: "" });
 

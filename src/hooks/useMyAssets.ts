@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useCurrentEmployee } from './useCurrentEmployee';
 
 interface MyAsset {
@@ -25,7 +25,30 @@ export function useMyAssets() {
 
   return useQuery({
     queryKey: ['my-assets', employee?.id],
-    queryFn: () => api.get<MyAsset[]>('/assets/my'),
+    queryFn: async () => {
+      if (!employee?.id) return [];
+
+      const { data, error } = await supabase
+        .from('assets')
+        .select(`
+          id,
+          asset_tag,
+          name,
+          brand,
+          model,
+          serial_number,
+          condition,
+          status,
+          image_url,
+          assigned_date,
+          category:asset_categories(id, name, icon)
+        `)
+        .eq('assigned_to', employee.id)
+        .eq('status', 'assigned');
+
+      if (error) throw error;
+      return data as MyAsset[];
+    },
     enabled: !!employee?.id,
   });
 }
