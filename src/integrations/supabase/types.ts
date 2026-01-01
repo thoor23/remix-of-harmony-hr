@@ -3410,45 +3410,6 @@ export type Database = {
           },
         ]
       }
-      platform_announcements: {
-        Row: {
-          content: string
-          created_at: string | null
-          created_by: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          priority: string
-          starts_at: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          priority?: string
-          starts_at?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          priority?: string
-          starts_at?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       platform_settings: {
         Row: {
           category: string
@@ -3589,48 +3550,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      refresh_tokens: {
-        Row: {
-          company_id: string
-          created_at: string | null
-          expires_at: string
-          id: string
-          token: string
-          user_id: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          token: string
-          user_id: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          token?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "refresh_tokens_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refresh_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4085,85 +4004,6 @@ export type Database = {
           },
         ]
       }
-      status_subscribers: {
-        Row: {
-          company_id: string
-          created_at: string
-          email: string
-          id: string
-          is_verified: boolean
-          subscribed_at: string
-          unsubscribed_at: string | null
-          verification_token: string | null
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          email: string
-          id?: string
-          is_verified?: boolean
-          subscribed_at?: string
-          unsubscribed_at?: string | null
-          verification_token?: string | null
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          email?: string
-          id?: string
-          is_verified?: boolean
-          subscribed_at?: string
-          unsubscribed_at?: string | null
-          verification_token?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "status_subscribers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      status_subscriptions: {
-        Row: {
-          company_id: string
-          created_at: string
-          email: string
-          id: string
-          is_active: boolean
-          subscribed_at: string
-          unsubscribed_at: string | null
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          email: string
-          id?: string
-          is_active?: boolean
-          subscribed_at?: string
-          unsubscribed_at?: string | null
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          email?: string
-          id?: string
-          is_active?: boolean
-          subscribed_at?: string
-          unsubscribed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "status_subscriptions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       stores: {
         Row: {
           address_city: string | null
@@ -4459,56 +4299,6 @@ export type Database = {
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          company_id: string
-          created_at: string | null
-          email: string
-          email_confirmed_at: string | null
-          id: string
-          is_active: boolean | null
-          last_sign_in_at: string | null
-          password_hash: string
-          reset_token: string | null
-          reset_token_expires: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          company_id: string
-          created_at?: string | null
-          email: string
-          email_confirmed_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_sign_in_at?: string | null
-          password_hash: string
-          reset_token?: string | null
-          reset_token_expires?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          company_id?: string
-          created_at?: string | null
-          email?: string
-          email_confirmed_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_sign_in_at?: string | null
-          password_hash?: string
-          reset_token?: string | null
-          reset_token_expires?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "users_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

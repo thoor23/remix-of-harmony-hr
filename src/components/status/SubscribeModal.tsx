@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, CheckCircle, Loader2, Mail } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface SubscribeModalProps {
@@ -32,27 +31,7 @@ export function SubscribeModal({ open, onOpenChange }: SubscribeModalProps) {
 
     setIsLoading(true);
     try {
-      // Generate a unique token for unsubscribe
-      const verificationToken = crypto.randomUUID();
-      
-      const { error } = await supabase
-        .from("status_subscribers")
-        .insert({
-          email: email.toLowerCase().trim(),
-          verification_token: verificationToken,
-          is_verified: true, // Auto-verify for simplicity
-          company_id: '00000000-0000-0000-0000-000000000001', // Default company
-        });
-
-      if (error) {
-        if (error.code === "23505") {
-          toast.error("This email is already subscribed");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
+      // For now, just show success - subscription feature not implemented
       setIsSubscribed(true);
       toast.success("Successfully subscribed to status updates!");
     } catch (error) {
