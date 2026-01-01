@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId } from "@/lib/supabase-helpers";
 import { logAuditEvent } from "./useAuditLogs";
 
 export interface Designation {
@@ -21,7 +22,23 @@ export function useDesignationsData() {
   return useQuery({
     queryKey: ["designations-data"],
     queryFn: async () => {
-      return api.get<Designation[]>("/designations");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('designations')
+        .select(`
+          *,
+          department:departments(id, name)
+        `)
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as Designation[];
     },
   });
 }
@@ -41,9 +58,28 @@ export function useCreateDesignation() {
       level?: number;
       department_id?: string;
     }) => {
-      const data = await api.post<Designation>("/designations", { name, code, level, department_id });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('designations')
+        .insert([{
+          name,
+          code,
+          level,
+          department_id,
+          company_id: companyId,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
       await logAuditEvent("CREATE", "Designations", `Created designation: ${name}`, { designation_id: data.id });
-      return data;
+      return data as Designation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designations-data"] });
@@ -73,9 +109,17 @@ export function useUpdateDesignation() {
       level?: number;
       department_id?: string;
     }) => {
-      const data = await api.patch<Designation>(`/designations/${id}`, { name, code, level, department_id });
+      const { data, error } = await supabase
+        .from('designations')
+        .update({ name, code, level, department_id })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
       await logAuditEvent("UPDATE", "Designations", `Updated designation: ${name}`, { designation_id: id });
-      return data;
+      return data as Designation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["designations-data"] });
@@ -93,7 +137,13 @@ export function useDeleteDesignation() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      await api.delete(`/designations/${id}`);
+      const { error } = await supabase
+        .from('designations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
       await logAuditEvent("DELETE", "Designations", `Deleted designation: ${name}`, { designation_id: id });
     },
     onSuccess: () => {
