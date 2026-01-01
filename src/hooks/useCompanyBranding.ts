@@ -42,7 +42,7 @@ export function useCompanyBranding() {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/public/branding`);
         if (!response.ok) {
           // Fallback to direct query
-          const companyId = await getCompanyId();
+          const companyId = await getCurrentCompanyId();
           const { data } = await supabase
             .from('system_settings')
             .select('value')
@@ -73,7 +73,7 @@ export function useUpdateCompanyBranding() {
 
   return useMutation({
     mutationFn: async (branding: Partial<CompanyBranding>) => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       // First get the current branding
       const { data: existing } = await supabase

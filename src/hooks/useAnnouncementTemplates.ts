@@ -104,7 +104,7 @@ export const useAnnouncementTemplates = () => {
   return useQuery({
     queryKey: ["announcement-templates"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const { data, error } = await supabase
         .from('announcement_templates')
         .select('*')
@@ -122,7 +122,7 @@ export const useCreateAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async (templateData: CreateAnnouncementTemplateData) => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const { data, error } = await supabase
         .from('announcement_templates')
         .insert({

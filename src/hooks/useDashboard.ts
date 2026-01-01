@@ -85,7 +85,7 @@ export function useAdminDashboardStats() {
   return useQuery({
     queryKey: ["admin-dashboard-stats"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const today = format(new Date(), 'yyyy-MM-dd');
       const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       
@@ -156,7 +156,7 @@ export function useAttendanceTrend(days = 7) {
   return useQuery({
     queryKey: ["attendance-trend", days],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const endDate = new Date();
       const startDate = subDays(endDate, days - 1);
       
@@ -199,7 +199,7 @@ export function useRecentActivity(limit = 10) {
   return useQuery({
     queryKey: ["recent-activity", limit],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       const { data, error } = await supabase
         .from('audit_logs')
@@ -219,7 +219,7 @@ export function useLiveClockIns(limit = 10) {
   return useQuery({
     queryKey: ["live-clockins", limit],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const today = format(new Date(), 'yyyy-MM-dd');
       
       const { data, error } = await supabase
@@ -244,7 +244,7 @@ export function useUpcomingEvents() {
   return useQuery({
     queryKey: ["upcoming-events"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const today = format(new Date(), 'yyyy-MM-dd');
       const nextMonth = format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
       
@@ -271,7 +271,7 @@ export function useUpcomingBirthdays(month: number) {
   return useQuery({
     queryKey: ["upcoming-birthdays", month],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       const { data, error } = await supabase
         .from('employees')
@@ -306,7 +306,7 @@ export function useLeaveBreakdown() {
   return useQuery({
     queryKey: ["leave-breakdown"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const year = new Date().getFullYear();
       
       const { data } = await supabase
@@ -344,7 +344,7 @@ export function usePayrollSummary() {
   return useQuery({
     queryKey: ["payroll-summary"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       const thisMonth = format(new Date(), 'yyyy-MM');
       const lastMonth = format(subDays(startOfMonth(new Date()), 1), 'yyyy-MM');
       
@@ -373,7 +373,7 @@ export function usePendingLeaveRequests(limit = 4) {
   return useQuery({
     queryKey: ["pending-leave-requests", limit],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       const { data, error } = await supabase
         .from('leave_requests')
@@ -397,7 +397,7 @@ export function useRecentAnnouncements(limit = 3) {
   return useQuery({
     queryKey: ["recent-announcements", limit],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       const { data, error } = await supabase
         .from('announcements')
@@ -417,7 +417,7 @@ export function useDepartments() {
   return useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
-      const companyId = await getCompanyId();
+      const companyId = await getCurrentCompanyId();
       
       const { data, error } = await supabase
         .from('departments')
