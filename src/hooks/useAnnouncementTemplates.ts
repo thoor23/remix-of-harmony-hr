@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 // Constants for announcement templates
 export const ANNOUNCEMENT_TYPES = [
@@ -103,7 +104,15 @@ export const useAnnouncementTemplates = () => {
   return useQuery({
     queryKey: ["announcement-templates"],
     queryFn: async () => {
-      return api.get<AnnouncementTemplate[]>("/templates/announcements");
+      const companyId = await getCompanyId();
+      const { data, error } = await supabase
+        .from('announcement_templates')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []) as AnnouncementTemplate[];
     },
   });
 };
@@ -113,7 +122,18 @@ export const useCreateAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async (templateData: CreateAnnouncementTemplateData) => {
-      return api.post<AnnouncementTemplate>("/templates/announcements", templateData);
+      const companyId = await getCompanyId();
+      const { data, error } = await supabase
+        .from('announcement_templates')
+        .insert({
+          ...templateData,
+          company_id: companyId,
+        } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as AnnouncementTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });
@@ -130,7 +150,15 @@ export const useUpdateAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updateData }: Partial<AnnouncementTemplate> & { id: string }) => {
-      return api.patch<AnnouncementTemplate>(`/templates/announcements/${id}`, updateData);
+      const { data, error } = await supabase
+        .from('announcement_templates')
+        .update(updateData as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as AnnouncementTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });
@@ -147,7 +175,12 @@ export const useDeleteAnnouncementTemplate = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/templates/announcements/${id}`);
+      const { error } = await supabase
+        .from('announcement_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-templates"] });

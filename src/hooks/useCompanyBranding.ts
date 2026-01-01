@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -41,7 +41,19 @@ export function useCompanyBranding() {
         // Use public endpoint that doesn't require authentication
         const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/public/branding`);
         if (!response.ok) {
-          throw new Error("Failed to fetch branding");
+          // Fallback to direct query
+          const companyId = await getCompanyId();
+          const { data } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('company_id', companyId)
+            .eq('key', 'company_branding')
+            .maybeSingle();
+          
+          if (data?.value) {
+            return { ...defaultBranding, ...(data.value as any) };
+          }
+          return defaultBranding;
         }
         const data = await response.json();
         return {
@@ -61,17 +73,28 @@ export function useUpdateCompanyBranding() {
 
   return useMutation({
     mutationFn: async (branding: Partial<CompanyBranding>) => {
+      const companyId = await getCompanyId();
+      
       // First get the current branding
-      let currentBranding: CompanyBranding = defaultBranding;
-      try {
-        const current = await api.get<{ value: Partial<CompanyBranding> }>("/settings/company_branding");
-        currentBranding = { ...defaultBranding, ...current.value };
-      } catch {
-        // Use default if not found
-      }
-
+      const { data: existing } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('company_id', companyId)
+        .eq('key', 'company_branding')
+        .maybeSingle();
+      
+      const currentBranding = existing?.value ? { ...defaultBranding, ...(existing.value as any) } : defaultBranding;
       const updatedBranding = { ...currentBranding, ...branding };
-      await api.put("/settings/company_branding", { value: updatedBranding });
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          company_id: companyId,
+          key: 'company_branding',
+          value: updatedBranding,
+        } as any, { onConflict: 'company_id,key' });
+      
+      if (error) throw error;
       return updatedBranding;
     },
     onSuccess: () => {
@@ -124,10 +147,11 @@ export function useUploadCompanyLogo() {
 
 export function useDeleteCompanyLogo() {
   const queryClient = useQueryClient();
+  const updateBranding = useUpdateCompanyBranding();
 
   return useMutation({
     mutationFn: async () => {
-      await api.delete("/settings/branding/logo");
+      await updateBranding.mutateAsync({ companyLogo: null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
@@ -179,10 +203,11 @@ export function useUploadFavicon() {
 
 export function useDeleteFavicon() {
   const queryClient = useQueryClient();
+  const updateBranding = useUpdateCompanyBranding();
 
   return useMutation({
     mutationFn: async () => {
-      await api.delete("/settings/branding/favicon");
+      await updateBranding.mutateAsync({ companyFavicon: null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-branding"] });
