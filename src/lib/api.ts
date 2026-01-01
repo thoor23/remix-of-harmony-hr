@@ -5,21 +5,10 @@
  */
 
 import { getSupabaseUrl } from '@/integrations/supabase/env-switcher';
+import { supabase } from '@/integrations/supabase/client';
 
 // Dynamic Supabase URL based on environment
 const getBaseUrl = () => getSupabaseUrl();
-
-// Token management
-const getAccessToken = () => localStorage.getItem('access_token');
-const getRefreshToken = () => localStorage.getItem('refresh_token');
-const setTokens = (accessToken: string, refreshToken: string) => {
-  localStorage.setItem('access_token', accessToken);
-  localStorage.setItem('refresh_token', refreshToken);
-};
-const clearTokens = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-};
 
 // Map endpoint to edge function name
 function getEdgeFunctionUrl(endpoint: string): string {
@@ -42,12 +31,18 @@ function getEdgeFunctionUrl(endpoint: string): string {
   return `${baseUrl}/functions/v1/${functionName}${fullPath}${query}`;
 }
 
+// Get access token from Supabase session
+const getAccessToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+};
+
 // Request helper with auth
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -65,55 +60,12 @@ async function request<T>(
     headers,
   });
   
-  // Handle 401 - try refresh token
-  if (response.status === 401 && getRefreshToken()) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${getAccessToken()}`;
-      const retryResponse = await fetch(url, {
-        ...options,
-        headers,
-      });
-      if (!retryResponse.ok) {
-        throw new Error(await retryResponse.text());
-      }
-      return retryResponse.json();
-    }
-  }
-  
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || error.message || 'Request failed');
   }
   
   return response.json();
-}
-
-// Refresh access token
-async function refreshAccessToken(): Promise<boolean> {
-  try {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
-    
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/functions/v1/api-auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    
-    if (!response.ok) {
-      clearTokens();
-      return false;
-    }
-    
-    const data = await response.json();
-    localStorage.setItem('access_token', data.access_token);
-    return true;
-  } catch {
-    clearTokens();
-    return false;
-  }
 }
 
 // API methods
@@ -137,68 +89,4 @@ export const api = {
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
 };
 
-// Auth-specific methods
-export const authApi = {
-  login: async (email: string, password: string) => {
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/functions/v1/api-auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
-    }
-    
-    const data = await response.json();
-    setTokens(data.session.access_token, data.session.refresh_token);
-    return data;
-  },
-  
-  logout: async () => {
-    try {
-      const token = getAccessToken();
-      if (token) {
-        const baseUrl = getBaseUrl();
-        await fetch(`${baseUrl}/functions/v1/api-auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
-    } finally {
-      clearTokens();
-    }
-  },
-  
-  getMe: () => api.get<{
-    user: { id: string; email: string; role: string; companyId?: string; isSuperAdmin?: boolean };
-    profile: {
-      first_name: string | null;
-      last_name: string | null;
-      email: string | null;
-      phone: string | null;
-      avatar_url: string | null;
-    } | null;
-    employee: { id: string } | null;
-  }>('/auth/me'),
-  
-  register: (email: string, password: string, firstName?: string, lastName?: string, role?: string) =>
-    api.post('/auth/register', { email, password, firstName, lastName, role }),
-  
-  refresh: refreshAccessToken,
-  isAuthenticated: () => !!getAccessToken(),
-  getTokens: () => ({
-    accessToken: getAccessToken(),
-    refreshToken: getRefreshToken(),
-  }),
-  clearTokens,
-  setTokens,
-};
-
-export { getAccessToken, getRefreshToken, setTokens, clearTokens };
 export default api;

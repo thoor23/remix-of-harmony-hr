@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api, { getAccessToken } from "@/lib/api";
+import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -93,7 +94,9 @@ export function useSendTestEmail() {
 
   return useMutation({
     mutationFn: async ({ recipientEmail, config }: { recipientEmail: string; config: EmailConfig }) => {
-      const token = getAccessToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/send-test-email`, {
         method: 'POST',
         headers: {

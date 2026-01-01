@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api, { getAccessToken } from "@/lib/api";
+import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -92,10 +93,13 @@ export function useUploadCompanyLogo() {
       formData.append("file", file);
       formData.append("type", "logo");
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/branding/upload`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${getAccessToken()}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
@@ -144,10 +148,13 @@ export function useUploadFavicon() {
       formData.append("file", file);
       formData.append("type", "favicon");
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/api-settings/branding/upload`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${getAccessToken()}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });

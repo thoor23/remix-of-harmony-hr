@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, FileImage, File, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
-import { getAccessToken } from "@/lib/api";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const UPLOADS_BASE_URL = `${SUPABASE_URL}/functions/v1/api-documents/download`;
