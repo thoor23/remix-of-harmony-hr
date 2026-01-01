@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 export interface ShiftRotation {
   id: string;
@@ -27,7 +28,17 @@ export function useShiftRotations() {
   return useQuery({
     queryKey: ["shift-rotations"],
     queryFn: async () => {
-      return api.get<ShiftRotation[]>("/shifts/rotations");
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) return [];
+
+      const { data, error } = await supabase
+        .from('shift_rotations')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as ShiftRotation[];
     },
   });
 }
@@ -37,7 +48,25 @@ export function useCreateShiftRotation() {
 
   return useMutation({
     mutationFn: async (input: CreateShiftRotationInput) => {
-      return api.post<ShiftRotation>("/shifts/rotations", input);
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) throw new Error("Company not found");
+
+      const { data, error } = await supabase
+        .from('shift_rotations')
+        .insert({
+          company_id: companyId,
+          name: input.name,
+          description: input.description || null,
+          rotation_pattern: input.rotation_pattern,
+          rotation_frequency: input.rotation_frequency,
+          employee_ids: input.employee_ids || [],
+          is_active: input.is_active ?? true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ShiftRotation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-rotations"] });
@@ -54,7 +83,23 @@ export function useUpdateShiftRotation() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<ShiftRotation> & { id: string }) => {
-      return api.put<ShiftRotation>(`/shifts/rotations/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('shift_rotations')
+        .update({
+          name: data.name,
+          description: data.description,
+          rotation_pattern: data.rotation_pattern,
+          rotation_frequency: data.rotation_frequency,
+          employee_ids: data.employee_ids,
+          is_active: data.is_active,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result as ShiftRotation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-rotations"] });
@@ -71,7 +116,12 @@ export function useDeleteShiftRotation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/shifts/rotations/${id}`);
+      const { error } = await supabase
+        .from('shift_rotations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-rotations"] });

@@ -4,7 +4,8 @@ import { Clock, LogIn, LogOut, Coffee, Play, Square } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 import {
   Popover,
   PopoverContent,
@@ -43,7 +44,14 @@ export const AttendanceWidget = () => {
       if (!user?.id) return;
 
       try {
-        const data = await api.get<Employee>("/employees/current");
+        const { data, error } = await supabase
+          .from('employees')
+          .select('id, employee_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (error) throw error;
         if (data?.id) {
           setEmployeeId(data.id);
         }
@@ -55,17 +63,21 @@ export const AttendanceWidget = () => {
     fetchEmployeeId();
   }, [user?.id]);
 
-  // Fetch today's attendance record using the employee-accessible endpoint
+  // Fetch today's attendance record
   const fetchTodayAttendance = useCallback(async () => {
     if (!employeeId) return;
 
     try {
-      const data = await api.get<TodayAttendance | null>(`/attendance/today`);
-      if (data) {
-        setTodayRecord(data);
-      } else {
-        setTodayRecord(null);
-      }
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('id, check_in, check_out, status, date')
+        .eq('employee_id', employeeId)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (error) throw error;
+      setTodayRecord(data);
     } catch (error) {
       console.error("Failed to fetch attendance:", error);
       setTodayRecord(null);
@@ -124,16 +136,45 @@ export const AttendanceWidget = () => {
     setLoading(true);
 
     try {
-      const data = await api.post<TodayAttendance>("/attendance/check-in", {});
+      const companyId = await getCurrentCompanyId();
+      if (!companyId) throw new Error("Company not found");
 
-      if (data) {
-        setTodayRecord(data);
-        setTotalBreakMinutes(0);
-        toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const checkInTime = format(new Date(), 'HH:mm:ss');
+
+      // Check if already clocked in today
+      const { data: existing } = await supabase
+        .from('attendance_records')
+        .select('id')
+        .eq('employee_id', employeeId)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (existing) {
+        await fetchTodayAttendance();
+        toast.info("Already clocked in for today");
+        return;
       }
+
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .insert({
+          company_id: companyId,
+          employee_id: employeeId,
+          date: today,
+          check_in: checkInTime,
+          status: 'present',
+        })
+        .select('id, check_in, check_out, status, date')
+        .single();
+
+      if (error) throw error;
+
+      setTodayRecord(data);
+      setTotalBreakMinutes(0);
+      toast.success(`Clocked in at ${format(new Date(), "h:mm a")}`);
     } catch (error: any) {
-      if (error.message?.includes("duplicate") || error.message?.includes("already exists") || error.message?.includes("Already checked in")) {
-        // Already clocked in, fetch current record
+      if (error.message?.includes("duplicate") || error.message?.includes("already exists")) {
         await fetchTodayAttendance();
         toast.info("Already clocked in for today");
       } else {
@@ -156,12 +197,31 @@ export const AttendanceWidget = () => {
     setLoading(true);
 
     try {
-      const data = await api.post<TodayAttendance>("/attendance/check-out", {});
-
-      if (data) {
-        setTodayRecord(data);
-        toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
+      const checkOutTime = format(new Date(), 'HH:mm:ss');
+      
+      // Calculate work hours if check_in exists
+      let workHours: number | null = null;
+      if (todayRecord.check_in) {
+        const checkIn = new Date(`2000-01-01T${todayRecord.check_in}`);
+        const checkOut = new Date(`2000-01-01T${checkOutTime}`);
+        const diffMs = checkOut.getTime() - checkIn.getTime() - totalBreakMinutes * 60 * 1000;
+        workHours = diffMs / (1000 * 60 * 60); // Convert to hours
       }
+
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .update({
+          check_out: checkOutTime,
+          work_hours: workHours,
+        })
+        .eq('id', todayRecord.id)
+        .select('id, check_in, check_out, status, date')
+        .single();
+
+      if (error) throw error;
+
+      setTodayRecord(data);
+      toast.success(`Clocked out at ${format(new Date(), "h:mm a")}`);
     } catch (error) {
       toast.error("Failed to clock out");
       console.error(error);
