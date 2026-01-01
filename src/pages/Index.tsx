@@ -31,9 +31,9 @@ const Index = () => {
   const getDashboardLink = () => {
     if (!user) return "/auth";
     if (role === "admin" || role === "hr" || role === "manager") {
-      return "/admin/dashboard";
+      return "/app/dashboard";
     }
-    return "/employee/dashboard";
+    return "/app/my-dashboard";
   };
 
   const features = [
