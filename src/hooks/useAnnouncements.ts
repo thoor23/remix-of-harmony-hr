@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getCompanyId } from "@/lib/supabase-helpers";
 
 export interface Announcement {
   id: string;
@@ -22,7 +23,22 @@ export interface Announcement {
 export function useAnnouncements() {
   return useQuery({
     queryKey: ["announcements"],
-    queryFn: () => api.get<Announcement[]>('/announcements'),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Announcement[];
+    },
   });
 }
 
@@ -44,11 +60,20 @@ export function useCreateAnnouncement() {
   return useMutation({
     mutationFn: async (announcement: CreateAnnouncementData) => {
       if (!user?.id) throw new Error("Not authenticated");
-      await api.post('/announcements', {
-        ...announcement,
-        created_by: user.id,
-        is_active: true,
-      });
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('announcements')
+        .insert([{
+          ...announcement,
+          created_by: user.id,
+          company_id: companyId,
+          is_active: true,
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -79,7 +104,12 @@ export function useUpdateAnnouncement() {
       expires_at?: string | null;
       banner_template_id?: string | null;
     }) => {
-      await api.put(`/announcements/${id}`, updates);
+      const { error } = await supabase
+        .from('announcements')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -96,7 +126,12 @@ export function useDeleteAnnouncement() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/announcements/${id}`);
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });

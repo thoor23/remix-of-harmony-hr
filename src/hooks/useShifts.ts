@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export interface ShiftData {
   id: string;
@@ -17,7 +18,22 @@ export interface ShiftData {
 export function useShifts() {
   return useQuery({
     queryKey: ["shifts"],
-    queryFn: () => api.get<ShiftData[]>('/shifts'),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as ShiftData[];
+    },
   });
 }
 
@@ -33,7 +49,20 @@ export function useCreateShift() {
       break_duration?: number;
       color?: string;
     }) => {
-      await api.post('/shifts', shift);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('shifts')
+        .insert([{
+          ...shift,
+          company_id: companyId,
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -50,7 +79,12 @@ export function useUpdateShift() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<ShiftData> }) => {
-      await api.put(`/shifts/${id}`, data);
+      const { error } = await supabase
+        .from('shifts')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -67,7 +101,12 @@ export function useDeleteShift() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/shifts/${id}`);
+      const { error } = await supabase
+        .from('shifts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
@@ -82,7 +121,26 @@ export function useDeleteShift() {
 export function useShiftAssignments() {
   return useQuery({
     queryKey: ["shift-assignments"],
-    queryFn: () => api.get<any[]>('/shifts/assignments'),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('shift_assignments')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name),
+          shift:shifts(*)
+        `)
+        .eq('company_id', companyId)
+        .order('start_date', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 }
 
@@ -97,7 +155,20 @@ export function useCreateShiftAssignment() {
       start_date: string;
       end_date?: string;
     }) => {
-      await api.post('/shifts/assignments', assignment);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('shift_assignments')
+        .insert([{
+          ...assignment,
+          company_id: companyId,
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -126,7 +197,12 @@ export function useUpdateShiftAssignment() {
         is_active?: boolean;
       };
     }) => {
-      await api.put(`/shifts/assignments/${id}`, data);
+      const { error } = await supabase
+        .from('shift_assignments')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -143,7 +219,12 @@ export function useDeleteShiftAssignment() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.put(`/shifts/assignments/${id}`, { is_active: false });
+      const { error } = await supabase
+        .from('shift_assignments')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
@@ -159,9 +240,21 @@ export function useMyShiftAssignment(employeeId?: string) {
   return useQuery({
     queryKey: ["my-shift-assignment", employeeId],
     queryFn: async () => {
-      const data = await api.get<any>('/shifts/assignments/my');
-      // API returns single object, convert to array for Dashboard compatibility
-      return data ? [data] : [];
+      if (!employeeId) return [];
+
+      const { data, error } = await supabase
+        .from('shift_assignments')
+        .select(`
+          *,
+          shift:shifts(*)
+        `)
+        .eq('employee_id', employeeId)
+        .eq('is_active', true)
+        .order('start_date', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!employeeId,
   });

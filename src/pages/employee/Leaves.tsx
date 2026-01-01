@@ -498,8 +498,12 @@ export default function EmployeeLeaves() {
                       </span>
                     ) : col.id === "reason" ? (
                       <span className="max-w-xs truncate block">{leave.reason || "-"}</span>
+                    ) : col.id === "days" ? (
+                      leave.days
+                    ) : col.id === "start_date" || col.id === "end_date" ? (
+                      leave[col.id] ? new Date(leave[col.id] as string).toLocaleDateString() : "-"
                     ) : (
-                      leave[col.id as keyof typeof leave] || "-"
+                      String(leave[col.id as keyof typeof leave] || "-")
                     )}
                   </TableCell>
                 ))}

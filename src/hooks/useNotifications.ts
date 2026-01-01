@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 
 export interface Notification {
   id: string;
@@ -17,7 +16,19 @@ export interface Notification {
 export const useNotifications = () => {
   return useQuery({
     queryKey: ["notifications"],
-    queryFn: () => api.get<Notification[]>('/notifications'),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as Notification[];
+    },
   });
 };
 
@@ -25,8 +36,17 @@ export const useUnreadNotificationCount = () => {
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: async () => {
-      const data = await api.get<Notification[]>('/notifications');
-      return data.filter(n => !n.is_read).length;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+      return count || 0;
     },
   });
 };
@@ -36,7 +56,12 @@ export const useMarkNotificationRead = () => {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      await api.put(`/notifications/${notificationId}/read`, {});
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -50,7 +75,15 @@ export const useMarkAllNotificationsRead = () => {
 
   return useMutation({
     mutationFn: async () => {
-      await api.put('/notifications/read-all', {});
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -70,7 +103,17 @@ export const useCreateNotification = () => {
       type?: string;
       link?: string;
     }) => {
-      await api.post('/notifications', notification);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { getCompanyId } = await import('@/lib/supabase-helpers');
+      const companyId = await getCompanyId(user.id);
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert([{ ...notification, company_id: companyId }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -83,7 +126,12 @@ export const useDeleteNotification = () => {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      await api.delete(`/notifications/${notificationId}`);
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -97,7 +145,15 @@ export const useDeleteAllNotifications = () => {
 
   return useMutation({
     mutationFn: async () => {
-      await api.delete('/notifications/all');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });

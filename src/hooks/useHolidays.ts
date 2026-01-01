@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId } from "@/lib/supabase-helpers";
 
 export interface Holiday {
   id: string;
@@ -16,8 +17,27 @@ export function useHolidays(year?: number) {
   return useQuery({
     queryKey: ["holidays", year],
     queryFn: async (): Promise<Holiday[]> => {
-      const params = year ? `?year=${year}` : '';
-      return api.get<Holiday[]>(`/holidays${params}`);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      let query = supabase
+        .from('holidays')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('date');
+
+      if (year) {
+        query = query
+          .gte('date', `${year}-01-01`)
+          .lte('date', `${year}-12-31`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as Holiday[];
     },
   });
 }
@@ -33,7 +53,20 @@ export function useCreateHoliday() {
       is_optional?: boolean;
       description?: string;
     }) => {
-      await api.post('/holidays', holiday);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('holidays')
+        .insert([{
+          ...holiday,
+          company_id: companyId,
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["holidays"] });
@@ -50,7 +83,12 @@ export function useDeleteHoliday() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/holidays/${id}`);
+      const { error } = await supabase
+        .from('holidays')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["holidays"] });

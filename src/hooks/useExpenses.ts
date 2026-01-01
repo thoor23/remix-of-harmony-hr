@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export interface ExpenseCategory {
   id: string;
@@ -73,8 +74,20 @@ export function useExpenseCategories() {
   return useQuery({
     queryKey: ["expense-categories"],
     queryFn: async () => {
-      const data = await api.get<ExpenseCategory[]>("/expenses/categories");
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as ExpenseCategory[];
     },
   });
 }
@@ -83,7 +96,20 @@ export function useCreateExpenseCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (category: Partial<ExpenseCategory>) => {
-      return api.post<ExpenseCategory>("/expenses/categories", category);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .insert([{ ...category, company_id: companyId } as any])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ExpenseCategory;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
@@ -95,7 +121,15 @@ export function useUpdateExpenseCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<ExpenseCategory> & { id: string }) => {
-      return api.put<ExpenseCategory>(`/expenses/categories/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('expense_categories')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result as ExpenseCategory;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
@@ -107,7 +141,12 @@ export function useDeleteExpenseCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/expenses/categories/${id}`);
+      const { error } = await supabase
+        .from('expense_categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
@@ -120,8 +159,20 @@ export function useExpensePolicies() {
   return useQuery({
     queryKey: ["expense-policies"],
     queryFn: async () => {
-      const data = await api.get<ExpensePolicy[]>("/expenses/policies");
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_policies')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as ExpensePolicy[];
     },
   });
 }
@@ -130,7 +181,20 @@ export function useCreateExpensePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (policy: Partial<ExpensePolicy>) => {
-      return api.post<ExpensePolicy>("/expenses/policies", policy);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_policies')
+        .insert([{ ...policy, company_id: companyId } as any])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ExpensePolicy;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-policies"] });
@@ -142,7 +206,15 @@ export function useUpdateExpensePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<ExpensePolicy> & { id: string }) => {
-      return api.put<ExpensePolicy>(`/expenses/policies/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('expense_policies')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result as ExpensePolicy;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-policies"] });
@@ -154,7 +226,12 @@ export function useDeleteExpensePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/expenses/policies/${id}`);
+      const { error } = await supabase
+        .from('expense_policies')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-policies"] });
@@ -167,8 +244,24 @@ export function useExpenseClaims() {
   return useQuery({
     queryKey: ["expense-claims"],
     queryFn: async () => {
-      const data = await api.get<ExpenseClaim[]>("/expenses");
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_claims')
+        .select(`
+          *,
+          category:expense_categories(*),
+          employee:employees(id, first_name, last_name, employee_id, avatar_url, department:departments(id, name))
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as ExpenseClaim[];
     },
   });
 }
@@ -177,8 +270,23 @@ export function useMyExpenseClaims() {
   return useQuery({
     queryKey: ["my-expense-claims"],
     queryFn: async () => {
-      const data = await api.get<ExpenseClaim[]>("/expenses/my");
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const employeeId = await getEmployeeId(user.id);
+      if (!employeeId) throw new Error('Employee not found');
+
+      const { data, error } = await supabase
+        .from('expense_claims')
+        .select(`
+          *,
+          category:expense_categories(*)
+        `)
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as ExpenseClaim[];
     },
   });
 }
@@ -187,8 +295,46 @@ export function useExpenseStats() {
   return useQuery({
     queryKey: ["expense-stats"],
     queryFn: async () => {
-      const data = await api.get<ExpenseStats>("/expenses/stats");
-      return data;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('expense_claims')
+        .select('status, amount')
+        .eq('company_id', companyId);
+
+      if (error) throw error;
+
+      const stats: ExpenseStats = {
+        total: data?.length || 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        reimbursed: 0,
+        totalAmount: 0,
+        approvedAmount: 0,
+        pendingAmount: 0,
+      };
+
+      data?.forEach((claim: any) => {
+        stats.totalAmount += claim.amount || 0;
+        if (claim.status === 'pending') {
+          stats.pending++;
+          stats.pendingAmount += claim.amount || 0;
+        } else if (claim.status === 'approved') {
+          stats.approved++;
+          stats.approvedAmount += claim.amount || 0;
+        } else if (claim.status === 'rejected') {
+          stats.rejected++;
+        } else if (claim.status === 'reimbursed') {
+          stats.reimbursed++;
+        }
+      });
+
+      return stats;
     },
   });
 }
@@ -197,7 +343,31 @@ export function useCreateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (expense: Partial<ExpenseClaim>) => {
-      return api.post<ExpenseClaim>("/expenses", expense);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const employeeId = await getEmployeeId(user.id);
+      if (!employeeId) throw new Error('Employee not found');
+
+      const insertData: any = {
+        ...expense,
+        employee_id: employeeId,
+        company_id: companyId,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('expense_claims')
+        .insert([insertData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ExpenseClaim;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-claims"] });
@@ -211,7 +381,15 @@ export function useUpdateExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<ExpenseClaim> & { id: string }) => {
-      return api.patch<ExpenseClaim>(`/expenses/${id}`, data);
+      const { data: result, error } = await supabase
+        .from('expense_claims')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result as ExpenseClaim;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-claims"] });
@@ -225,7 +403,12 @@ export function useDeleteExpense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/expenses/${id}`);
+      const { error } = await supabase
+        .from('expense_claims')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-claims"] });
