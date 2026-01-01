@@ -1,15 +1,46 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useCurrentEmployee() {
-  const { user, employeeId } = useAuth();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: ["current-employee", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      return api.get<any>('/employees/current');
+      
+      const { data, error } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          department:departments(*),
+          designation:designations(*),
+          primary_store:stores(*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching current employee:', error);
+        throw error;
+      }
+
+      // Add profile-like structure for backwards compatibility
+      if (data) {
+        return {
+          ...data,
+          profile: {
+            first_name: data.first_name,
+            last_name: data.last_name,
+            email: data.email,
+            avatar_url: data.avatar_url,
+          }
+        };
+      }
+
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -18,13 +49,35 @@ export function useCurrentEmployee() {
 export function useLeaveBalances(employeeId?: string) {
   return useQuery({
     queryKey: ["leave-balances", employeeId],
-    queryFn: () => api.get<any[]>(`/leaves/balances`),
+    queryFn: async () => {
+      if (!employeeId) return [];
+      
+      const { data, error } = await supabase
+        .from('leave_balances')
+        .select(`
+          *,
+          leave_type:leave_types(*)
+        `)
+        .eq('employee_id', employeeId);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!employeeId,
   });
 }
 
 export function useLeaveTypes() {
   return useQuery({
     queryKey: ["leave-types"],
-    queryFn: () => api.get<any[]>('/leaves/types'),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leave_types')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 }

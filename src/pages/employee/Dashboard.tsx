@@ -96,7 +96,7 @@ export default function EmployeeDashboard() {
     );
   }
 
-  const firstName = employee?.profile?.first_name || "User";
+  const firstName = (employee as any)?.first_name || (employee as any)?.profile?.first_name || "User";
 
   return (
     <PageContainer>

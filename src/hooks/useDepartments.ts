@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId } from "@/lib/supabase-helpers";
 import { logAuditEvent } from "./useAuditLogs";
 
 export interface Department {
@@ -18,7 +19,20 @@ export function useDepartmentsData() {
   return useQuery({
     queryKey: ["departments-data"],
     queryFn: async () => {
-      return api.get<Department[]>("/departments");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as Department[];
     },
   });
 }
@@ -36,9 +50,27 @@ export function useCreateDepartment() {
       code: string;
       description?: string;
     }) => {
-      const data = await api.post<Department>("/departments", { name, code, description });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('departments')
+        .insert([{
+          name,
+          code,
+          description,
+          company_id: companyId,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
       await logAuditEvent("CREATE", "Departments", `Created department: ${name}`, { department_id: data.id });
-      return data;
+      return data as Department;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments-data"] });
@@ -66,9 +98,17 @@ export function useUpdateDepartment() {
       code: string;
       description?: string;
     }) => {
-      const data = await api.patch<Department>(`/departments/${id}`, { name, code, description });
+      const { data, error } = await supabase
+        .from('departments')
+        .update({ name, code, description })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
       await logAuditEvent("UPDATE", "Departments", `Updated department: ${name}`, { department_id: id });
-      return data;
+      return data as Department;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments-data"] });
@@ -86,7 +126,13 @@ export function useDeleteDepartment() {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      await api.delete(`/departments/${id}`);
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
       await logAuditEvent("DELETE", "Departments", `Deleted department: ${name}`, { department_id: id });
     },
     onSuccess: () => {
