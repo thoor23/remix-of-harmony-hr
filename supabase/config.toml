@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.api-super-admin]
 verify_jwt = false
+
+[functions.migrate-to-supabase-auth]
+verify_jwt = false

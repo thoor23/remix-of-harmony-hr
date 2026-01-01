@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -156,7 +156,14 @@ export default function AuthPage() {
 
     setIsLoading(true);
     try {
-      await api.post("/auth/forgot-password", { email: resetEmail });
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth#type=recovery`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success("Password reset email sent! Check your inbox.");
       setView("login");
       setResetEmail("");
@@ -184,21 +191,16 @@ export default function AuthPage() {
       return;
     }
 
-    // Get token from URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const resetToken = hashParams.get("token");
-
-    if (!resetToken) {
-      toast.error("Invalid or expired reset link");
-      return;
-    }
-
     setIsLoading(true);
     try {
-      await api.post("/auth/reset-password", {
-        token: resetToken,
+      const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success("Password updated successfully!");
       window.location.href = "/auth";
     } catch (error: any) {
@@ -441,12 +443,12 @@ export default function AuthPage() {
                 Welcome Back
               </h1>
               <p className="text-muted-foreground text-sm">
-                Sign in to continue to your account.
+                Sign in to access your account
               </p>
             </div>
 
-            {/* Login form */}
             <form onSubmit={handleLogin} className="space-y-5">
+              {/* Email Field */}
               <div>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -462,6 +464,7 @@ export default function AuthPage() {
                 {renderError("email")}
               </div>
 
+              {/* Password Field */}
               <div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -476,7 +479,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -484,11 +487,11 @@ export default function AuthPage() {
                 {renderError("password")}
               </div>
 
-              {/* Remember me & Forgot password */}
+              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Checkbox 
-                    id="remember" 
+                  <Checkbox
+                    id="remember"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                   />
@@ -499,32 +502,31 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setView("forgot-password")}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:text-primary/80"
                 >
-                  Forgot password?
+                  Forgot Password?
                 </button>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background font-medium" 
-                disabled={isLoading}
-              >
+              {/* Login Button */}
+              <Button type="submit" className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
                   </>
                 ) : (
-                  "Log In"
+                  "Sign In"
                 )}
               </Button>
             </form>
 
-            {/* Footer */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
+            {/* Contact Admin */}
+            <p className="text-center text-sm text-muted-foreground mt-8">
               Don't have an account?{" "}
-              <span className="text-primary font-medium">Contact Admin</span>
+              <a href="mailto:admin@company.com" className="text-primary hover:text-primary/80">
+                Contact Admin
+              </a>
             </p>
           </div>
         </div>

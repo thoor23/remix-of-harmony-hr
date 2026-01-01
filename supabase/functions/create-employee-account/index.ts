@@ -1,4 +1,4 @@
-import { authenticateRequest, hashPassword, getSupabaseClient, getRequestCompanyId } from "../_shared/auth.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +33,7 @@ interface CreateEmployeeRequest {
     bank_ifsc_code?: string;
   };
   role?: "admin" | "hr" | "manager" | "employee";
+  company_id?: string;
 }
 
 Deno.serve(async (req) => {
@@ -41,34 +42,42 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = getSupabaseClient();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-    // Verify the requesting user has permission using custom auth
-    const auth = await authenticateRequest(req);
-    if (!auth) {
+    // Verify the requesting user has permission
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Invalid or missing authentication token" }),
+        JSON.stringify({ error: "Missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Authenticated user:", auth.userId, "role:", auth.role);
-
-    // Get company ID for this request
-    const url = new URL(req.url);
-    const companyId = getRequestCompanyId(url, auth);
-    if (!companyId) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: requestingUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !requestingUser) {
       return new Response(
-        JSON.stringify({ error: "Company context required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Authenticated user:", requestingUser.id);
 
     // Check if requesting user has admin, hr, or manager role
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", auth.userId)
+      .eq("user_id", requestingUser.id)
       .maybeSingle();
 
     if (roleError) {
@@ -87,8 +96,25 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get company_id from requesting user's profile
+    const { data: requestingProfile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", requestingUser.id)
+      .single();
+
     const body: CreateEmployeeRequest = await req.json();
-    const { email, password, first_name, last_name, phone, employee_data, role = "employee" } = body;
+    const { email, password, first_name, last_name, phone, employee_data, role = "employee", company_id } = body;
+
+    // Use provided company_id or fall back to requesting user's company
+    const targetCompanyId = company_id || requestingProfile?.company_id;
+
+    if (!targetCompanyId) {
+      return new Response(
+        JSON.stringify({ error: "Company context required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Validate required fields
     if (!email || !password || !first_name || !last_name || !employee_data) {
@@ -98,60 +124,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if email already exists in users table
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", email.toLowerCase())
-      .maybeSingle();
+    // Create user in Supabase Auth
+    const { data: authData, error: createUserError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase(),
+      password: password,
+      email_confirm: true,
+      user_metadata: {
+        first_name,
+        last_name,
+      },
+    });
 
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ error: "User with this email already exists" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Hash password and create user in custom users table
-    const passwordHash = await hashPassword(password);
-    const { data: newUser, error: createUserError } = await supabase
-      .from("users")
-      .insert({
-        email: email.toLowerCase(),
-        password_hash: passwordHash,
-        is_active: true,
-        email_confirmed_at: new Date().toISOString(),
-        company_id: companyId,
-      })
-      .select()
-      .single();
-
-    if (createUserError || !newUser) {
-      console.error("Failed to create user:", createUserError);
+    if (createUserError || !authData.user) {
+      console.error("Failed to create auth user:", createUserError);
       return new Response(
         JSON.stringify({ error: createUserError?.message || "Failed to create user" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = newUser.id;
-    console.log("Created user in users table:", userId);
+    const userId = authData.user.id;
+    console.log("Created auth user:", userId);
 
     // Create profile
     const { error: profileError } = await supabase
       .from("profiles")
-      .insert({
-        user_id: userId,
+      .upsert({
+        id: userId,
         first_name,
         last_name,
         email: email.toLowerCase(),
         phone: phone || null,
-      });
+        company_id: targetCompanyId,
+      }, { onConflict: 'id' });
 
     if (profileError) {
       console.error("Failed to create profile:", profileError);
-      // Rollback: delete the user
-      await supabase.from("users").delete().eq("id", userId);
+      // Rollback: delete the auth user
+      await supabase.auth.admin.deleteUser(userId);
       return new Response(
         JSON.stringify({ error: `Failed to create profile: ${profileError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -163,8 +173,12 @@ Deno.serve(async (req) => {
       .from("employees")
       .insert({
         user_id: userId,
+        first_name,
+        last_name,
+        email: email.toLowerCase(),
+        phone: phone || null,
         employee_id: employee_data.employee_id,
-        company_id: companyId,
+        company_id: targetCompanyId,
         date_of_birth: employee_data.date_of_birth || null,
         date_of_joining: employee_data.date_of_joining,
         department_id: employee_data.department_id || null,
@@ -189,9 +203,9 @@ Deno.serve(async (req) => {
 
     if (employeeError) {
       console.error("Failed to create employee:", employeeError);
-      // Rollback: delete the user and profile
-      await supabase.from("profiles").delete().eq("user_id", userId);
-      await supabase.from("users").delete().eq("id", userId);
+      // Rollback: delete the profile and auth user
+      await supabase.from("profiles").delete().eq("id", userId);
+      await supabase.auth.admin.deleteUser(userId);
       return new Response(
         JSON.stringify({ error: `Failed to create employee: ${employeeError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -201,10 +215,10 @@ Deno.serve(async (req) => {
     // Assign role
     const { error: roleInsertError } = await supabase
       .from("user_roles")
-      .insert({
+      .upsert({
         user_id: userId,
         role: role,
-      });
+      }, { onConflict: 'user_id' });
 
     if (roleInsertError) {
       console.error("Failed to assign role:", roleInsertError);
