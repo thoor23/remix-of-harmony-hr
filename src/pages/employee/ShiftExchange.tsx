@@ -110,8 +110,8 @@ export default function EmployeeShiftExchange() {
 
   const getEmployeeName = (exchange: ShiftExchangeRequest, type: "requester" | "target") => {
     const emp = type === "requester" ? exchange.requester : exchange.target_employee;
-    if (emp?.profile?.first_name || emp?.profile?.last_name) {
-      return `${emp.profile.first_name || ""} ${emp.profile.last_name || ""}`.trim();
+    if (emp?.first_name || emp?.last_name) {
+      return `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
     }
     return emp?.employee_id || "Unknown";
   };

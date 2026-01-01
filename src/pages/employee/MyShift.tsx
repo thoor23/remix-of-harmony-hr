@@ -101,11 +101,12 @@ export default function MyShift() {
     );
   }
 
-  const shiftName = myShiftAssignment.shift_name || currentShift?.name || "Unknown Shift";
-  const shiftColor = myShiftAssignment.shift_color || myShiftAssignment.color || currentShift?.color || "#3B82F6";
-  const startTime = myShiftAssignment.start_time || currentShift?.start_time;
-  const endTime = myShiftAssignment.end_time || currentShift?.end_time;
-  const breakDuration = currentShift?.break_duration || 0;
+  const shiftData = (myShiftAssignment as any).shift;
+  const shiftName = shiftData?.name || currentShift?.name || "Unknown Shift";
+  const shiftColor = shiftData?.color || currentShift?.color || "#3B82F6";
+  const startTime = shiftData?.start_time || currentShift?.start_time;
+  const endTime = shiftData?.end_time || currentShift?.end_time;
+  const breakDuration = shiftData?.break_duration || currentShift?.break_duration || 0;
   const isNight = isNightShift(startTime, endTime);
 
   return (

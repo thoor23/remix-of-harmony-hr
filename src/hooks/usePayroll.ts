@@ -1,13 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCompanyId, getEmployeeId } from "@/lib/supabase-helpers";
 
 export function usePayslips(payPeriod?: string) {
   return useQuery({
     queryKey: ["payslips", payPeriod],
     queryFn: async () => {
-      const params = payPeriod ? `?pay_period=${payPeriod}` : '';
-      return api.get<any[]>(`/payroll/payslips${params}`);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      let query = supabase
+        .from('payslips')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name, avatar_url)
+        `)
+        .eq('company_id', companyId)
+        .order('pay_date', { ascending: false });
+
+      if (payPeriod) {
+        query = query.eq('pay_period', payPeriod);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
   });
 }
@@ -15,7 +36,18 @@ export function usePayslips(payPeriod?: string) {
 export function useMyPayslips(employeeId: string) {
   return useQuery({
     queryKey: ["my-payslips", employeeId],
-    queryFn: () => api.get<any[]>(`/payroll/payslips/employee/${employeeId}`),
+    queryFn: async () => {
+      if (!employeeId) return [];
+
+      const { data, error } = await supabase
+        .from('payslips')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .order('pay_date', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!employeeId,
   });
 }
@@ -23,7 +55,25 @@ export function useMyPayslips(employeeId: string) {
 export function useSalaryStructures() {
   return useQuery({
     queryKey: ["salary-structures"],
-    queryFn: () => api.get<any[]>('/payroll/salary-structures'),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { data, error } = await supabase
+        .from('salary_structures')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
   });
 }
 
@@ -43,7 +93,17 @@ export function useCreateSalaryStructure() {
       other_deductions?: number;
       effective_from: string;
     }) => {
-      await api.post('/payroll/salary-structures', structure);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('salary_structures')
+        .insert([{ ...structure, company_id: companyId }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
@@ -76,7 +136,12 @@ export function useUpdateSalaryStructure() {
         effective_from?: string;
       };
     }) => {
-      await api.put(`/payroll/salary-structures/${id}`, data);
+      const { error } = await supabase
+        .from('salary_structures')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salary-structures"] });
@@ -101,10 +166,21 @@ export function useGeneratePayslip() {
       total_deductions: number;
       net_pay: number;
     }) => {
-      await api.post('/payroll/payslips', {
-        ...payslip,
-        status: "generated",
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const companyId = await getCompanyId(user.id);
+      if (!companyId) throw new Error('Company not found');
+
+      const { error } = await supabase
+        .from('payslips')
+        .insert([{
+          ...payslip,
+          company_id: companyId,
+          status: "generated",
+        }]);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslips"] });

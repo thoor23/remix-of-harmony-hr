@@ -75,9 +75,10 @@ interface AssignmentFormData {
 const getInitialColumns = (): ColumnDef[] => [
   { id: "id", header: "ID", accessor: "id", visible: false },
   { id: "employee_name", header: "Employee", accessor: (row: any) => {
-    const profile = row.employee?.profile;
-    if (!profile) return row.employee?.employee_id || "Unknown";
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+    const employee = row.employee;
+    if (!employee) return "Unknown";
+    if (!employee.first_name && !employee.last_name) return employee.employee_id || "Unknown";
+    return `${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "Unknown";
   }, visible: true },
   { id: "employee_id", header: "Emp ID", accessor: (row: any) => row.employee?.employee_id, visible: false },
   { id: "department", header: "Department", accessor: (row: any) => row.employee?.department?.name || "—", visible: true },
@@ -127,9 +128,10 @@ export default function ShiftAssignments() {
   const isLoading = shiftsLoading || assignmentsLoading || employeesLoading;
 
   const getEmployeeName = (assignment: typeof assignments[0]) => {
-    const profile = assignment.employee?.profile;
-    if (!profile) return assignment.employee?.employee_id || "Unknown";
-    return `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown";
+    const employee = assignment.employee;
+    if (!employee) return "Unknown";
+    if (!employee.first_name && !employee.last_name) return employee.employee_id || "Unknown";
+    return `${employee.first_name || ""} ${employee.last_name || ""}`.trim() || "Unknown";
   };
 
   const filteredAssignments = useMemo(() => 
@@ -319,15 +321,15 @@ export default function ShiftAssignments() {
   const renderCellValue = (assignment: any, column: ColumnDef) => {
     const value = getColumnValue(assignment, column);
     const shift = shifts.find(s => s.id === assignment.shift_id);
-    const profile = assignment.employee?.profile;
+    const employee = assignment.employee;
 
     if (column.id === 'employee_name') {
       return (
         <EmployeeCell
-          avatarUrl={profile?.avatar_url}
-          firstName={profile?.first_name}
-          lastName={profile?.last_name}
-          employeeId={assignment.employee?.employee_id}
+          avatarUrl={employee?.avatar_url}
+          firstName={employee?.first_name}
+          lastName={employee?.last_name}
+          employeeId={employee?.employee_id}
         />
       );
     }

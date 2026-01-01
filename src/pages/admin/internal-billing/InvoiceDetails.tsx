@@ -42,7 +42,7 @@ export default function InvoiceDetails() {
 
   const handleDownload = () => {
     if (invoice) {
-      downloadInvoicePdf(invoice);
+      downloadInvoicePdf(invoice as any);
     }
   };
 
