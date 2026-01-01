@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import api from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -52,8 +52,21 @@ export function useEmailConfig() {
     queryKey: ["email-config"],
     queryFn: async () => {
       try {
-        const data = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
-        return { ...defaultEmailConfig, ...data.value };
+        const companyId = await getCurrentCompanyId();
+        
+        const { data, error } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('company_id', companyId)
+          .eq('key', 'email_config')
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data?.value) {
+          return { ...defaultEmailConfig, ...(data.value as any) };
+        }
+        return defaultEmailConfig;
       } catch {
         return defaultEmailConfig;
       }
@@ -66,17 +79,28 @@ export function useUpdateEmailConfig() {
 
   return useMutation({
     mutationFn: async (config: Partial<EmailConfig>) => {
+      const companyId = await getCurrentCompanyId();
+      
       // Get current config first
-      let currentConfig: Partial<EmailConfig> = {};
-      try {
-        const existing = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
-        currentConfig = existing.value || {};
-      } catch {
-        // No existing config
-      }
+      const { data: existing } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('company_id', companyId)
+        .eq('key', 'email_config')
+        .maybeSingle();
 
+      const currentConfig = existing?.value ? (existing.value as any) : {};
       const updatedConfig = { ...currentConfig, ...config };
-      await api.put("/settings/email_config", { value: updatedConfig });
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          company_id: companyId,
+          key: 'email_config',
+          value: updatedConfig,
+        } as any, { onConflict: 'company_id,key' });
+      
+      if (error) throw error;
       return updatedConfig;
     },
     onSuccess: () => {
@@ -115,19 +139,31 @@ export function useSendTestEmail() {
       return result;
     },
     onSuccess: async () => {
-      // Update the test status in the config
+      const companyId = await getCurrentCompanyId();
       const now = new Date().toISOString();
+      
       try {
-        const existing = await api.get<{ value: Partial<EmailConfig> }>("/settings/email_config");
-        const currentConfig = existing.value || {};
-        await api.put("/settings/email_config", {
-          value: {
-            ...currentConfig,
-            lastTestedAt: now,
-            lastTestStatus: "success",
-            lastTestMessage: "Test email sent successfully",
-          },
-        });
+        const { data: existing } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('company_id', companyId)
+          .eq('key', 'email_config')
+          .maybeSingle();
+        
+        const currentConfig = existing?.value ? (existing.value as any) : {};
+        
+        await supabase
+          .from('system_settings')
+          .upsert({
+            company_id: companyId,
+            key: 'email_config',
+            value: {
+              ...currentConfig,
+              lastTestedAt: now,
+              lastTestStatus: "success",
+              lastTestMessage: "Test email sent successfully",
+            },
+          } as any, { onConflict: 'company_id,key' });
       } catch {
         // Ignore error updating test status
       }

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logAuditEvent } from "./useAuditLogs";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
 import type { LetterType } from "./useLetterTemplates";
 
 export interface GeneratedLetter {
@@ -19,10 +20,8 @@ export interface GeneratedLetter {
   employee?: {
     id: string;
     employee_id: string;
-    profile?: {
-      first_name: string | null;
-      last_name: string | null;
-    };
+    first_name: string | null;
+    last_name: string | null;
   };
 }
 
@@ -30,10 +29,25 @@ export function useGeneratedLetters(employeeId?: string) {
   return useQuery({
     queryKey: ["generated-letters", employeeId],
     queryFn: async () => {
-      const url = employeeId 
-        ? `/templates/generated-letters?employeeId=${employeeId}` 
-        : "/templates/generated-letters";
-      return api.get<GeneratedLetter[]>(url);
+      const companyId = await getCurrentCompanyId();
+      
+      let query = supabase
+        .from('generated_letters')
+        .select(`
+          *,
+          employee:employees(id, employee_id, first_name, last_name)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return (data || []) as unknown as GeneratedLetter[];
     },
   });
 }
@@ -55,13 +69,25 @@ export function useGenerateLetter() {
       content: string;
       metadata?: Record<string, unknown>;
     }) => {
-      const data = await api.post<GeneratedLetter>("/templates/generated-letters", {
-        employee_id,
-        template_id,
-        type,
-        content,
-        metadata,
-      });
+      const companyId = await getCurrentCompanyId();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('generated_letters')
+        .insert({
+          employee_id,
+          template_id,
+          type,
+          content,
+          metadata,
+          company_id: companyId,
+          generated_by: user?.id,
+          status: 'generated',
+        } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
 
       await logAuditEvent(
         "CREATE",
@@ -70,7 +96,7 @@ export function useGenerateLetter() {
         { letter_id: data.id, employee_id }
       );
 
-      return data;
+      return data as unknown as GeneratedLetter;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["generated-letters"] });
@@ -89,7 +115,12 @@ export function useDeleteGeneratedLetter() {
 
   return useMutation({
     mutationFn: async ({ id, type }: { id: string; type: string }) => {
-      await api.delete(`/templates/generated-letters/${id}`);
+      const { error } = await supabase
+        .from('generated_letters')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
       await logAuditEvent("DELETE", "Generated Letters", `Deleted ${type} letter`, { letter_id: id });
     },
     onSuccess: () => {

@@ -60,17 +60,17 @@ export function TicketMessaging({ ticket, onClose, isAdmin = false }: TicketMess
   };
 
   const getInitials = (msg: TicketMessage) => {
-    if (msg.sender?.profile) {
-      const first = msg.sender.profile.first_name?.[0] || "";
-      const last = msg.sender.profile.last_name?.[0] || "";
+    if (msg.sender) {
+      const first = msg.sender.first_name?.[0] || "";
+      const last = msg.sender.last_name?.[0] || "";
       return (first + last).toUpperCase() || "U";
     }
     return "U";
   };
 
   const getSenderName = (msg: TicketMessage) => {
-    if (msg.sender?.profile) {
-      return `${msg.sender.profile.first_name || ""} ${msg.sender.profile.last_name || ""}`.trim() || "Unknown";
+    if (msg.sender) {
+      return `${msg.sender.first_name || ""} ${msg.sender.last_name || ""}`.trim() || "Unknown";
     }
     return "Unknown";
   };
@@ -124,7 +124,7 @@ export function TicketMessaging({ ticket, onClose, isAdmin = false }: TicketMess
                   className={`flex gap-3 ${isOwnMessage(msg) ? "flex-row-reverse" : ""}`}
                 >
                   <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage src={msg.sender?.profile?.avatar_url || undefined} />
+                    <AvatarImage src={msg.sender?.avatar_url || undefined} />
                     <AvatarFallback className="text-xs">{getInitials(msg)}</AvatarFallback>
                   </Avatar>
                   <div className={`max-w-[75%] ${isOwnMessage(msg) ? "text-right" : ""}`}>

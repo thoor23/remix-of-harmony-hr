@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Company {
@@ -48,8 +48,26 @@ export function useSuperAdmin() {
   const companiesQuery = useQuery({
     queryKey: ["super-admin", "companies"],
     queryFn: async () => {
-      const response = await api.get<{ data: Company[] }>("/super-admin/companies");
-      return response.data;
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Get employee counts for each company
+      const companiesWithCounts = await Promise.all(
+        (data || []).map(async (company) => {
+          const { count } = await supabase
+            .from('employees')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', company.id);
+          
+          return { ...company, employee_count: count || 0 };
+        })
+      );
+      
+      return companiesWithCounts as Company[];
     },
   });
 
@@ -57,8 +75,37 @@ export function useSuperAdmin() {
   const statsQuery = useQuery({
     queryKey: ["super-admin", "stats"],
     queryFn: async () => {
-      const response = await api.get<PlatformStats>("/super-admin/stats");
-      return response;
+      const { data: companies } = await supabase
+        .from('companies')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      const { count: totalEmployees } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: totalUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      const allCompanies = companies || [];
+      const activeCompanies = allCompanies.filter(c => c.is_active).length;
+      
+      // Group by plan
+      const planCounts: Record<string, number> = {};
+      allCompanies.forEach(c => {
+        const plan = c.subscription_plan || 'free';
+        planCounts[plan] = (planCounts[plan] || 0) + 1;
+      });
+      
+      return {
+        totalCompanies: allCompanies.length,
+        activeCompanies,
+        totalEmployees: totalEmployees || 0,
+        totalUsers: totalUsers || 0,
+        companiesByPlan: Object.entries(planCounts).map(([plan, count]) => ({ plan, count })),
+        recentCompanies: allCompanies.slice(0, 5),
+      } as PlatformStats;
     },
   });
 
@@ -66,15 +113,48 @@ export function useSuperAdmin() {
   const superAdminsQuery = useQuery({
     queryKey: ["super-admin", "users"],
     queryFn: async () => {
-      const response = await api.get<{ data: SuperAdmin[] }>("/super-admin/super-admins");
-      return response.data;
+      const { data, error } = await supabase
+        .from('super_admins')
+        .select(`
+          id,
+          user_id,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Get user emails from profiles
+      const adminsWithEmails = await Promise.all(
+        (data || []).map(async (admin) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', admin.user_id)
+            .maybeSingle();
+          
+          return {
+            ...admin,
+            user: { email: profile?.email || 'Unknown' },
+          };
+        })
+      );
+      
+      return adminsWithEmails as SuperAdmin[];
     },
   });
 
   // Create company
   const createCompanyMutation = useMutation({
-    mutationFn: async (data: Partial<Company>) => {
-      return api.post<Company>("/super-admin/companies", data);
+    mutationFn: async (companyData: Partial<Company>) => {
+      const { data, error } = await supabase
+        .from('companies')
+        .insert(companyData as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as Company;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -89,7 +169,15 @@ export function useSuperAdmin() {
   // Update company
   const updateCompanyMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Company> }) => {
-      return api.put<Company>(`/super-admin/companies/${id}`, data);
+      const { data: updated, error } = await supabase
+        .from('companies')
+        .update(data as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return updated as Company;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -103,7 +191,12 @@ export function useSuperAdmin() {
   // Toggle company status
   const toggleCompanyStatusMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return api.patch(`/super-admin/companies/${id}/status`, { is_active: isActive });
+      const { error } = await supabase
+        .from('companies')
+        .update({ is_active: isActive })
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "companies"] });
@@ -117,7 +210,14 @@ export function useSuperAdmin() {
   // Add super admin
   const addSuperAdminMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return api.post("/super-admin/super-admins", { user_id: userId });
+      const { data, error } = await supabase
+        .from('super_admins')
+        .insert({ user_id: userId } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "users"] });
@@ -131,7 +231,12 @@ export function useSuperAdmin() {
   // Remove super admin
   const removeSuperAdminMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/super-admin/super-admins/${id}`);
+      const { error } = await supabase
+        .from('super_admins')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin", "users"] });

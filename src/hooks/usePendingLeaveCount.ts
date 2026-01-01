@@ -1,14 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 export function usePendingLeaveCount(employeeId: string) {
   return useQuery({
     queryKey: ["pending-leave-count", employeeId],
     queryFn: async () => {
       if (!employeeId) return 0;
-      const requests = await api.get<any[]>('/leaves/my');
-      const pendingCount = requests.filter(r => r.status === 'pending').length;
-      return pendingCount;
+      
+      const { count, error } = await supabase
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('employee_id', employeeId)
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      return count || 0;
     },
     enabled: !!employeeId,
   });

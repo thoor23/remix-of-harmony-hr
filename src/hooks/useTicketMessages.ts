@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCurrentCompanyId } from "@/lib/supabase-helpers";
+import { useCurrentEmployee } from "./useCurrentEmployee";
 
 export interface TicketMessage {
   id: string;
@@ -12,25 +14,36 @@ export interface TicketMessage {
   sender?: {
     id: string;
     employee_id: string;
-    profile?: {
-      first_name: string;
-      last_name: string;
-      avatar_url: string | null;
-    };
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
   };
 }
 
 export function useTicketMessages(ticketId: string) {
   return useQuery({
     queryKey: ["ticket-messages", ticketId],
-    queryFn: () => api.get<TicketMessage[]>(`/helpdesk/${ticketId}/messages`),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .select(`
+          *,
+          sender:employees(id, employee_id, first_name, last_name, avatar_url)
+        `)
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return (data || []) as unknown as TicketMessage[];
+    },
     enabled: !!ticketId,
-    refetchInterval: 10000, // Poll every 10 seconds for new messages
+    refetchInterval: 10000,
   });
 }
 
 export function useSendTicketMessage() {
   const queryClient = useQueryClient();
+  const { data: currentEmployee } = useCurrentEmployee();
 
   return useMutation({
     mutationFn: async ({
@@ -42,10 +55,22 @@ export function useSendTicketMessage() {
       message: string;
       is_internal?: boolean;
     }) => {
-      return api.post(`/helpdesk/${ticket_id}/messages`, {
-        message,
-        is_internal,
-      });
+      const companyId = await getCurrentCompanyId();
+      
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id,
+          sender_id: currentEmployee?.id,
+          company_id: companyId,
+          message,
+          is_internal,
+        } as any)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-messages", variables.ticket_id] });
